@@ -1,0 +1,60 @@
+#
+# Copyright 2023 Hewlett Packard Enterprise Development LP
+#
+
+## Global options
+PACKAGE_NAME="@PACKAGE_NAME@"
+# Package version should change with each new version
+PACKAGE_VERSION="@PACKAGE_VERSION@"
+
+## SHS DKMS variables
+SHS_DKMS_PACKAGEROOT="${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}"
+SHS_DKMS_BUILDROOT="${SHS_DKMS_PACKAGEROOT}/build"
+
+# QUIRK: the SBL makefile appends to KCPPFLAGS internally. By introducing our
+# own KCPPFLAGS as an environment variable, we can prepend our own KCPPFLAGS
+# without overriding the appends done in the makefile (as would happen if we set
+# KCPPFLAGS on the make command line)
+SHS_MAKE_ENVVARS="KCPPFLAGS=' -I/usr/include '"
+SHS_MAKE_ARGS="\
+ --jobs=1\
+ --print-directory\
+\
+ KDIR=${kernel_source_dir}\
+ KERNELRELEASE=${kernelrel}\
+\
+ SHS_DKMS_BUILDROOT=${SHS_DKMS_BUILDROOT}\
+\
+ PLATFORM_CASSINI_HW=1\
+ SBL_EXTERNAL_BUILD=1\
+"
+
+# The default make command should be put into MAKE[0]. Other entries in the MAKE array will only be used
+#   if their corresponding entry in MAKE_MATCH[#] matches, as a regular expression (using egrep), the
+#   kernel that the module is being built for.
+
+# QUIRK: see description of SHS_MAKE_ENVVARS in comment above
+MAKE="${SHS_MAKE_ENVVARS} 'make' ${SHS_MAKE_ARGS} modules"
+CLEAN="'make' ${SHS_MAKE_ARGS} clean"
+
+## SHS global default DKMS settings (expected to not change between any SHS components)
+# Rebuild and autoinstall automatically when dkms_autoinstaller runs for a new kernel
+AUTOINSTALL="yes"
+
+# Post-build hook to copy our Module.symvers into the DKMS tree so that other modules can build against it
+POST_BUILD="dkms.post_build.sh ${SHS_DKMS_BUILDROOT} ${SHS_DKMS_PACKAGEROOT}"
+
+## Per-module variables
+# destination is 'extra' rather than kernel due to the fact our modules are not in-tree modules.
+# see https://docs.kernel.org/kbuild/modules.html#module-installation for details
+
+#
+# sbl.ko
+#
+BUILT_MODULE_NAME[0]=cxi-sbl
+DEST_MODULE_NAME[0]=cxi-sbl
+BUILT_MODULE_LOCATION[0]=.
+DEST_MODULE_LOCATION[0]=/extra
+STRIP[0]=no
+
+#

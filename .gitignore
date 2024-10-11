@@ -1,0 +1,12 @@
+.settings
+*.cmd
+*.o
+*.dep
+*.ko
+*.mod.c
+*.cache.mk
+*.o.d
+.tmp_versions
+Module.symvers
+modules.order
+

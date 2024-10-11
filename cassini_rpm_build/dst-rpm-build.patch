@@ -1,0 +1,20 @@
+--- dstlibvenv/lib/python3.11/site-packages/craydstlib/scripts/rpm_build	2024-06-19 10:42:23.339052016 -0500
++++ rpm_build	2024-06-19 10:42:04.135192190 -0500
+@@ -192,7 +192,7 @@
+ # Move the RPMs and SRPMS into directories at the root of the repo. This
+ # should make it easy for Jenkins to grab them.
+ mkdir --parents RPMS/$OS
+-for rpm in $(find "WORKSPACE/RPMS" -type f | grep -E ".*\.rpm$"); 
++for rpm in $(find "WORKSPACE/RPMS" -type f | xargs echo | grep -E ".*\.rpm$"); 
+ do 
+     BASE_NAME_RPM=$(basename ${rpm})
+     BASE_RPM_PATH=$(dirname ${rpm})
+@@ -210,7 +210,7 @@
+ chmod a+rwX -R RPMS
+ 
+ # Finish up rpmlint to check for warnings and errors.
+-rpmlint `find RPMS | grep rpm$`
++rpmlint `find RPMS | xargs echo | grep rpm$`
+ 
+ # Return codes from rpmlint:
+ #  0: OK

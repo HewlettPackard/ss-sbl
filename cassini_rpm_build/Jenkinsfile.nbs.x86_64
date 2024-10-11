@@ -1,0 +1,7 @@
+@Library('dst-shared-2@master') _
+@Library('CrayNetworkCI@master') _x
+
+buildRunner {
+    buildScript = "cassini_rpm_build/run.jenkins"
+    timeout = 20
+}

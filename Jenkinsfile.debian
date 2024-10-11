@@ -1,0 +1,54 @@
+@Library(['dst-shared@master', 'scimage-jenkins-library@master']) _
+
+import com.cray.scimage.SCImageProject
+import org.jenkinsci.plugins.workflow.cps.CpsScript
+
+class SBLProject extends SCImageProject {
+    /* Need to replicate these parameters here because inheritence in Groovy is weird */
+    CpsScript script
+    String project_name
+    String build_steps
+    String ct_build_steps = ""
+    String tools_branch = "master"
+    String tools_url = "ssh://git@github.hpe.com/hpe/hpc-hms_ec-hms-scimage.git"
+    String repo_base = "https://arti.hpc.amslabs.hpecorp.net/artifactory"
+    String repo_key = "sshot-fwimage-debian"
+    String repo_username = "jenkins"
+    String repo_password = "jenkins"
+    String repo_distro = "DEFAULT"
+    String repo_component = "main"
+    Boolean skip_publish = true
+    private String myUUID = ""
+    def packages = []
+
+    public preBuildHook(env) {
+        println("Setting up SBL and WORKAREA for later use")
+        script.sh(script: """
+                set -x
+                # Set up tags to find the right commit in SBL
+                cd ${env.WORKSPACE}/work/slingshot_base_link
+                git tag jenkins_build_sbl
+
+                # Set up the base workarea.  This will happen again
+                # in the library, but that's ok
+                cd ${env.WORKSPACE}/hms-scimage
+                ./build-all --sequence=10
+
+                echo "SLINGSHOT_BASE_LINK_ORIGIN=file://"${env.WORKSPACE}"/work/slingshot_base_link" >> ${env.WORKSPACE}/work/workarea-setup.sh
+                echo "SLINGSHOT_BASE_LINK_BRANCH=jenkins_build_sbl" >> ${env.WORKSPACE}/work/workarea-setup.sh
+            """.stripIndent(),
+            label: "Tag SBL Repo")
+    }
+}
+
+def scimageProject = new SBLProject(
+        script:            this,         // necessary for scripts within library
+        project_name:      'slingshot_base_link',
+        build_steps:       'build_rosetta_drivers,build_hms_sbl_iface',
+        ct_build_steps:    'build_rosetta_jni'
+    )
+
+script {
+    scimageProject.setUniqueID()
+    hmsPipeline(scimageProject)
+}

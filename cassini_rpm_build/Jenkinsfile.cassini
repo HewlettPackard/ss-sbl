@@ -1,0 +1,12 @@
+@Library("dst-shared") _
+
+obsBuildPipeline {
+    product = "shs-cn,shs-ncn"
+    productStream = "slingshot-host-software"
+    timeout = 30
+    masterBranch = "integration"
+    recv_triggers = ["cassini-headers-built"]
+    send_triggers = ["slingshot_base_link-built"]
+    manifestGen = "true"
+    numToKeepStr: 40
+}
