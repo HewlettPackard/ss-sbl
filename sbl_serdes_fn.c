@@ -4237,7 +4237,12 @@ int sbl_serdes_tuning(struct sbl_inst *sbl, int port_num)
 	sbl_dev_dbg(sbl->dev, "SerDes tuning for port %d", port_num);
 
 	mutex_lock(&link->tuning_params_mtx);
-	if (link->tune_param_oob_count >= SBL_MAX_TUNE_PARAM_OOB_FAILS) {
+	if (!(link->blattr.options & SBL_OPT_FABRIC_LINK)) {
+		sbl_dev_dbg(sbl->dev,
+				"p%d: Saved tuning params disabled for edge links",
+				port_num);
+		is_retune = false;
+	} else if (link->tune_param_oob_count >= SBL_MAX_TUNE_PARAM_OOB_FAILS) {
 		sbl_dev_dbg(sbl->dev,
 				"p%d: Ignoring saved param load - too many params oob!",
 				port_num);
