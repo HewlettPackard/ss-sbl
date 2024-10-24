@@ -477,14 +477,14 @@ static int sbl_parse_version_string(struct sbl_inst *sbl, char *fw_fname,
 	build_str[SBL_FW_BUILD_LEN] = '\n';
 	build_str[SBL_FW_BUILD_LEN+1] = '\0';
 
-	err = kstrtol(rev_str, 16, (long *)fw_rev);
+	err = kstrtou32(rev_str, 16, fw_rev);
 	if (err) {
 		sbl_dev_err(sbl->dev, "Failed to convert %s to an integer [%d]",
 				rev_str, err);
 		return err;
 	}
 
-	err = kstrtol(build_str, 16, (long *)fw_build);
+	err = kstrtou32(build_str, 16, fw_build);
 	if (err) {
 		sbl_dev_err(sbl->dev, "Failed to convert %s to an integer [%d]",
 				build_str, err);
