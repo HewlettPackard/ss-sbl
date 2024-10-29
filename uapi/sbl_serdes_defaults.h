@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-/* Copyright 2019-2020,2022-2023 Hewlett Packard Enterprise Development LP. All rights reserved. */
+/* Copyright 2019-2020,2022-2024 Hewlett Packard Enterprise Development LP. All rights reserved. */
 
 /**
  * @file uapi/sbl_serdes_defaults.h
@@ -45,9 +45,9 @@ extern "C" {
  * @brief Defaults SerDes attributes common for the instance
  *
  */
-#define SBL_DFLT_SBUS_OP_FLAGS_SLOW        (SBL_FLAG_INTERVAL_1MS | SBL_FLAG_DELAY_50US)
-#define SBL_DFLT_SBUS_OP_FLAGS_FAST        (SBL_FLAG_INTERVAL_1MS | SBL_FLAG_DELAY_5US)
-#define SBL_DFLT_SERDES_OP_FLAGS           (SBL_FLAG_INTERVAL_1MS | SBL_FLAG_DELAY_5US)
+#define SBL_DFLT_SBUS_OP_FLAGS_SLOW        (SBL_FLAG_INTERVAL_10MS | SBL_FLAG_DELAY_50US)
+#define SBL_DFLT_SBUS_OP_FLAGS_FAST        (SBL_FLAG_INTERVAL_1MS  | SBL_FLAG_DELAY_5US)
+#define SBL_DFLT_SERDES_OP_FLAGS           (SBL_FLAG_INTERVAL_1MS  | SBL_FLAG_DELAY_5US)
 #define SBL_DFLT_RX_PHASE_SLIP_CNT                        0xc
 #define SBL_DFLT_SBUS_INT_TIMEOUT                           2
 #define SBL_DFLT_SBUS_INT_POLL_INTERVAL                     1

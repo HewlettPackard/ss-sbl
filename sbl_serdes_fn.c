@@ -2425,17 +2425,55 @@ int sbl_serdes_soft_reset(struct sbl_inst *sbl, int port_num, int serdes)
 	// SBUS Critical Section
 	mutex_lock(SBUS_RING_MTX(sbl, sbus_ring));
 
-	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SERDES_ADDR_IP_IDCODE,
-			       SPICO_SERDES_DATA_RESET);
+	// Reset high
+	err = sbl_sbus_op_aux(sbl, sbus_addr, SPICO_SERDES_ADDR_IMEM,
+				   SBUS_IFACE_DST_CORE | SBUS_CMD_RESET,
+				   SPICO_SERDES_DATA_RESET, &unused);
 	if (err) {
 		mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
 		mutex_unlock(&sbl->link[port_num].serdes_mtx);
 		return err;
 	}
 
-	err = sbl_sbus_op_aux(sbl, sbus_addr, SPICO_SERDES_ADDR_IMEM,
-				   SBUS_IFACE_DST_CORE | SBUS_CMD_RESET,
-				   SPICO_SERDES_DATA_RESET, &unused);
+	// Reset low
+	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SERDES_ADDR_RESET_EN,
+				SPICO_SERDES_DATA_CLR_GLOBAL_RESET);
+	if (err) {
+		mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
+		mutex_unlock(&sbl->link[port_num].serdes_mtx);
+		return err;
+	}
+
+	// Enable ECC
+	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SERDES_ADDR_ECC,
+				SPICO_SERDES_DATA_SET_ECC_EN);
+	if (err) {
+		mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
+		mutex_unlock(&sbl->link[port_num].serdes_mtx);
+		return err;
+	}
+
+	// Clear any ECC errors that occurred previously
+	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SERDES_ADDR_ECCLOG,
+				SPICO_SERDES_DATA_CLR_ECC_ERR);
+	if (err) {
+		mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
+		mutex_unlock(&sbl->link[port_num].serdes_mtx);
+		return err;
+	}
+
+	// Enable SPICO
+	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SERDES_ADDR_RESET_EN,
+				SPICO_SERDES_DATA_SET_SPICO_EN);
+	if (err) {
+		mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
+		mutex_unlock(&sbl->link[port_num].serdes_mtx);
+		return err;
+	}
+
+	// Enable interrupts
+	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SERDES_ADDR_INTR_DIS,
+				SPICO_SERDES_DATA_SET_INTR_EN);
 	if (err) {
 		mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
 		mutex_unlock(&sbl->link[port_num].serdes_mtx);

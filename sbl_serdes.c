@@ -39,7 +39,7 @@ int sbl_serdes_load(struct sbl_inst *sbl, int port_num, bool force)
 	int err;
 
 	if (port_num == SBL_ALL_PORTS) {
-		err = sbl_apply_sbus_divider(sbl, SBL_SBUS_DIVIDER_SPEEDUP);
+		err = sbl_apply_sbus_divider(sbl, SBL_SBUS_DIVIDER_DFLT);
 		if (err) {
 			sbl_dev_err(sbl->dev, "p%d: SBus speedup failed [%d]", port_num, err);
 			return err;
@@ -359,8 +359,9 @@ out:
 int sbl_serdes_reset(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link;
-	int err;
+	int fail_reset_serdes;
 	int serdes;
+	int err;
 
 	err = sbl_validate_instance(sbl);
 	if (err)
@@ -417,13 +418,22 @@ int sbl_serdes_reset(struct sbl_inst *sbl, int port_num)
 		sbl_dev_warn(sbl->dev, "p%d: SerDes reset: port_stop_pcal failed [%d]",
 			 port_num, err);
 
-	/* SPICO reset, upon error will reload serdes firmware. Note reloading
-	 * the firmware can be forced with a debug option.
+	/* Previously sbl_spico_reset() is now changed to
+	 * sbl_serdes_soft_reset() to avoid SBUS lockups - SSHOTPLAT-2222.
+	 * Upon error, spico reset will reload serdes firmware.
+	 * Note, reloading the firmware can be forced with a
+	 * debug option.
 	 */
-	err = sbl_spico_reset(sbl, port_num);
+	for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
+		err = sbl_serdes_soft_reset(sbl, port_num, serdes);
+		if (err) {
+			fail_reset_serdes = serdes;
+			break;
+		}
+	}
 	if (err)
-		sbl_dev_err(sbl->dev, "p%d: SerDes reset: spico_reset failed [%d]",
-				port_num, err);
+		sbl_dev_err(sbl->dev, "p%ds%d: SerDes reset: serdes_soft_reset failed [%d]",
+				port_num, fail_reset_serdes, err);
 	else if (sbl_debug_option(sbl, port_num, SBL_DEBUG_FORCE_RELOAD_SERDES_FW))
 		/* Skip out_success and continue to SPICO reload */
 		sbl_dev_info(sbl->dev, "p%d: SPICO force serdes_firmware_flash_safe", port_num);
