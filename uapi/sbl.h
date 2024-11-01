@@ -187,7 +187,7 @@ enum sbl_link_media_extended
 	SBL_EXT_LINK_MEDIA_ELECTRICAL      = 1<<0, /**< physical wires        */
 	SBL_EXT_LINK_MEDIA_OPTICAL_ANALOG  = 1<<1, /**< analog optical fiber  */
 	SBL_EXT_LINK_MEDIA_OPTICAL_DIGITAL = 1<<2, /**< digital optical fiber */
-	SBL_EXT_LINK_MEDIA_ELECTRICAL_ACT  = 1<<4, /**< active electrical     */
+	SBL_EXT_LINK_MEDIA_ELECTRICAL_ACT  = 1<<3, /**< active electrical     */
 };
 
 
