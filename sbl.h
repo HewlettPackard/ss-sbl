@@ -316,6 +316,8 @@ u64  sbl_link_get_ucw_thresh_ieee(struct sbl_inst *sbl, int port_num);
 u64  sbl_link_get_ucw_thresh_hpe(struct sbl_inst *sbl, int port_num);
 u64  sbl_link_get_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num);
 u64  sbl_link_get_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num);
+u64  sbl_link_get_stp_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num);
+u64  sbl_link_get_stp_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num);
 
 /*
  * serdes tuning params

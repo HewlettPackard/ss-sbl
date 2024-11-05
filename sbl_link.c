@@ -1284,6 +1284,85 @@ u64  sbl_link_get_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_link_get_ccw_thresh_ieee);
 
+/*
+ * corrected code words when STP is used
+ * It is meant to be aggressive and is of the order 1e-08
+ */
+u64  sbl_link_get_stp_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+
+	/*
+	 * for electrical links use a threshold of 1.e-8
+	 * (we consider loopback links to be electrical)
+	 */
+	if ((link->mattr.media == SBL_LINK_MEDIA_ELECTRICAL) ||
+			(link->loopback_mode == SBL_LOOPBACK_MODE_LOCAL)) {
+		switch (link->link_mode) {
+		case SBL_LINK_MODE_BS_200G:
+			return 2125;
+		case SBL_LINK_MODE_BJ_100G:
+			return 1031;
+		case SBL_LINK_MODE_CD_100G:
+			return 1062;
+		case SBL_LINK_MODE_CD_50G:
+			return 531;
+		default:
+			sbl_dev_err(sbl->dev, "%d: cannot determine PEC stp ccw rate", port_num);
+			return 0;
+		}
+
+	}
+
+	/*
+	 * optical links seem to require a threshold of about 4e-8
+	 * (otherwise pcal can sometimes take us over the threshold)
+	 */
+	if (link->mattr.media == SBL_LINK_MEDIA_OPTICAL) {
+		switch (link->link_mode) {
+		case SBL_LINK_MODE_BS_200G:
+			return 8500;
+		case SBL_LINK_MODE_BJ_100G:
+			return 4125;
+		case SBL_LINK_MODE_CD_100G:
+			return 4250;
+		case SBL_LINK_MODE_CD_50G:
+			return 2125;
+		default:
+			sbl_dev_err(sbl->dev, "%d: cannot determine AOC stp ccw rate", port_num);
+			return 0;
+		}
+	}
+
+	/* dont recognise media */
+	sbl_dev_err(sbl->dev, "%d: cannot determine stp ccw rate - unrecognised media", port_num);
+	return 0;
+}
+EXPORT_SYMBOL(sbl_link_get_stp_ccw_thresh_hpe);
+
+
+u64  sbl_link_get_stp_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+
+	/*
+	 * ieee thresholds are about 2e-8
+	 * We dont care about media type
+	 */
+	switch (link->link_mode) {
+	case SBL_LINK_MODE_BS_200G:
+		return 4250;
+	case SBL_LINK_MODE_BJ_100G:
+	case SBL_LINK_MODE_CD_100G:
+		return 2125;
+	case SBL_LINK_MODE_CD_50G:
+		return 1062;
+	default:
+		sbl_dev_err(sbl->dev, "%d: cannot determine stp ccw rate", port_num);
+		return 0;
+	}
+}
+EXPORT_SYMBOL(sbl_link_get_stp_ccw_thresh_ieee);
 
 /*
  * Link info

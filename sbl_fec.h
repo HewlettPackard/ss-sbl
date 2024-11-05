@@ -43,6 +43,8 @@ struct sbl_fec {
 
 	u64 fec_ccw_thresh;			   /* corrected codewords link up threshold */
 	u32 fec_ccw_up_thresh_adj;		   /* debug: percentage adjustment for link up threshold */
+	u64 fec_stp_ccw_thresh;			   /* corrected codewords link up threshold when STP is used */
+	u32 fec_stp_ccw_up_thresh_adj;		   /* percentage adjustment for link up threshold when STP is used */
 	u32 fec_ccw_down_thresh_adj;		   /* percentage adjustment for link down threshold */
 	u32 fec_ccw_hwm;			   /* highest value measured */
 
@@ -82,7 +84,7 @@ void sbl_fec_timer(struct timer_list *timer);
 void sbl_fec_hwms_clear(struct sbl_inst *sbl, int port_num);
 void sbl_fec_dump(struct sbl_inst *sbl, int port_num);
 void sbl_fec_modify_adjustments(struct sbl_inst *sbl, int port_num,
-		u32 *ucw_up_adj, u32 *ccw_up_adj, u32 *ucw_down_adj, u32 *ccw_down_adj);
+		u32 *ucw_up_adj, u32 *ccw_up_adj, u32 *ucw_down_adj, u32 *ccw_down_adj, u32 *stp_ccw_up_adj);
 int sbl_fec_txr_rate_set(struct sbl_inst *sbl, int port_num,
 		u32 txr_rate);
 void sbl_fec_timer_work(struct work_struct *work);

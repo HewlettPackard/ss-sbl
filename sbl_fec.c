@@ -25,7 +25,7 @@
 
 static int sbl_fec_rates_update(struct sbl_inst *sbl, int port_num, u32 window);
 static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
-				u32 thresh_adj);
+				u32 thresh_adj, bool use_stp_thresh);
 static bool sbl_fec_ucw_rate_bad(struct sbl_inst *sbl, int port_num,
 				u32 thresh_adj);
 static void sbl_fec_counts_zero(struct sbl_inst *sbl, int port_num,
@@ -48,6 +48,7 @@ void sbl_fec_thresholds_clear(struct sbl_inst *sbl, int port_num)
 	spin_lock(&fec_prmts->fec_cw_lock);
 	fec_prmts->fec_ucw_thresh = 0;
 	fec_prmts->fec_ccw_thresh = 0;
+	fec_prmts->fec_stp_ccw_thresh = 0;
 	fec_prmts->fecl_warn  = 0;
 	spin_unlock(&fec_prmts->fec_cw_lock);
 }
@@ -70,6 +71,7 @@ int sbl_fec_thresholds_set(struct sbl_inst *sbl, int port_num,
 	int link_mode;
 	u64 ucw;
 	u64 ccw;
+	u64 stp_ccw;
 	u64 fecl_warn  = 0;
 	int err = 0;
 
@@ -120,10 +122,12 @@ int sbl_fec_thresholds_set(struct sbl_inst *sbl, int port_num,
 
 	case SBL_LINK_FEC_IEEE:
 		ccw = sbl_link_get_ccw_thresh_ieee(sbl, port_num);
+		stp_ccw = sbl_link_get_stp_ccw_thresh_ieee(sbl, port_num);
 		break;
 
 	case SBL_LINK_FEC_HPE:
 		ccw = sbl_link_get_ccw_thresh_hpe(sbl, port_num);
+		stp_ccw = sbl_link_get_stp_ccw_thresh_hpe(sbl, port_num);
 		break;
 
 	default:
@@ -136,6 +140,7 @@ int sbl_fec_thresholds_set(struct sbl_inst *sbl, int port_num,
 
 		/* explicit number, just use it */
 		ccw = ccw_in;
+		stp_ccw = ccw_in;
 		break;
 	}
 
@@ -175,6 +180,7 @@ int sbl_fec_thresholds_set(struct sbl_inst *sbl, int port_num,
 	spin_lock(&fec_prmts->fec_cw_lock);
 	fec_prmts->fec_ucw_thresh = ucw;
 	fec_prmts->fec_ccw_thresh = ccw;
+	fec_prmts->fec_stp_ccw_thresh = stp_ccw;
 	fec_prmts->fec_llr_tx_replay_thresh = SBL_FEC_LLR_TX_REPLAY_THRESH;
 	fec_prmts->fecl_warn = fecl_warn;
 	spin_unlock(&fec_prmts->fec_cw_lock);
@@ -217,14 +223,17 @@ int sbl_fec_up_check(struct sbl_inst *sbl, int port_num)
 	struct fec_data *fec_data = link->fec_data;
 	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
 	bool ucw_err;
-	bool ccw_err;
+	bool ccw_err	 = false;
+	bool stp_ccw_err = false;
 	u32 ucw_thresh_adj;
 	u32 ccw_thresh_adj;
+	u32 stp_ccw_thresh_adj;
 	int i;
 
 	spin_lock(&fec_prmts->fec_cw_lock);
 	ucw_thresh_adj = fec_prmts->fec_ucw_up_thresh_adj;
 	ccw_thresh_adj = fec_prmts->fec_ccw_up_thresh_adj;
+	stp_ccw_thresh_adj = fec_prmts->fec_stp_ccw_up_thresh_adj;
 	spin_unlock(&fec_prmts->fec_cw_lock);
 
 	/* initial measurement */
@@ -241,11 +250,19 @@ int sbl_fec_up_check(struct sbl_inst *sbl, int port_num)
 		if (ucw_err)
 			sbl_dev_err(sbl->dev, "%d: fec up check: ucw fail", port_num);
 
-		ccw_err = sbl_fec_ccw_rate_bad(sbl, port_num, ccw_thresh_adj);
-		if (ccw_err)
-			sbl_dev_err(sbl->dev, "%d: fec up check: ccw fail", port_num);
+		if ((link->dfe_tune_count == SBL_DFE_USED_SAVED_PARAMS) && (stp_ccw_thresh_adj > 0)) {
+			stp_ccw_err = sbl_fec_ccw_rate_bad(sbl, port_num, stp_ccw_thresh_adj, true);
+		} else {
+			ccw_err = sbl_fec_ccw_rate_bad(sbl, port_num, ccw_thresh_adj, false);
+		}
 
-		if (ucw_err || ccw_err) {
+		if (ccw_err) {
+			sbl_dev_err(sbl->dev, "%d: fec up check: ccw fail", port_num);
+		} else if (stp_ccw_err) {
+			sbl_dev_err(sbl->dev, "%d: fec up check: stp ccw fail", port_num);
+		}
+
+		if (ucw_err || ccw_err || stp_ccw_err) {
 			sbl_link_counters_incr(sbl, port_num, fec_up_fail);
 			return -EOVERFLOW;
 		}
@@ -419,7 +436,7 @@ static bool sbl_fec_ucw_rate_bad(struct sbl_inst *sbl, int port_num,
  * returns true if the corrected code word rate is bad
  */
 static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
-				u32 thresh_adj)
+				u32 thresh_adj, bool use_stp_thresh)
 {
 	struct sbl_link *link = sbl->link + port_num;
 	struct fec_data *fec_data = link->fec_data;
@@ -432,7 +449,11 @@ static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 	spin_lock(&fec_prmts->fec_cw_lock);
 	ccw_hwm = fec_prmts->fec_ccw_hwm;
 #ifdef CONFIG_SBL_PLATFORM_ROS_HW
-	ccw_bad = fec_prmts->fec_ccw_thresh;
+	if (use_stp_thresh) {
+		ccw_bad = fec_prmts->fec_stp_ccw_thresh;
+	} else {
+		ccw_bad = fec_prmts->fec_ccw_thresh;
+	}
 #else
 	ccw_bad = 21250000;
 #endif
@@ -450,7 +471,9 @@ static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 		spin_unlock(&fec_prmts->fec_cw_lock);
 	}
 
-	/* apply percentage adjustment */
+	/*
+	 * apply percentage adjustment 
+	 */
 	ccw_bad = ccw_bad * thresh_adj / 100;
 
 	if (ccw_bad == 0) {
@@ -534,7 +557,7 @@ void sbl_fec_timer_work(struct work_struct *work)
 				return;
 			}
 
-			if (sbl_fec_ccw_rate_bad(sbl, port_num, ccw_thresh_adj)) {
+			if (sbl_fec_ccw_rate_bad(sbl, port_num, ccw_thresh_adj, false)) {
 				/* take the link down */
 				down_origin = SBL_LINK_DOWN_ORIGIN_CCW;
 				sbl_pml_link_down_async_alert(sbl, port_num, down_origin);
@@ -780,7 +803,7 @@ EXPORT_SYMBOL(sbl_fec_txr_rate_set);
  *	 (really at test/debug/tuning interface)
  */
 void sbl_fec_modify_adjustments(struct sbl_inst *sbl, int port_num,
-		u32 *ucw_up_adj, u32 *ccw_up_adj, u32 *ucw_down_adj, u32 *ccw_down_adj)
+		u32 *ucw_up_adj, u32 *ccw_up_adj, u32 *ucw_down_adj, u32 *ccw_down_adj, u32 *stp_ccw_up_adj)
 {
 	struct sbl_link *link = sbl->link + port_num;
 	struct fec_data *fec_data = link->fec_data;
@@ -795,6 +818,8 @@ void sbl_fec_modify_adjustments(struct sbl_inst *sbl, int port_num,
 		fec_prmts->fec_ucw_down_thresh_adj = *ucw_down_adj;
 	if (ccw_down_adj)
 		fec_prmts->fec_ccw_down_thresh_adj = *ccw_down_adj;
+	if (stp_ccw_up_adj)
+		fec_prmts->fec_stp_ccw_up_thresh_adj = *stp_ccw_up_adj;
 	spin_unlock(&fec_prmts->fec_cw_lock);
 }
 EXPORT_SYMBOL(sbl_fec_modify_adjustments);
@@ -811,18 +836,22 @@ void sbl_fec_dump(struct sbl_inst *sbl, int port_num)
 
 	u64 ucw_thresh;
 	u64 ccw_thresh;
+	u64 stp_ccw_thresh;
 	u32 ucw_up_adj;
 	u32 ccw_up_adj;
+	u32 stp_ccw_up_adj;
 	u32 ucw_down_adj;
 	u32 ccw_down_adj;
 
 	spin_lock(&fec_prmts->fec_cw_lock);
-	ucw_thresh	 = fec_prmts->fec_ucw_thresh;
-	ccw_thresh	 = fec_prmts->fec_ccw_thresh;
-	ucw_up_adj	 = fec_prmts->fec_ucw_up_thresh_adj;
-	ccw_up_adj	 = fec_prmts->fec_ccw_up_thresh_adj;
-	ucw_down_adj = fec_prmts->fec_ucw_down_thresh_adj;
-	ccw_down_adj = fec_prmts->fec_ccw_down_thresh_adj;
+	ucw_thresh     = fec_prmts->fec_ucw_thresh;
+	ccw_thresh     = fec_prmts->fec_ccw_thresh;
+	stp_ccw_thresh = fec_prmts->fec_stp_ccw_thresh;
+	ucw_up_adj     = fec_prmts->fec_ucw_up_thresh_adj;
+	ccw_up_adj     = fec_prmts->fec_ccw_up_thresh_adj;
+	stp_ccw_up_adj = fec_prmts->fec_stp_ccw_up_thresh_adj;
+	ucw_down_adj   = fec_prmts->fec_ucw_down_thresh_adj;
+	ccw_down_adj   = fec_prmts->fec_ccw_down_thresh_adj;
 	spin_unlock(&fec_prmts->fec_cw_lock);
 
 	sbl_dev_info(sbl->dev, "%d: ucw : thresh %lld", port_num, ucw_thresh);
@@ -832,8 +861,11 @@ void sbl_fec_dump(struct sbl_inst *sbl, int port_num)
 			ucw_down_adj, ucw_thresh * ucw_down_adj / 100);
 
 	sbl_dev_info(sbl->dev, "%d: ccw : thresh %lld", port_num, ccw_thresh);
+	sbl_dev_info(sbl->dev, "%d: stp ccw : thresh %lld", port_num, stp_ccw_thresh);
 	sbl_dev_info(sbl->dev, "%d: ccw up: x%d%%, %lld", port_num,
 			ccw_up_adj, ccw_thresh * ccw_up_adj / 100);
+	sbl_dev_info(sbl->dev, "%d: stp ccw up: x%d%%, %lld", port_num,
+			stp_ccw_up_adj, stp_ccw_thresh * stp_ccw_up_adj / 100);
 	sbl_dev_info(sbl->dev, "%d: ccw down: x%d%%, %lld", port_num,
 			ccw_down_adj, ccw_thresh * ccw_down_adj / 100);
 }

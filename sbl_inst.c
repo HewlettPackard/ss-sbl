@@ -254,6 +254,8 @@ static int sbl_fec_init(struct sbl_inst *sbl)
 		link->fec_data->fec_prmts->fec_ccw_thresh = 0;
 		link->fec_data->fec_prmts->fec_ccw_up_thresh_adj = 100;
 		link->fec_data->fec_prmts->fec_ccw_down_thresh_adj = 100;
+		link->fec_data->fec_prmts->fec_stp_ccw_thresh = 0;
+		link->fec_data->fec_prmts->fec_stp_ccw_up_thresh_adj = 100;
 		link->fec_data->fec_prmts->fec_ccw_hwm = 0;
 		link->fec_data->fec_prmts->fecl_warn = 0;
 
