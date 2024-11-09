@@ -48,7 +48,16 @@ Obsoletes:      kmod-%%{name} \n\
 Provides:       kmod-%%{name} = %%version-%%release \n\
 %endif" > %{_sourcedir}/%{name}.rpm_preamble)
 
+%if 0%{with shasta_premium}
+# The nvidia-gpu-build-obs package (necessary for building against CUDA
+# drivers) causes a bogus default kernel flavor to be added. This causes
+# builds to fail, as upstream dependencies (i.e. SBL) are not built for
+# default on shasta-premium. Work around this by explicitly excluding the
+# default flavor on shasta-premium
+%kernel_module_package -x 64kb default %kmp_args
+%else
 %kernel_module_package %kmp_args
+%endif
 
 %description
 Slingshot Base Link driver
