@@ -1,13 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-/*
- * sbl_pml.h
- *
- * Copyright 2019-2023 Hewlett Packard Enterprise Development LP
- *
- * pml functionality
- *
- */
+/* Copyright 2019-2023 Hewlett Packard Enterprise Development LP */
 
 #ifndef _SBL_PML_FN_H_
 #define _SBL_PML_FN_H_
@@ -57,11 +50,11 @@
 
 
 /* PML error flags monitored during autoneg */
-#define SBL_AUTONEG_ERR_FLGS    	(SBL_PML_ERR_FLG_AUTONEG_COMPLETE_SET(1ULL) | \
-					 SBL_PML_ERR_FLG_AUTONEG_PAGE_RECEIVED_SET(1ULL))
+#define SBL_AUTONEG_ERR_FLGS	 (SBL_PML_ERR_FLG_AUTONEG_COMPLETE_SET(1ULL) | \
+				  SBL_PML_ERR_FLG_AUTONEG_PAGE_RECEIVED_SET(1ULL))
 
 /* PML error flags monitored for link faults */
-#define SBL_PML_FAULT_ERR_FLAGS 	(SBL_PML_ERR_FLG_PCS_LINK_DOWN_SET(1ULL) | \
+#define SBL_PML_FAULT_ERR_FLAGS		(SBL_PML_ERR_FLG_PCS_LINK_DOWN_SET(1ULL) | \
 					 SBL_PML_ERR_FLG_PCS_HI_SER_SET(1ULL) | \
 					 SBL_PML_ERR_FLG_LLR_REPLAY_AT_MAX_SET(1ULL) | \
 					 SBL_PML_ERR_FLG_PCS_TX_DEGRADE_SET(1ULL) | \

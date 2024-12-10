@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_link.c
- *
- * Copyright 2019-2024 Hewlett Packard Enterprise Development LP
- *
- *
- *
- */
+/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -483,14 +476,14 @@ int sbl_base_link_cancel_start(struct sbl_inst *sbl, int port_num)
 {
 	int rtn;
 	struct sbl_link *link = sbl->link + port_num;
-        struct fec_data *fec_data = link->fec_data;
+	struct fec_data *fec_data = link->fec_data;
 
 	sbl_dev_dbg(sbl->dev, "bl %d: cancelling start\n", port_num);
 
 	spin_lock(&link->lock);
 	link->start_cancelled = true;
 	spin_unlock(&link->lock);
-        rtn = del_timer_sync(&fec_data->fec_timer);
+	rtn = del_timer_sync(&fec_data->fec_timer);
 
 	if (rtn < 0)
 		sbl_dev_warn(sbl->dev, "bl %d: del_timer_sync failed [%d]", port_num, rtn);
@@ -519,6 +512,7 @@ int sbl_base_link_stop(struct sbl_inst *sbl, int port_num)
 	int err;
 	int rtn;
 	struct fec_data *fec_data;
+
 	err = sbl_validate_instance(sbl);
 	if (err)
 		return err;
@@ -579,7 +573,7 @@ int sbl_base_link_stop(struct sbl_inst *sbl, int port_num)
 		goto out;
 	}
 
-        rtn = del_timer_sync(&fec_data->fec_timer);
+	rtn = del_timer_sync(&fec_data->fec_timer);
 
 	if (rtn < 0)
 		sbl_dev_warn(sbl->dev, "bl %d: del_timer_sync failed [%d]", port_num, rtn);
@@ -810,7 +804,7 @@ static int sbl_link_fault_monitor_start(struct sbl_inst *sbl, int port_num)
 	}
 
 	if (sbl_pml_err_flgs_test(sbl, port_num, err_flags)) {
-		sbl_dev_err(sbl->dev, "fm %d: link down during start \n", port_num);
+		sbl_dev_err(sbl->dev, "fm %d: link down during start\n", port_num);
 		err = -ENETDOWN;
 		goto out_disable;
 	} else {
@@ -1526,9 +1520,9 @@ int sbl_base_link_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, si
 				s += snprintf(buf+s, size-s, ", received %d", link->an_rx_count);
 			if (link->an_100cr4_fixup_applied)
 				s += snprintf(buf+s, size-s, ", 100cr4-fixup");
-			if (link->an_options & AN_OPT_LLR) {
+			if (link->an_options & AN_OPT_LLR)
 				s += snprintf(buf+s, size-s, ", llr");
-			}
+
 			s += snprintf(buf+s, size-s, "\n");
 		}
 		sbl_pml_mac_hw_status(sbl, port_num, &mac_tx_op, &mac_rx_op, &mac_ifg_mode, NULL);

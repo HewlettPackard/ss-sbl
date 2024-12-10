@@ -1,11 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
 /* Copyright 2020-2021, 2024 Hewlett Packard Enterprise Development LP */
-/*
- * sbl_constants.h
- *
- *  Header file shared by SBL, Rosetta, and Cassini
- */
+
 #ifndef _SBL_CONSTANTS_H_
 #define _SBL_CONSTANTS_H_
 
@@ -349,7 +345,6 @@ extern "C" {
 #define SBL_CORE_STATUS_RD_RETRY_DELAY  1
 
 #define SPICO_INT_DATA_PRBS_RETRY_LIMIT 8
-#define SPICO_INT_DATA_PRBS_RETRY_DELAY 1
 
 #define SPICO_PROC_RESET_RETRY_TIMEOUT_MS 2000
 

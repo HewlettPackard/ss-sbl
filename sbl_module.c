@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_module.c
- *
- * Copyright 2019-2024 Hewlett Packard Enterprise Development LP
- *
- *
- *
- */
+/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
 
 #include <linux/module.h>
 #include <linux/init.h>
@@ -37,7 +30,7 @@ struct sbl_switch_info *sbl_switch_info;
 				    SBL_VERSION_MINOR,	\
 				    SBL_VERSION_INC)
 
-static int update_sbl_ports_info_from_dt (struct device_node *starting_node,
+static int update_sbl_ports_info_from_dt(struct device_node *starting_node,
 					struct sbl_switch_info *sbl_ports_info)
 {
 	struct device_node *port, *lane;
@@ -45,7 +38,7 @@ static int update_sbl_ports_info_from_dt (struct device_node *starting_node,
 	char port_buffer[10], lane_buffer[10];
 
 	if (!starting_node || !sbl_ports_info) {
-		pr_err("%s : starting_node is %s sbl_ports_info is %s \n", module_name(THIS_MODULE),
+		pr_err("%s : starting_node is %s sbl_ports_info is %s\n", module_name(THIS_MODULE),
 								starting_node ? "Non Null" : "Null",
 								sbl_ports_info ? "Non Null" : "Null");
 		goto out;
@@ -83,8 +76,7 @@ static int update_sbl_ports_info_from_dt (struct device_node *starting_node,
 			if (!ret) {
 				sbl_ports_info->ports[port_index].rx_an_swizzle = val;
 			} else {
-				pr_err("%s : Unable to get port%d rx_an_swizzle\n", module_name(THIS_MODULE),
-						port_index);
+				pr_err("%s : Unable to get port%d rx_an_swizzle\n", module_name(THIS_MODULE), port_index);
 				goto out_1;
 			}
 
@@ -92,8 +84,7 @@ static int update_sbl_ports_info_from_dt (struct device_node *starting_node,
 			if (!ret) {
 				sbl_ports_info->ports[port_index].tx_an_swizzle = val;
 			} else {
-				pr_err("%s : Unable to get port%d tx_an_swizzle\n", module_name(THIS_MODULE),
-						port_index);
+				pr_err("%s : Unable to get port%d tx_an_swizzle\n", module_name(THIS_MODULE), port_index);
 				goto out_1;
 			}
 
@@ -114,9 +105,8 @@ static int update_sbl_ports_info_from_dt (struct device_node *starting_node,
 					if (!ret) {
 						sbl_ports_info->ports[port_index].serdes[lane_index].sbus_ring = val;
 					} else {
-						pr_err("%s : Unable to get port%d lane%d "
-								     "sbus_ring \n", module_name(THIS_MODULE),
-								     port_index, lane_index);
+						pr_err("%s : Unable to get port%d lane%d sbus_ring\n",
+							module_name(THIS_MODULE), port_index, lane_index);
 						goto out_2;
 					}
 
@@ -124,9 +114,8 @@ static int update_sbl_ports_info_from_dt (struct device_node *starting_node,
 					if (!ret) {
 						sbl_ports_info->ports[port_index].serdes[lane_index].rx_addr = val;
 					} else {
-						pr_err("%s : Unable to get port%d lane%d "
-								     "rx_addr\n", module_name(THIS_MODULE),
-								     port_index, lane_index);
+						pr_err("%s : Unable to get port%d lane%d rx_addr\n",
+								module_name(THIS_MODULE), port_index, lane_index);
 						goto out_2;
 					}
 
@@ -134,9 +123,8 @@ static int update_sbl_ports_info_from_dt (struct device_node *starting_node,
 					if (!ret) {
 						sbl_ports_info->ports[port_index].serdes[lane_index].tx_lane_source = val;
 					} else {
-						pr_err("%s : Unable to get port%d lane%d "
-								     "tx_lane_source\n", module_name(THIS_MODULE),
-								      port_index, lane_index);
+						pr_err("%s : Unable to get port%d lane%d tx_lane_source\n",
+								module_name(THIS_MODULE), port_index, lane_index);
 						goto out_2;
 					}
 
@@ -144,9 +132,8 @@ static int update_sbl_ports_info_from_dt (struct device_node *starting_node,
 					if (!ret) {
 						sbl_ports_info->ports[port_index].serdes[lane_index].rx_lane_source = val;
 					} else {
-						pr_err("%s : Unable to get port%d lane%d "
-								     "rx_lane_source\n", module_name(THIS_MODULE),
-								      port_index, lane_index);
+						pr_err("%s : Unable to get port%d lane%d rx_lane_source\n",
+								module_name(THIS_MODULE), port_index, lane_index);
 						goto out_2;
 					}
 
@@ -157,9 +144,8 @@ static int update_sbl_ports_info_from_dt (struct device_node *starting_node,
 					sbl_ports_info->ports[port_index].serdes[lane_index].rxinv = ret;
 					of_node_put(lane);
 				} else {
-					pr_err("%s : Unable to get port%d lane%d by "
-							     "of_find_node_by_name\n", module_name(THIS_MODULE),
-							      port_index, lane_index);
+					pr_err("%s : Unable to get port%d lane%d by of_find_node_by_name\n",
+								module_name(THIS_MODULE), port_index, lane_index);
 					goto out_1;
 				}
 			}
@@ -179,7 +165,7 @@ out:
 	return -1;
 }
 
-static int update_sbl_switch_info_from_dt (void)
+static int update_sbl_switch_info_from_dt(void)
 {
 	struct device_node *switch_node, *node;
 	int  val, switch_index;
@@ -202,11 +188,8 @@ static int update_sbl_switch_info_from_dt (void)
 	}
 
 	rosetta_switch_info = kzalloc(num_of_rosetta * sizeof(struct sbl_switch_info), GFP_KERNEL);
-	if (!rosetta_switch_info) {
-		pr_err("%s : Unable to allocate memory for rosetta_switch_info num_of_rosetta %d\n",
-			     module_name(THIS_MODULE), num_of_rosetta);
+	if (!rosetta_switch_info)
 		goto out_1;
-	}
 
 	for (switch_index = 0; switch_index < num_of_rosetta; switch_index++) {
 		snprintf(switch_buffer, 20, "rosetta%d", switch_index);
@@ -236,10 +219,9 @@ out_2:
 out_1:
 	of_node_put(node);
 out:
-	if (rosetta_switch_info) {
-		kfree(rosetta_switch_info);
-		rosetta_switch_info = NULL;
-	}
+	kfree(rosetta_switch_info);
+	rosetta_switch_info = NULL;
+
 	return -1;
 }
 
@@ -309,16 +291,13 @@ struct device *sbl_get_device(void)
 struct sbl_switch_info *sbl_get_switch_info(int *size)
 {
 	if (size != NULL) {
-		if (sbl_switch_info != NULL) {
+		if (sbl_switch_info != NULL)
 			*size = sizeof(struct sbl_switch_info);
-		} else {
+		else
 			*size = 0;
-		}
 	}
-
 	return sbl_switch_info;
 }
-
 EXPORT_SYMBOL(sbl_get_switch_info);
 
 /*

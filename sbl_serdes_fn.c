@@ -1,15 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_serdes_fn.c
- *
- * Copyright 2019-2024 Hewlett Packard Enterprise Development LP
- *
- * Aux functions to implement functionality behind:
- *  sbl_serdes_start
- *  sbl_serdes_stop
- *
- */
+/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
 
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -47,16 +38,16 @@ static bool get_serdes_precoding(struct sbl_inst *sbl, int port_num);
 
 
 /**
-   @brief dummy function used when DEV_TRACE2 or DEV_TRACE3 are not defined
-   *
-   * @param dev device pointer
-   * @param format printk-like format and varargs
-   *
-   * @return none
-   */
+ * @brief dummy function used when DEV_TRACE2 or DEV_TRACE3 are not defined
+ *
+ * @param dev device pointer
+ * @param format printk-like format and varargs
+ *
+ * @return none
+ */
 void dev_ignore(struct device *dev, const char *format, ...)
 {
-	return;
+
 }
 
 /**
@@ -74,19 +65,19 @@ static u64 sbl_get_tp_hash0(struct sbl_inst *sbl, int port_num)
 
 	switch (sbl->link[port_num].mattr.media) {
 	case SBL_LINK_MEDIA_ELECTRICAL:
-		if (sbl->link[port_num].mattr.info & SBL_MEDIA_INFO_DIGITAL) {
+		if (sbl->link[port_num].mattr.info & SBL_MEDIA_INFO_DIGITAL)
 			media = SBL_EXT_LINK_MEDIA_ELECTRICAL_ACT;
-		} else {
+		else
 			media = SBL_EXT_LINK_MEDIA_ELECTRICAL;
-		}
+
 		break;
 
 	case SBL_LINK_MEDIA_OPTICAL:
-		if (sbl->link[port_num].mattr.info & SBL_MEDIA_INFO_DIGITAL) {
+		if (sbl->link[port_num].mattr.info & SBL_MEDIA_INFO_DIGITAL)
 			media = SBL_EXT_LINK_MEDIA_OPTICAL_DIGITAL;
-		} else {
+		else
 			media = SBL_EXT_LINK_MEDIA_OPTICAL_ANALOG;
-		}
+
 		break;
 
 	default:
@@ -113,16 +104,14 @@ void sbl_serdes_get_fw_vers(struct sbl_inst *sbl, int port_num, int serdes,
 				SPICO_INT_DATA_NONE, (uint16_t *)fw_rev,
 				SPICO_INT_RETURN_RESULT)) {
 		// Failure expected when Spico is in reset
-		dev_dbg(sbl->dev, "p%ds%d: Failed to read firmware rev!",
-				port_num, serdes);
+		dev_dbg(sbl->dev, "p%ds%d: Failed to read firmware rev!", port_num, serdes);
 		*fw_rev = 0x0;
 	}
 	if (sbl_serdes_spico_int(sbl, port_num, serdes, SPICO_INT_CM4_BUILD_ID,
 				SPICO_INT_DATA_NONE, (uint16_t *)fw_build,
 				SPICO_INT_RETURN_RESULT)) {
 		// Failure expected when Spico is in reset
-		dev_dbg(sbl->dev, "p%ds%d: Failed to read firmware build!",
-				port_num, serdes);
+		dev_dbg(sbl->dev, "p%ds%d: Failed to read firmware build!", port_num, serdes);
 		*fw_build = 0x0;
 	}
 }
@@ -233,11 +222,10 @@ static bool tx_serdes_required_for_link_mode(struct sbl_inst *sbl, int port_num,
 
 	// Enable physical lane 0 - this has the clock for all serdes and is
 	//  always required.
-	if ((serdes == 0) || (serdes_mask & (1<<serdes))) {
+	if ((serdes == 0) || (serdes_mask & (1<<serdes)))
 		return true;
-	} else {
+	else
 		return false;
-	}
 }
 
 /**
@@ -253,11 +241,10 @@ static bool rx_serdes_required_for_link_mode(struct sbl_inst *sbl, int port_num,
 {
 	u8 serdes_mask = get_serdes_rx_mask(sbl, port_num);
 
-	if (serdes_mask & (1<<serdes)) {
+	if (serdes_mask & (1<<serdes))
 		return true;
-	} else {
+	else
 		return false;
-	}
 }
 
 /**
@@ -271,10 +258,10 @@ static int sbl_num_bits_set(u64 val)
 {
 	int bits_set = 0;
 	int i;
+
 	for (i = 0; i < 64; ++i) {
-		if (val & (1ULL << i)) {
+		if (val & (1ULL << i))
 			bits_set++;
-		}
 	}
 	return bits_set;
 }
@@ -325,10 +312,8 @@ static int sbl_get_serdes_config_values(struct sbl_inst *sbl, int port_num,
 			//         tp_state_mask0 and tp_state_mask1.
 			//  * [4] If tie, pick the one with the lowest index
 			sbl_dev_dbg(sbl->dev,
-				"p%d: get values: hash0 0x%llx hash1 0x%llx "
-				"matched 0x%llx 0x%llx, tag %d\n",
-				port_num, hash0, hash1, sc->tp_state_match0,
-				sc->tp_state_match1, sc->tag);
+				"p%d: get values: hash0 0x%llx hash1 0x%llx matched 0x%llx 0x%llx, tag %d\n",
+				port_num, hash0, hash1, sc->tp_state_match0, sc->tp_state_match1, sc->tag);
 			curr_best = false;
 			num_ports_bits	= sbl_num_bits_set(sc->port_mask);
 			num_serdes_bits = sbl_num_bits_set(sc->serdes_mask);
@@ -350,9 +335,7 @@ static int sbl_get_serdes_config_values(struct sbl_inst *sbl, int port_num,
 			}
 
 			if (curr_best) {
-				sbl_dev_dbg(sbl->dev,
-					"p%d: tag %d is current best match\n",
-					port_num, sc->tag);
+				sbl_dev_dbg(sbl->dev, "p%d: tag %d is current best match\n", port_num, sc->tag);
 				*vals = sc->vals;
 				least_port_bits = num_ports_bits;
 				least_serdes_bits = num_serdes_bits;
@@ -363,13 +346,12 @@ static int sbl_get_serdes_config_values(struct sbl_inst *sbl, int port_num,
 	}
 	spin_unlock(&sbl->serdes_config_lock);
 
-	if (rc == 0) {
+	if (rc == 0)
 		return 0;
-	} else {
-		sbl_dev_err(sbl->dev, "%d: get values: no match for hash0 0x%llx hash1 0x%llx\n",
+
+	sbl_dev_err(sbl->dev, "%d: get values: no match for hash0 0x%llx hash1 0x%llx\n",
 			port_num, hash0, hash1);
-		return -ENOENT;
-	}
+	return -ENOENT;
 }
 
 /**
@@ -390,9 +372,8 @@ static bool sbl_is_retune(struct sbl_inst *sbl, int port_num)
 	DEV_TRACE2(sbl->dev, "p%d", port_num);
 
 	/* Reuse of cached tuning params are disabled until AOC sync is implemented */
-	if (link->mattr.media == SBL_LINK_MEDIA_OPTICAL) {
+	if (link->mattr.media == SBL_LINK_MEDIA_OPTICAL)
 		return false;
-	}
 
 	// Check tuning params are for this target configuration
 	tp_state_hash0 = sbl_get_tp_hash0(sbl, port_num);
@@ -433,8 +414,7 @@ static bool sbl_is_retune(struct sbl_inst *sbl, int port_num)
 		//  we've got other problems.
 	}
 
-	sbl_dev_warn(sbl->dev, "p%d: Saved tuning parameters were supplied, "
-		 "but they were all 0 - forcing retune", port_num);
+	sbl_dev_warn(sbl->dev, "p%d: Saved tuning parameters but all 0-forcing retune", port_num);
 
 	return false;
 }
@@ -479,15 +459,13 @@ static int sbl_parse_version_string(struct sbl_inst *sbl, char *fw_fname,
 
 	err = kstrtou32(rev_str, 16, fw_rev);
 	if (err) {
-		sbl_dev_err(sbl->dev, "Failed to convert %s to an integer [%d]",
-				rev_str, err);
+		sbl_dev_err(sbl->dev, "Failed to convert %s to an integer [%d]", rev_str, err);
 		return err;
 	}
 
 	err = kstrtou32(build_str, 16, fw_build);
 	if (err) {
-		sbl_dev_err(sbl->dev, "Failed to convert %s to an integer [%d]",
-				build_str, err);
+		sbl_dev_err(sbl->dev, "Failed to convert %s to an integer [%d]", build_str, err);
 		return err;
 	}
 	return 0;
@@ -503,15 +481,13 @@ void sbl_sbm_get_fw_vers(struct sbl_inst *sbl, int sbus_ring, uint *fw_rev, uint
 	if (sbl_sbm_spico_int(sbl, sbus_addr, SPICO_INT_SBMS_REV_ID,
 				SPICO_INT_DATA_NONE, fw_rev)) {
 		// Failure expected when Spico is in reset
-		dev_dbg(sbl->dev, "sbm%d: Failed to read firmware rev from 0x%x", sbus_ring,
-				sbus_addr);
+		dev_dbg(sbl->dev, "sbm%d: Failed to read firmware rev from 0x%x", sbus_ring, sbus_addr);
 		*fw_rev = 0x0;
 	}
 	if (sbl_sbm_spico_int(sbl, sbus_addr, SPICO_INT_SBMS_BUILD_ID,
 				SPICO_INT_DATA_NONE, fw_build)) {
 		// Failure expected when Spico is in reset
-		dev_dbg(sbl->dev, "sbm%d: Failed to read firmware build from 0x%x", sbus_ring,
-				sbus_addr);
+		dev_dbg(sbl->dev, "sbm%d: Failed to read firmware build from 0x%x", sbus_ring, sbus_addr);
 		*fw_build = 0x0;
 	}
 	mutex_unlock(&sbl->sbus_ring_mtx[sbus_ring]);
@@ -567,28 +543,20 @@ int sbl_sbm_firmware_flash_ring(struct sbl_inst *sbl, int first_ring,
 				err = request_firmware(&fw, sbl->iattr.sbm_fw_fname,
 						       sbl->dev);
 				if (err) {
-					sbl_dev_err(sbl->dev,
-						"firmware request failed [%d]",
-						err);
+					sbl_dev_err(sbl->dev, "firmware request failed [%d]", err);
 					return err;
 				}
-				sbl_dev_dbg(sbl->dev, "loaded fw (size %zd)",
-					 fw->size);
+				sbl_dev_dbg(sbl->dev, "loaded fw (size %zd)", fw->size);
 				fw_requested = true;
 			}
-			sbl_dev_dbg(sbl->dev, "ring %d sbus_master firmware out "
-				"of date! Flashing...", sbus_ring);
+			sbl_dev_dbg(sbl->dev, "ring %d sbus_master firmware out of date! Flashing...", sbus_ring);
 
-			err = sbl_sbm_firm_upload(sbl, sbus_ring, fw->size,
-						  fw->data);
+			err = sbl_sbm_firm_upload(sbl, sbus_ring, fw->size, fw->data);
 			if (err) {
-				sbl_dev_err(sbl->dev,
-					"Failed to upload ring %d firmware!",
-					sbus_ring);
+				sbl_dev_err(sbl->dev, "Failed to upload ring %d firmware!", sbus_ring);
 				goto out_release;
 			} else {
-				sbl_dev_info(sbl->dev,
-					 "Ring %d Sbus Master firmware flashed successfully.", sbus_ring);
+				sbl_dev_info(sbl->dev, "Ring %d Sbus Master firmware flashed successfully.", sbus_ring);
 			}
 		}
 	}
@@ -599,30 +567,66 @@ int sbl_sbm_firmware_flash_ring(struct sbl_inst *sbl, int first_ring,
 	return err;
 }
 
-#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined (CONFIG_SBL_PLATFORM_CAS_HW)
+#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW)
+static void sbl_serdes_firmware_validation(struct sbl_inst *sbl, const struct firmware *fw,
+					u32 sbus_addr, u32 result, u32 sbus_ring)
+{
+	int rc, i;
+	u8 data;
+	bool corruption_found = false;
+
+	for (i = 0; i < fw->size; ++i) {
+		if (i % 2 == 0) {
+			rc = sbl_sbus_wr(sbl, sbus_addr,
+					SPICO_SBR_ADDR_IMEM, i/2);
+			if (rc)
+				break;
+			rc = sbl_sbus_rd(sbl, sbus_addr,
+					SPICO_SBR_ADDR_RDATA,
+					&result);
+			if (rc)
+				break;
+			data = (result & 0xff00) >> 8;
+		} else {
+			data = result & 0xff;
+		}
+		if (data != fw->data[i]) {
+			corruption_found = true;
+			sbl_dev_warn(sbl->dev, "0x%x: Act 0x%4.4x Exp 0x%4.4x", i, data, fw->data[i]);
+		}
+	}
+	rc = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_CTL,
+			SPICO_SBR_DATA_IMEM_CNTL_DIS);
+	if (rc)
+		sbl_dev_err(sbl->dev, "SBM Imem rd disable failed [%d]", rc);
+	if (corruption_found)
+		sbl_dev_err(sbl->dev, "r%d: SBM FW corruption found", sbus_ring);
+	else
+		sbl_dev_info(sbl->dev, "r%d: No SBM FW corruption found", sbus_ring);
+}
+#endif
+
+#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW)
 int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 				   bool force)
 {
-	int rc, i;
+	int rc;
 	u32 sbus_addr, crc_result, sbus_ring;
 	u32 curr_fw_rev = 0, curr_fw_build = 0;
 	u32 result;
 	const struct firmware *fw = NULL;
-	u8 data;
-	bool corruption_found = false;
 	int fw_rev, fw_build;
 	int serdes = 0;
 
-	if (port_num == SBL_ALL_PORTS) {
+	if (port_num == SBL_ALL_PORTS)
 		return -ENOTSUPP;
-	}
 
 	sbus_ring = sbl->switch_info->ports[port_num].serdes[serdes].sbus_ring;
 
 	/* First, try the FW flash */
-	if (sbl_serdes_firmware_flash(sbl, port_num, force)) {
+	if (sbl_serdes_firmware_flash(sbl, port_num, force))
 		goto sbm_fw_reload;
-	}
+
 	/* Now, validate the SerDes FW - this also validates
 	 * SPICO interrupts are working correctly.
 	 */
@@ -658,16 +662,14 @@ int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 	/* If all the above succeed, we're done unless we force SBM FW reload */
 	if (sbl_debug_option(sbl, port_num,
 			     SBL_DEBUG_FORCE_RELOAD_SBM_FW)) {
-		sbl_dev_info(sbl->dev, "p%d: SBus Master FW reload forced",
-			 port_num);
+		sbl_dev_info(sbl->dev, "p%d: SBus Master FW reload forced", port_num);
 		goto sbm_fw_reload;
 	}
 	return 0;
 
  sbm_fw_reload:
 	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_INHIBIT_RELOAD_SBM_FW)) {
-		sbl_dev_warn(sbl->dev,
-			 "p%d: SBus Master FW reload inhibited", port_num);
+		sbl_dev_warn(sbl->dev, "p%d: SBus Master FW reload inhibited", port_num);
 		return rc;
 	}
 
@@ -678,15 +680,12 @@ int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 	sbl->reload_sbm_fw[sbus_ring] = true;
 	mutex_lock(SBM_FW_MTX(sbl, sbus_ring));
 	if (!sbl->reload_sbm_fw[sbus_ring]) {
-		sbl_dev_info(sbl->dev,
-			 "r%d: Sbus master FW reload no longer needed",
-			 sbus_ring);
+		sbl_dev_info(sbl->dev, "r%d: Sbus master FW reload no longer needed", sbus_ring);
 	} else {
 
 		if (mutex_is_locked(SBUS_RING_MTX(sbl, sbus_ring)))
 			sbl_dev_dbg(sbl->dev,
-			    "sbl_serdes_firmware_flash_safe: Sbus contention detected, sbus_ring_mtx[%d] locked",
-			    sbus_ring);
+			    "%s: Sbus contention detected, sbus_ring_mtx[%d] locked", __func__, sbus_ring);
 
 		// SBUS Critical Section
 		mutex_lock(SBUS_RING_MTX(sbl, sbus_ring));
@@ -700,8 +699,7 @@ int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 				 "r%d: Failed to read firmware rev from 0x%x",
 				 sbus_ring, sbus_addr);
 		} else {
-			sbl_dev_info(sbl->dev, "r%d: firmware rev 0x%x", sbus_ring,
-				 curr_fw_rev);
+			sbl_dev_info(sbl->dev, "r%d: firmware rev 0x%x", sbus_ring, curr_fw_rev);
 		}
 		if (sbl_sbm_spico_int(sbl, sbus_addr, SPICO_INT_SBMS_BUILD_ID,
 				      SPICO_INT_DATA_NONE, &curr_fw_build)) {
@@ -722,10 +720,8 @@ int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 		} else {
 			if (crc_result != SPICO_RESULT_SBR_CRC_PASS) {
 				sbl_dev_err(sbl->dev,
-					"p%d(0x%x): CRC check fail "
-					"(result: 0x%x exp: 0x%x)!",
-					port_num, sbus_addr, crc_result,
-					SPICO_RESULT_SBR_CRC_PASS);
+					"p%d(0x%x): CRC check fail (result: 0x%x exp: 0x%x)!",
+					port_num, sbus_addr, crc_result, SPICO_RESULT_SBR_CRC_PASS);
 			} else {
 				sbl_dev_info(sbl->dev,
 					 "p%d(0x%x): CRC check passed",
@@ -744,9 +740,8 @@ int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 				 port_num, sbus_addr, result);
 		}
 
-		rc = request_firmware(&fw, sbl->iattr.sbm_fw_fname,
-					   sbl->dev);
-	       if (rc != 0) {
+		rc = request_firmware(&fw, sbl->iattr.sbm_fw_fname, sbl->dev);
+		if (rc != 0) {
 			sbl_dev_err(sbl->dev, "firmware request failed [%d]", rc);
 		} else {
 			sbl_dev_info(sbl->dev,
@@ -754,73 +749,35 @@ int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 				 port_num, sbus_addr);
 			rc = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_CTL,
 				    SPICO_SBR_DATA_IMEM_CNTL_EN_RD);
-			if (rc) {
+			if (rc)
 				sbl_dev_err(sbl->dev, "SBM Imem rd enable failed [%d]", rc);
-			} else {
-				for (i = 0; i < fw->size; ++i) {
-					if (i % 2 == 0) {
-						rc = sbl_sbus_wr(sbl, sbus_addr,
-								SPICO_SBR_ADDR_IMEM, i/2);
-						if (rc)
-							break;
-						rc = sbl_sbus_rd(sbl, sbus_addr,
-								SPICO_SBR_ADDR_RDATA,
-								&result);
-						if (rc)
-							break;
-						data = (result & 0xff00) >> 8;
-					} else {
-						data = result & 0xff;
-					}
-					if (data != fw->data[i]) {
-						corruption_found = true;
-						sbl_dev_warn(sbl->dev,
-								"0x%x: Act 0x%4.4x Exp 0x%4.4x",
-								i, data, fw->data[i]);
-					}
-				}
-				rc = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_CTL,
-						SPICO_SBR_DATA_IMEM_CNTL_DIS);
-				if (rc) {
-					sbl_dev_err(sbl->dev, "SBM Imem rd disable failed [%d]", rc);
-				}
-				if (corruption_found) {
-					sbl_dev_err(sbl->dev,
-						 "r%d: SBM FW corruption found", sbus_ring);
-				} else {
-					sbl_dev_info(sbl->dev,
-						 "r%d: No SBM FW corruption found", sbus_ring);
-				}
+			else
+				sbl_serdes_firmware_validation(sbl, fw, sbus_addr, result, sbus_ring);
 
-			}
 			release_firmware(fw);
 		}
 
 		mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
 
 		/* Now, try reloading the sbus master FW */
-		rc = sbl_sbm_firmware_flash_ring(sbl, sbus_ring, sbus_ring,
-						      true);
-		if (rc) {
-			sbl_dev_err(sbl->dev, "r%d: SBM FW flash failed (%d)!",
-				sbus_ring, rc);
-		} else {
-			sbl_dev_info(sbl->dev, "r%d: SBM FW flash succeeded",
-				 sbus_ring);
-		}
+		rc = sbl_sbm_firmware_flash_ring(sbl, sbus_ring, sbus_ring, true);
+		if (rc)
+			sbl_dev_err(sbl->dev, "r%d: SBM FW flash failed (%d)!", sbus_ring, rc);
+		else
+			sbl_dev_info(sbl->dev, "r%d: SBM FW flash succeeded", sbus_ring);
+
 		sbl->reload_sbm_fw[sbus_ring] = false;
 	}
 	mutex_unlock(SBM_FW_MTX(sbl, sbus_ring));
 
 	/* Finally, retry the SerDes FW reload */
 	rc = sbl_serdes_firmware_flash(sbl, port_num, true);
-       if (rc != 0) {
+	if (rc != 0)
 		sbl_dev_err(sbl->dev,
 			"p%d: SerDes FW flash failed (%d) despite SBM reload!",
 			port_num, rc);
-	} else {
+	else
 		sbl_dev_info(sbl->dev, "p%d: SerDes FW flash succeeded", port_num);
-	}
 
 	/* Regardless of the success/failure of the initial flash and recovery
 	 * attempt, we return the status of the final serdes firmware flash,
@@ -834,7 +791,7 @@ int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 {
 	return 0;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined (CONFIG_SBL_PLATFORM_CAS_HW) */
+#endif /* defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW) */
 
 int sbl_serdes_firmware_flash(struct sbl_inst *sbl, int port_num, bool force)
 {
@@ -850,9 +807,8 @@ int sbl_serdes_firmware_flash(struct sbl_inst *sbl, int port_num, bool force)
 	 * while reloading the SerDes FW
 	 */
 	if (port_num == SBL_ALL_PORTS) {
-		for (sr = 0; sr < sbl->switch_info->num_sbus_rings; ++sr) {
+		for (sr = 0; sr < sbl->switch_info->num_sbus_rings; ++sr)
 			mutex_lock(SBM_FW_MTX(sbl, sr));
-		}
 	} else {
 		sr = sbl->switch_info->ports[port_num].serdes[0].sbus_ring;
 		mutex_lock(SBM_FW_MTX(sbl, sr));
@@ -883,16 +839,14 @@ int sbl_serdes_firmware_flash(struct sbl_inst *sbl, int port_num, bool force)
 				if (sbl_validate_serdes_fw_vers(sbl, port,
 								serdes, fw_rev,
 								fw_build)) {
-					sbl_dev_info(sbl->dev,
-					 "port %d serdes: %d firmware out of "
-					 "date! Flash required", port, serdes);
+					sbl_dev_info(sbl->dev, "port %d serdes: %d firmware out of date! Flash required",
+								port, serdes);
 					flash_needed = true;
 					break;
 				}
 			}
-			if (flash_needed) {
+			if (flash_needed)
 				break;
-			}
 		}
 	} else {
 		flash_needed = true;
@@ -915,11 +869,10 @@ int sbl_serdes_firmware_flash(struct sbl_inst *sbl, int port_num, bool force)
 				sbl_send_serdes_fw_corruption_alert(sbl, port, serdes);
 			goto out;
 		} else {
-			if (port_num == SBL_ALL_PORTS) {
+			if (port_num == SBL_ALL_PORTS)
 				sbl_dev_dbg(sbl->dev, "All SerDes firmware flashed successfully.");
-			} else {
+			else
 				sbl_dev_dbg(sbl->dev, "p%d SerDes firmware flashed successfully.", port_num);
-			}
 		}
 	} else {
 		// Serdes firmware reload skipped as the firmware validation succeeded
@@ -931,9 +884,8 @@ int sbl_serdes_firmware_flash(struct sbl_inst *sbl, int port_num, bool force)
 	release_firmware(fw);
 
 	if (port_num == SBL_ALL_PORTS) {
-		for (sr = 0; sr < sbl->switch_info->num_sbus_rings; ++sr) {
+		for (sr = 0; sr < sbl->switch_info->num_sbus_rings; ++sr)
 			mutex_unlock(SBM_FW_MTX(sbl, sr));
-		}
 	} else {
 		mutex_unlock(SBM_FW_MTX(sbl, sr));
 	}
@@ -946,6 +898,7 @@ int sbl_validate_sbm_fw_vers(struct sbl_inst *sbl, u32 sbus_ring,
 {
 	u32 curr_fw_rev = 0, curr_fw_build = 0;
 	u32 sbus_addr = SBUS_ADDR(sbus_ring, SBUS_BCAST_SBM_SPICO);
+
 	DEV_TRACE2(sbl->dev,
 		   "sbus_addr: 0x%x, desired rev: 0x%x, desired build: 0x%x",
 		   sbus_ring, fw_rev, fw_build);
@@ -968,18 +921,15 @@ int sbl_validate_sbm_fw_vers(struct sbl_inst *sbl, u32 sbus_ring,
 
 	mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
 
-	if (((int)curr_fw_rev == fw_rev) &&
-	    ((int)curr_fw_build == fw_build)) {
+	if (((int)curr_fw_rev == fw_rev) && ((int)curr_fw_build == fw_build)) {
 		sbl_dev_dbg(sbl->dev, "r%d: Found expected SBM rev: 0x%x_%x",
-			 sbus_ring, curr_fw_rev, curr_fw_build);
+				sbus_ring, curr_fw_rev, curr_fw_build);
 		return 0;
-	} else {
-		sbl_dev_warn(sbl->dev,
-			 "r%d: Expected rev: 0x%x_%x Current SBM rev: 0x%x_%x",
-			 sbus_ring, fw_rev, fw_build, curr_fw_rev,
-			 curr_fw_build);
-		return -1;
 	}
+	sbl_dev_warn(sbl->dev,
+			"r%d: Expected rev: 0x%x_%x Current SBM rev: 0x%x_%x",
+			sbus_ring, fw_rev, fw_build, curr_fw_rev, curr_fw_build);
+	return -1;
 }
 
 static void sbl_send_serdes_fw_corruption_alert(struct sbl_inst *sbl, int port, int serdes)
@@ -1007,9 +957,8 @@ int sbl_validate_serdes_fw_crc(struct sbl_inst *sbl, int port, int serdes)
 	err = sbl_serdes_spico_int(sbl, port, serdes, SPICO_INT_CM4_CRC,
 					SPICO_INT_DATA_NONE, &crc_result,
 					SPICO_INT_RETURN_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	/* CRC failure can be injected for test purposes */
 	sbl_test_manipulate_serdes_fw_crc_result(&crc_result);
@@ -1057,14 +1006,13 @@ int sbl_validate_serdes_fw_vers(struct sbl_inst *sbl, int port_num, int serdes,
 
 	if (((int)curr_fw_rev == fw_rev) && ((int)curr_fw_build == fw_build)) {
 		sbl_dev_dbg(sbl->dev, "p%ds%d: Found expected rev: 0x%x_%x",
-			 port_num, serdes, curr_fw_rev, curr_fw_build);
+				port_num, serdes, curr_fw_rev, curr_fw_build);
 		return 0;
-	} else {
-		sbl_dev_warn(sbl->dev, "p%ds%d: Expected rev: 0x%x_%x Current rev: 0x%x_%x",
-			 port_num, serdes, fw_rev, fw_build,
-			 curr_fw_rev, curr_fw_build);
-		return -1;
 	}
+	sbl_dev_warn(sbl->dev, "p%ds%d: Expected rev: 0x%x_%x Current rev: 0x%x_%x",
+			port_num, serdes, fw_rev, fw_build,
+			curr_fw_rev, curr_fw_build);
+	return -1;
 }
 
 // does the CRC check
@@ -1082,36 +1030,34 @@ int sbl_sbm_firm_upload(struct sbl_inst *sbl, int sbus_ring,
 	err = sbl_sbus_op_aux(sbl, sbus_addr, SPICO_SBR_ADDR_IP_IDCODE,
 				   SBUS_IFACE_DST_CORE | SBUS_CMD_RESET,
 				   SPICO_SBR_DATA_NONE, &unused);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
 
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_CTL,
 			       SPICO_SBR_DATA_RESET_HIGH);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
+
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_CTL,
 			       SPICO_SBR_DATA_RESET_LOW);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
+
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_CTL,
 			       SPICO_SBR_DATA_IMEM_CNTL_EN);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
 
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_IMEM,
 			       SPICO_SBR_DATA_NONE);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
+
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_IMEM,
 			       SPICO_SBR_DATA_SET_BURST_WR);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
+
 	err = sbl_spico_burst_upload(sbl, sbus_addr,
 					  SPICO_SBR_ADDR_IMEM_BURST_DATA,
 					  fw_size, fw_data);
@@ -1122,57 +1068,54 @@ int sbl_sbm_firm_upload(struct sbl_inst *sbl, int sbus_ring,
 
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_IMEM,
 			       SPICO_SBR_DATA_SET_BURST_WR | fw_size);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
+
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_IMEM,
 			       SPICO_SBR_DATA_SET_BURST_WR |
 			       (fw_size+1));
-	if (err) {
+	if (err)
 		goto err_out;
-	}
+
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_IMEM,
 			       SPICO_SBR_DATA_SET_BURST_WR |
 			       (fw_size+2));
-	if (err) {
+	if (err)
 		goto err_out;
-	}
+
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_IMEM,
 			       SPICO_SBR_DATA_SET_BURST_WR |
 			       (fw_size+3));
-	if (err) {
+	if (err)
 		goto err_out;
-	}
 
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_CTL,
 			       SPICO_SBR_DATA_IMEM_CNTL_DIS);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
+
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_ECC,
 			       SPICO_SBR_DATA_ECC_EN);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
+
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_CTL,
 			       SPICO_SBR_DATA_SPICO_EN);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
 
 	err = sbl_sbm_spico_int(sbl, sbus_addr, SPICO_INT_SBMS_DO_CRC,
 				     SPICO_INT_DATA_NONE, &crc_result);
-	if (err) {
+	if (err)
 		goto err_out;
-	}
 
-#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined (CONFIG_SBL_PLATFORM_CAS_HW)
+#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW)
 	if (crc_result != SPICO_RESULT_SBR_CRC_PASS) {
 		sbl_dev_err(sbl->dev, "0x%x: CRC check fail (result 0x%x, expected 0x%x)!",
 			sbus_addr, crc_result, SPICO_RESULT_SBR_CRC_PASS);
 		err = -EBADE;
 	}
-#endif /* defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined (CONFIG_SBL_PLATFORM_CAS_HW) */
+#endif /* defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW) */
 
 	// Increment sbus master fw reload counter
 	atomic_inc(&sbl->sbm_fw_reload_count[sbus_ring]);
@@ -1216,9 +1159,8 @@ int sbl_serdes_firm_upload(struct sbl_inst *sbl, int port_num, size_t fw_size,
 	for (port = first_port; port <= last_port; ++port) {
 		for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
 			err = sbl_serdes_soft_reset(sbl, port, serdes);
-			if (err) {
+			if (err)
 				return err;
-			}
 		}
 	}
 
@@ -1233,37 +1175,35 @@ int sbl_serdes_firm_upload(struct sbl_inst *sbl, int port_num, size_t fw_size,
 		mutex_lock(SBUS_RING_MTX(sbl, sbus_ring));
 
 		for (serdes = first_serdes; serdes <= last_serdes; ++serdes) {
-			if (port_num == SBL_ALL_PORTS) {
+			if (port_num == SBL_ALL_PORTS)
 				sbus_addr = SBUS_ADDR(sbus_ring, SBUS_BCAST_CM4_SERDES_SPICO);
-			} else {
+			else
 				sbus_addr = SBUS_ADDR(sbl->switch_info->ports[port_num].serdes[serdes].sbus_ring,
 						      sbl->switch_info->ports[port_num].serdes[serdes].rx_addr);
-			}
 
 			err = sbl_sbus_wr(sbl, sbus_addr,
 				       SPICO_SERDES_ADDR_RESET_EN,
 				       SPICO_SERDES_DATA_SET_GLOBAL_RESET);
-			if (err) {
+			if (err)
 				break;
-			}
+
 			err = sbl_sbus_wr(sbl, sbus_addr,
 				       SPICO_SERDES_ADDR_RESET_EN,
 				       SPICO_SERDES_DATA_CLR_GLOBAL_RESET);
-			if (err) {
+			if (err)
 				break;
-			}
+
 			err = sbl_sbus_wr(sbl, sbus_addr,
 				       SPICO_SERDES_ADDR_INTR_DIS,
 				       SPICO_SERDES_DATA_SET_INTR_DIS);
-			if (err) {
+			if (err)
 				break;
-			}
+
 			err = sbl_sbus_wr(sbl, sbus_addr,
 				       SPICO_SERDES_ADDR_IMEM,
 				       SPICO_SERDES_DATA_SET_IMEM_CNTL_EN);
-			if (err) {
+			if (err)
 				break;
-			}
 
 			err = sbl_spico_burst_upload(sbl, sbus_addr,
 						  SPICO_SERDES_ADDR_IMEM_BURST,
@@ -1276,33 +1216,32 @@ int sbl_serdes_firm_upload(struct sbl_inst *sbl, int port_num, size_t fw_size,
 			err = sbl_sbus_wr(sbl, sbus_addr,
 				       SPICO_SERDES_ADDR_IMEM,
 				       SPICO_SERDES_DATA_CLR_IMEM_CNTL_EN);
-			if (err) {
+			if (err)
 				break;
-			}
+
 			err = sbl_sbus_wr(sbl, sbus_addr,
 				       SPICO_SERDES_ADDR_ECC,
 				       SPICO_SERDES_DATA_SET_ECC_EN);
-			if (err) {
+			if (err)
 				break;
-			}
+
 			err = sbl_sbus_wr(sbl, sbus_addr,
 				       SPICO_SERDES_ADDR_ECCLOG,
 				       SPICO_SERDES_DATA_CLR_ECC_ERR);
-			if (err) {
+			if (err)
 				break;
-			}
+
 			err = sbl_sbus_wr(sbl, sbus_addr,
 				       SPICO_SERDES_ADDR_RESET_EN,
 				       SPICO_SERDES_DATA_SET_SPICO_EN);
-			if (err) {
+			if (err)
 				break;
-			}
+
 			err = sbl_sbus_wr(sbl, sbus_addr,
 				       SPICO_SERDES_ADDR_INTR_DIS,
 				       SPICO_SERDES_DATA_SET_INTR_EN);
-			if (err) {
+			if (err)
 				break;
-			}
 		}
 
 		mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
@@ -1323,9 +1262,9 @@ int sbl_serdes_firm_upload(struct sbl_inst *sbl, int port_num, size_t fw_size,
 		for (serdes = first_serdes; serdes <= last_serdes; ++serdes)
 			sbl_link_counters_incr(sbl, port_num, serdes0_fw_reload + serdes);
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 	return 0;
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
+#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 
 	sbl_dev_dbg(sbl->dev, "p%d: Validating flash..", port_num);
 	for (port = first_port; port <= last_port; ++port) {
@@ -1345,16 +1284,15 @@ int sbl_serdes_firm_upload(struct sbl_inst *sbl, int port_num, size_t fw_size,
 			} while (time_is_after_jiffies(last_jiffy));
 
 			if (!(core_status_value & (1<<5))) {
-				sbl_dev_err(sbl->dev, "p%ds%d Timeout reading o_core_status "
-						"(timeout:%ds)", port_num, serdes,
-						sbl->iattr.core_status_rd_timeout);
+				sbl_dev_err(sbl->dev, "p%ds%d Timeout reading o_core_status (timeout:%ds)",
+							port_num, serdes, sbl->iattr.core_status_rd_timeout);
 				return -ETIME;
 			}
 
 			err = sbl_validate_serdes_fw_crc(sbl, port, serdes);
-			if (err) {
+			if (err)
 				return err;
-			}
+
 		}
 	}
 	sbl_dev_dbg(sbl->dev, "p%d: FW upload complete!", port_num);
@@ -1367,9 +1305,9 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 {
 	int i, serdes, err;
 
-	if (!tps) {
+	if (!tps)
 		return -EINVAL;
-	}
+
 	tps->magic = SBL_TUNING_PARAM_MAGIC;
 	tps->version = SBL_TUNING_PARAM_VERSION;
 
@@ -1383,13 +1321,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_CTLE_BASE | i,
 					&tps->params[serdes].ctle[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: CTLE[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: CTLE[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].ctle[i]);
-			}
 		}
 		for (i = 0; i < NUM_FFE_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1397,13 +1334,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_FFE_BASE | i,
 					&tps->params[serdes].ffe[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: FFE[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: FFE[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].ffe[i]);
-			}
 		}
 		for (i = 0; i < NUM_DFE_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1411,13 +1347,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_DFE_BASE | i,
 					&tps->params[serdes].dfe[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: DFE[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: DFE[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].dfe[i]);
-			}
 		}
 		for (i = 0; i < NUM_RXVS_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1426,13 +1361,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						(i+SPICO_INT_DATA_HAL_RXVS_OFFSET),
 					&tps->params[serdes].rxvs[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: RXVS[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: RXVS[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].rxvs[i]);
-			}
 		}
 		for (i = 0; i < NUM_RXVC_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1440,13 +1374,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_RXVC_BASE | i,
 					&tps->params[serdes].rxvc[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: RXVC[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: RXVC[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].rxvc[i]);
-			}
 		}
 		for (i = 0; i < NUM_RSDO_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1454,13 +1387,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_RSDO_BASE | i,
 					&tps->params[serdes].rsdo[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: RSDO[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: RSDO[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].rsdo[i]);
-			}
 		}
 		for (i = 0; i < NUM_RSDC_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1468,13 +1400,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_RSDC_BASE | i,
 					&tps->params[serdes].rsdc[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: RSDC[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: RSDC[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].rsdc[i]);
-			}
 		}
 		for (i = 0; i < NUM_RSTO_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1482,13 +1413,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_RSTO_BASE | i,
 					&tps->params[serdes].rsto[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: RSTO[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: RSTO[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].rsto[i]);
-			}
 		}
 		for (i = 0; i < NUM_RSTC_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1496,13 +1426,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_RSTC_BASE | i,
 					&tps->params[serdes].rstc[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: RSTC[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: RSTC[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].rstc[i]);
-			}
 		}
 		for (i = 0; i < NUM_EH_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1510,13 +1439,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_EH_BASE | i,
 					&tps->params[serdes].eh[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: EH[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: EH[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].eh[i]);
-			}
 		}
 		for (i = 0; i < NUM_GTP_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1524,13 +1452,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_GTP_BASE | i,
 					&tps->params[serdes].gtp[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: GTP[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: GTP[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].gtp[i]);
-			}
 		}
 		for (i = 0; i < NUM_DCCD_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1538,13 +1465,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_DCCD_BASE | i,
 					&tps->params[serdes].dccd[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: DCCD[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: DCCD[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].dccd[i]);
-			}
 		}
 		for (i = 0; i < NUM_P4LV_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -1552,18 +1478,17 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_DATA_HAL_P4LV_BASE | i,
 					&tps->params[serdes].p4lv[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: P4LV[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: P4LV[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].p4lv[i]);
-			}
 		}
-#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined (CONFIG_SBL_PLATFORM_CAS_HW)
+#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW)
 		if (sbl_validate_serdes_fw_vers(sbl, port_num, serdes,
-										SBL_KNOWN_FW0_REV,
-										SBL_KNOWN_FW0_BUILD)) {
+					SBL_KNOWN_FW0_REV,
+					SBL_KNOWN_FW0_BUILD)) {
 			return -EADDRNOTAVAIL;
 		}
 #endif /* (CONFIG_SBL_PLATFORM_ROS_HW) || (CONFIG_SBL_PLATFORM_CAS_HW) */
@@ -1573,13 +1498,12 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						(SBUS_AFE_CTRL_KNOWN_FW0_BASE + i), 0x0,
 					&tps->params[serdes].afec[i],
 					SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: AFEC[%d]: %d",
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: AFEC[%d]: %d",
 					port_num, serdes, i,
 					tps->params[serdes].afec[i]);
-			}
 		}
 	}
 
@@ -1587,7 +1511,7 @@ int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 }
 
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 {
 	int err;
@@ -1957,18 +1881,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_CTLE_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating CLTE param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].ctle[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].ctle[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating CTLE[%d] tuning param!",
 				port_num, serdes, i);
@@ -1980,18 +1904,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_FFE_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating FFE param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].ffe[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].ffe[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating FFE[%d] tuning param!",
 				port_num, serdes, i);
@@ -2003,18 +1927,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_DFE_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating DFE param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].dfe[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].dfe[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating DFE[%d] tuning param!",
 				port_num, serdes, i);
@@ -2028,18 +1952,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_DATA_HAL_RXVS_BASE |
 							(i+SPICO_INT_DATA_HAL_RXVS_OFFSET),
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating RXVS param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].rxvs[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].rxvs[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating RXVS[%d] tuning param!",
 				port_num, serdes, i);
@@ -2052,18 +1976,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_RXVC_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating RXVC param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].rxvc[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].rxvc[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating RXVC[%d] tuning param!",
 				port_num, serdes, i);
@@ -2076,18 +2000,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_RSDO_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating RSDO param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].rsdo[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].rsdo[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating RSDO[%d] tuning param!",
 				port_num, serdes, i);
@@ -2100,18 +2024,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_RSDC_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating RSDC param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].rsdc[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].rsdc[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating RSDC[%d] tuning param!",
 				port_num, serdes, i);
@@ -2124,18 +2048,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_RSTO_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating RSTO param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].rsto[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].rsto[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating RSTO[%d] tuning param!",
 				port_num, serdes, i);
@@ -2148,18 +2072,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_RSTC_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating RSTC param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].rstc[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].rstc[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating RSTC[%d] tuning param!",
 				port_num, serdes, i);
@@ -2172,18 +2096,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_EH_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating EH param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].eh[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].eh[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating EH[%d] tuning param!",
 				port_num, serdes, i);
@@ -2196,18 +2120,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_GTP_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating GTP param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].gtp[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].gtp[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating GTP[%d] tuning param!",
 				port_num, serdes, i);
@@ -2220,18 +2144,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_DCCD_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating DCCD param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].dccd[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].dccd[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating DCCD[%d] tuning param!",
 				port_num, serdes, i);
@@ -2244,18 +2168,18 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 						SPICO_INT_CM4_HAL_READ,
 						SPICO_INT_DATA_HAL_P4LV_BASE | i,
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev, "Updating P4LV param %d from 0x%x to 0x%x",
 			   i, result, sbl->link[port_num].tuning_params.params[serdes].p4lv[i]);
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_HAL_WRITE,
 						sbl->link[port_num].tuning_params.params[serdes].p4lv[i],
 						&result, SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev, "p%ds%d: Failed updating P4LV[%d] tuning param!",
 				port_num, serdes, i);
@@ -2276,9 +2200,8 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 							(SBUS_AFE_CTRL_KNOWN_FW0_BASE + i),
 						sbl->link[port_num].tuning_params.params[serdes].afec[i],
 						&result, SPICO_INT_IGNORE_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 
 	// Apply values
@@ -2286,51 +2209,50 @@ int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					SPICO_INT_CM4_HAL_CALL,
 					SPICO_INT_DATA_HAL_CTLE_APPLY, NULL,
 					SPICO_INT_IGNORE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_HAL_CALL,
 					SPICO_INT_DATA_HAL_FFE_APPLY, NULL,
 					SPICO_INT_IGNORE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_HAL_CALL,
 					SPICO_INT_DATA_HAL_DFE_APPLY, NULL,
 					SPICO_INT_IGNORE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_HAL_CALL,
 					SPICO_INT_DATA_HAL_RXV_APPLY, NULL,
 					SPICO_INT_IGNORE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_HAL_CALL,
 					SPICO_INT_DATA_HAL_DC_APPLY, NULL,
 					SPICO_INT_IGNORE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_HAL_CALL,
 					SPICO_INT_DATA_HAL_TC_APPLY, NULL,
 					SPICO_INT_IGNORE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_HAL_CALL,
 					SPICO_INT_DATA_HAL_PCAL_SETUP, NULL,
 					SPICO_INT_IGNORE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	DEV_TRACE2(sbl->dev, "rc: 0");
 
@@ -2500,71 +2422,68 @@ int sbl_serdes_init(struct sbl_inst *sbl, int port_num, int serdes,
 
 	err = sbl_set_tx_rx_enable(sbl, port_num, serdes, false, false,
 					false);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_PLL_RECAL,
 					SPICO_INT_DATA_NONE, NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_TX_PHASE_CAL,
 					SPICO_INT_DATA_NONE, NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_TX_BAUD,
 					(divisor & SPICO_INT_DIVIDER_MASK) |
 					SPICO_INT_DATA_TXTX_RC_NOT_SS,
 					NULL, SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_WIDTH_MODE,
 					encoding | width |
 					SPICO_INT_DATA_TXRX_FC_IGNORE, NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	// tx/rx based on link mode, and always configuing physical lane 0
-	if (tx_serdes_required_for_link_mode(sbl, port_num, serdes)) {
+	if (tx_serdes_required_for_link_mode(sbl, port_num, serdes))
 		tx_en = true;
-	} else {
+	else
 		tx_en = false;
-	}
-	if (rx_serdes_required_for_link_mode(sbl, port_num, serdes)) {
+
+	if (rx_serdes_required_for_link_mode(sbl, port_num, serdes))
 		rx_en = true;
-	} else {
+	else
 		rx_en = false;
-	}
 
 	err = sbl_set_tx_rx_enable(sbl, port_num, serdes, tx_en, rx_en,
 					false);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_PCIE_SLICES,
 					SPICO_INT_DATA_TX_OVERRIDE, NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_PCIE_SLICES,
 					SPICO_INT_DATA_RX_EID_EN, NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	// Reset signal_ok
 	sbl_serdes_mem_rmw(sbl, port_num, serdes, SERDES_MEM_ADDR_O_CORE_STATUS,
@@ -2576,16 +2495,15 @@ int sbl_serdes_init(struct sbl_inst *sbl, int port_num, int serdes,
 						SPICO_INT_CM4_PRBS_CTRL,
 						SPICO_INT_DATA_PRBS31_AS_TXGEN, NULL,
 						SPICO_INT_VALIDATE_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		err = sbl_serdes_spico_int(sbl, port_num, serdes,
 						SPICO_INT_CM4_PRBS_CTRL,
 						SPICO_INT_DATA_PRBS31_AS_RXGEN, NULL,
 						SPICO_INT_VALIDATE_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 	DEV_TRACE2(sbl->dev, "rc: 0");
 
@@ -2605,16 +2523,16 @@ int sbl_serdes_polarity_ctrl(struct sbl_inst *sbl, int port_num, int serdes,
 	switch (sbl->link[port_num].loopback_mode) {
 	case SBL_LOOPBACK_MODE_REMOTE:
 	case SBL_LOOPBACK_MODE_OFF:
-		if (sbl->switch_info->ports[port_num].serdes[serdes].txinv) {
+		if (sbl->switch_info->ports[port_num].serdes[serdes].txinv)
 			datapath |= SPICO_INT_DATA_SET_TXINV;
-		} else {
+		else
 			datapath |= SPICO_INT_DATA_CLR_TXINV;
-		}
-		if (sbl->switch_info->ports[port_num].serdes[serdes].rxinv) {
+
+		if (sbl->switch_info->ports[port_num].serdes[serdes].rxinv)
 			datapath |= SPICO_INT_DATA_SET_RXINV;
-		} else {
+		else
 			datapath |= SPICO_INT_DATA_CLR_RXINV;
-		}
+
 		break;
 	case SBL_LOOPBACK_MODE_LOCAL:
 		datapath |= SPICO_INT_DATA_CLR_TXINV;
@@ -2629,28 +2547,26 @@ int sbl_serdes_polarity_ctrl(struct sbl_inst *sbl, int port_num, int serdes,
 	// Set Precode
 	if (encoding == SBL_ENC_PAM4) {
 		link->precoding_enabled = get_serdes_precoding(sbl, port_num);
-		if (link->precoding_enabled) {
+		if (link->precoding_enabled)
 			datapath |= SPICO_INT_DATA_SET_PRECODE;
-		} else {
+		else
 			datapath |= SPICO_INT_DATA_CLR_PRECODE;
-		}
 	} else {
 		datapath |= SPICO_INT_DATA_CLR_PRECODE;
 	}
 
 	// Set Graycode & Swizzle
-	if (an || (encoding == SBL_ENC_NRZ)) {
+	if (an || (encoding == SBL_ENC_NRZ))
 		datapath |= SPICO_INT_DATA_CLR_GRAY_SWZ;
-	} else {
+	else
 		datapath |= SPICO_INT_DATA_SET_GRAY_SWZ;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_POLARITY_CTRL,
 					datapath, NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	return 0;
 }
@@ -2680,7 +2596,7 @@ static bool get_serdes_precoding(struct sbl_inst *sbl, int port_num)
 	}
 }
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 int sbl_set_tx_rx_enable(struct sbl_inst *sbl, int port_num, int serdes,
 			 bool tx_en, bool rx_en, bool txo_en)
 {
@@ -2699,23 +2615,21 @@ int sbl_set_tx_rx_enable(struct sbl_inst *sbl, int port_num, int serdes,
 	DEV_TRACE2(sbl->dev, "p%ds%d: tx_en: %d rx_en: %d txo_en: %d",
 		   port_num, serdes, tx_en, rx_en, txo_en);
 
-	if (tx_en) {
+	if (tx_en)
 		int_data |= SPICO_INT_DATA_SET_TX_EN;
-	}
-	if (rx_en) {
+
+	if (rx_en)
 		int_data |= SPICO_INT_DATA_SET_RX_EN;
-	}
-	if (txo_en) {
+
+	if (txo_en)
 		int_data |= SPICO_INT_DATA_SET_TXO_EN;
-	}
 
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_SERDES_EN,
 					int_data, NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	// Wait for tx_rdy and rx_rdy to be set.
 	last_jiffy = jiffies + msecs_to_jiffies(1000*sbl->iattr.serdes_en_timeout);
@@ -2730,17 +2644,15 @@ int sbl_set_tx_rx_enable(struct sbl_inst *sbl, int port_num, int serdes,
 	} while (time_is_after_jiffies(last_jiffy));
 
 	if ((tx_rdy != tx_en) || (rx_rdy != rx_en)) {
-		sbl_dev_err(sbl->dev, "p%ds%d: Timeout setting tx/rx/txo enable! "
-				"tx_en:%d rx_en:%d txo_en:%d tx_rdy:%d rx_rdy:%d "
-				"(timeout:%ds)", port_num, serdes, tx_en, rx_en, txo_en,
-				tx_rdy, rx_rdy, sbl->iattr.serdes_en_timeout);
+		sbl_dev_err(sbl->dev, "p%ds%d: Timeout setting tx/rx/txo enable! tx_en:%d rx_en:%d txo_en:%d tx_rdy:%d rx_rdy:%d (timeout:%ds)",
+					port_num, serdes, tx_en, rx_en, txo_en, tx_rdy, rx_rdy, sbl->iattr.serdes_en_timeout);
 		return -ETIME;
 	}
 	DEV_TRACE2(sbl->dev, "rc 0");
 
 	return 0;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
+#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 
 int sbl_set_tx_eq(struct sbl_inst *sbl, int port_num, int serdes,
 		  int atten, int pre, int post, int pre2, int pre3)
@@ -2787,47 +2699,47 @@ int sbl_set_tx_eq(struct sbl_inst *sbl, int port_num, int serdes,
 					SPICO_INT_DATA_SET_TXEQ_ATTEN |
 						(atten & SPICO_INT_DATA_TXEQ_DATA_MASK), NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_TXEQ_LOAD,
 					SPICO_INT_DATA_SET_TXEQ_PRE1 |
 						(pre & SPICO_INT_DATA_TXEQ_DATA_MASK), NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_TXEQ_LOAD,
 					SPICO_INT_DATA_SET_TXEQ_POST |
 						(post & SPICO_INT_DATA_TXEQ_DATA_MASK), NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_TXEQ_LOAD,
 					SPICO_INT_DATA_SET_TXEQ_PRE2 |
 						(pre2 & SPICO_INT_DATA_TXEQ_DATA_MASK), NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_TXEQ_LOAD,
 					SPICO_INT_DATA_SET_TXEQ_PRE3 |
 						(pre3 & SPICO_INT_DATA_TXEQ_DATA_MASK), NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	DEV_TRACE2(sbl->dev, "rc: %d", rc);
 
 	return rc;
 }
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 int sbl_set_gs(struct sbl_inst *sbl, int port_num, int serdes, int gs1, int gs2)
 {
 	if ((gs1 < RXEQ_DFE_GS1_MIN) || (gs1 > RXEQ_DFE_GS1_MAX)) {
@@ -2872,9 +2784,9 @@ int sbl_set_gs(struct sbl_inst *sbl, int port_num, int serdes, int gs1, int gs2)
 					SPICO_INT_DATA_HAL_CTLE_GS1,
 					&result,
 					SPICO_INT_RETURN_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	DEV_TRACE2(sbl->dev,
 		   "p%ds%d: Updating GS1 from 0x%x to 0x%x",
 		   port_num, serdes, result, gs1);
@@ -2882,9 +2794,9 @@ int sbl_set_gs(struct sbl_inst *sbl, int port_num, int serdes, int gs1, int gs2)
 					SPICO_INT_CM4_HAL_WRITE,
 					gs1, &result,
 					SPICO_INT_RETURN_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	if (result != SPICO_INT_CM4_HAL_READ) {
 		sbl_dev_err(sbl->dev,
 			"p%ds%d: Failed updating gs1 (0x%x)!",
@@ -2898,9 +2810,9 @@ int sbl_set_gs(struct sbl_inst *sbl, int port_num, int serdes, int gs1, int gs2)
 					SPICO_INT_DATA_HAL_CTLE_GS2,
 					&result,
 					SPICO_INT_RETURN_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	DEV_TRACE2(sbl->dev,
 		   "p%ds%d: Updating GS2 from 0x%x to 0x%x",
 		   port_num, serdes, result, gs2);
@@ -2908,9 +2820,9 @@ int sbl_set_gs(struct sbl_inst *sbl, int port_num, int serdes, int gs1, int gs2)
 					SPICO_INT_CM4_HAL_WRITE,
 					gs2, &result,
 					SPICO_INT_RETURN_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	if (result != SPICO_INT_CM4_HAL_READ) {
 		sbl_dev_err(sbl->dev,
 			"p%ds%d: Failed updating gs2 (0x%x)!",
@@ -2922,9 +2834,9 @@ int sbl_set_gs(struct sbl_inst *sbl, int port_num, int serdes, int gs1, int gs2)
 
 	return 0;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
+#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 int sbl_set_tx_data_sel(struct sbl_inst *sbl, int port_num, int serdes,
 			int data_sel)
 {
@@ -2947,17 +2859,15 @@ int sbl_set_tx_data_sel(struct sbl_inst *sbl, int port_num, int serdes,
 						SPICO_INT_DATA_DISABLE_TXRXGEN,
 						&result,
 						SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			}
-			if (result == SPICO_INT_DATA_PRBS_SUCCESS) {
+
+			if (result == SPICO_INT_DATA_PRBS_SUCCESS)
 				return 0;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: attempt %d "
-					 "tx data sel returned %d",
-					 port_num, serdes, retry_cnt, result);
-				msleep(SPICO_INT_DATA_PRBS_RETRY_DELAY);
-			}
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: attempt %d tx data sel returned %d",
+					port_num, serdes, retry_cnt, result);
+			usleep_range(1000, 2000);
 		} while (retry_cnt++ < SPICO_INT_DATA_PRBS_RETRY_LIMIT);
 	} else { // SBL_DS_PRBS
 		do {
@@ -2966,17 +2876,15 @@ int sbl_set_tx_data_sel(struct sbl_inst *sbl, int port_num, int serdes,
 						SPICO_INT_DATA_PRBS31_AS_TXGEN,
 						&result,
 						SPICO_INT_RETURN_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			}
-			if (result == SPICO_INT_DATA_PRBS_SUCCESS) {
+
+			if (result == SPICO_INT_DATA_PRBS_SUCCESS)
 				return 0;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: attempt %d "
-					 "tx data sel returned %d",
-					 port_num, serdes, retry_cnt, result);
-				msleep(SPICO_INT_DATA_PRBS_RETRY_DELAY);
-			}
+
+			sbl_dev_dbg(sbl->dev, "p%ds%d: attempt %d tx data sel returned %d",
+					port_num, serdes, retry_cnt, result);
+			usleep_range(1000, 2000);
 		} while (retry_cnt++ < SPICO_INT_DATA_PRBS_RETRY_LIMIT);
 	}
 
@@ -2984,7 +2892,7 @@ int sbl_set_tx_data_sel(struct sbl_inst *sbl, int port_num, int serdes,
 		port_num, serdes, data_sel);
 	return -EBADE;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
+#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 
 int sbl_set_prbs_rx_mode(struct sbl_inst *sbl, int port_num, int serdes)
 {
@@ -2996,14 +2904,12 @@ int sbl_set_prbs_rx_mode(struct sbl_inst *sbl, int port_num, int serdes)
 					SPICO_INT_CM4_DFE_CTRL,
 					SPICO_INT_DATA_NONE, NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	err = sbl_serdes_dfe_tune_wait(sbl, port_num);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	DEV_TRACE2(sbl->dev, "rc: 0");
 
@@ -3032,17 +2938,15 @@ int sbl_apply_sbus_divider(struct sbl_inst *sbl, int divider)
 		mutex_lock(SBUS_RING_MTX(sbl, sbus_ring));
 		err = sbl_sbus_wr(sbl, sbus_addr, SBM_CRM_ADDR_CLK_DIV, divider);
 		mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 
 	// adjust op flags
-	if (divider == SBL_SBUS_DIVIDER_SPEEDUP) {
+	if (divider == SBL_SBUS_DIVIDER_SPEEDUP)
 		sbl->sbus_op_flags = sbl->iattr.sbus_op_flags_fast;
-	} else { // SBL_SBUS_DIVIDER_DFLT
+	else // SBL_SBUS_DIVIDER_DFLT
 		sbl->sbus_op_flags = sbl->iattr.sbus_op_flags_slow;
-	}
 
 	sbl_dev_dbg(sbl->dev, "SBus divider update complete");
 	return 0;
@@ -3102,9 +3006,8 @@ int sbl_serdes_dfe_tune_start(struct sbl_inst *sbl, int port_num, int serdes,
 					SPICO_INT_CM4_HAL_READ,
 					SPICO_INT_DATA_ICAL_EFFORT_SEL, &result,
 					SPICO_INT_RETURN_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_FORCE_MAX_EFFORT)) {
 		link->ical_effort = SPICO_INT_DATA_ICAL_MAX_EFFORT;
@@ -3128,7 +3031,7 @@ int sbl_serdes_dfe_tune_start(struct sbl_inst *sbl, int port_num, int serdes,
 	/* sync with sysfs */
 	mb();
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 	return 0;
 #endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
 
@@ -3138,26 +3041,24 @@ int sbl_serdes_dfe_tune_start(struct sbl_inst *sbl, int port_num, int serdes,
 					SPICO_INT_CM4_HAL_WRITE,
 					link->ical_effort, &result,
 					SPICO_INT_RETURN_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	if (result != SPICO_INT_CM4_HAL_READ) {
 		sbl_dev_err(sbl->dev, "p%ds%d: Failed updating ICAL effort (0x%x)!",
-			port_num, serdes, link->ical_effort);
-		return -EBADE;
-	} else {
-		sbl_dev_dbg(sbl->dev, "p%ds%d: Setup ICAL effort 0x%x",
 				port_num, serdes, link->ical_effort);
+		return -EBADE;
 	}
+	sbl_dev_dbg(sbl->dev, "p%ds%d: Setup ICAL effort 0x%x",
+			port_num, serdes, link->ical_effort);
 
 	// Initiate DFE tune
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_DFE_CTRL,
 					SPICO_INT_DATA_DFE_ICAL, NULL,
 					SPICO_INT_VALIDATE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	DEV_TRACE2(sbl->dev, "rc: 0");
 	return 0;
@@ -3194,9 +3095,9 @@ int sbl_serdes_dfe_tune_wait(struct sbl_inst *sbl, int port_num)
 					port_num, serdes);
 				return -EIO;
 			}
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 			result = DFE_CAL_DONE;
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
+#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 
 			if (result & DFE_LOS_MASK) {
 				sbl_dev_warn(sbl->dev, "p%ds%d: Loss of signal when in DFE tune!",
@@ -3216,17 +3117,16 @@ int sbl_serdes_dfe_tune_wait(struct sbl_inst *sbl, int port_num)
 				in_progress_mask &= ~(1 << serdes);
 			}
 		}
-		if (!in_progress_mask) {
+		if (!in_progress_mask)
 			break;
-		}
+
 		msleep(link->blattr.dfe_poll_interval);
 	} while (time_is_after_jiffies(last_jiffy) &&
 		 !sbl_start_timeout(sbl, port_num) &&
 		 !sbl_base_link_start_cancelled(sbl, port_num));
 
-	if (serdes_mask == tuned_mask) {
+	if (serdes_mask == tuned_mask)
 		return 0;
-	}
 
 	if (sbl_base_link_start_cancelled(sbl, port_num))
 		return -ECANCELED;
@@ -3238,9 +3138,8 @@ int sbl_serdes_dfe_tune_wait(struct sbl_inst *sbl, int port_num)
 	}
 
 	// just didnt finish
-	sbl_dev_dbg(sbl->dev, "p%d serdes_mask:0x%x: Timeout waiting for DFE to "
-			"complete (timeout:%ds)", port_num, serdes_mask,
-			link->blattr.dfe_timeout);
+	sbl_dev_dbg(sbl->dev, "p%d serdes_mask:0x%x: Timeout waiting for DFE to complete (timeout:%ds)",
+				port_num, serdes_mask, link->blattr.dfe_timeout);
 	return -ETIME;
 }
 
@@ -3291,29 +3190,25 @@ int sbl_port_dfe_tune_wait(struct sbl_inst *sbl, int port_num)
 	}
 
 	// extra checks
-	if ((sbl->link[port_num].loopback_mode != SBL_LOOPBACK_MODE_LOCAL)) {
+	if (sbl->link[port_num].loopback_mode != SBL_LOOPBACK_MODE_LOCAL) {
 
 		// Eye height check (without pcal active)
 		err = sbl_port_check_eyes(sbl, port_num);
 		if (err) {
 			sbl_dev_dbg(sbl->dev, "p%d: some eyes bad", port_num);
 			return err;
-		} else {
-			sbl_dev_dbg(sbl->dev, "p%d: all eyes good", port_num);
 		}
+		sbl_dev_dbg(sbl->dev, "p%d: all eyes good", port_num);
 
 		// Validate tuning params
 		err = sbl_check_serdes_tuning_params(sbl, port_num);
 		if (err) {
-			sbl_dev_err(sbl->dev, "p%d: some tuning params bad",
-				port_num);
+			sbl_dev_err(sbl->dev, "p%d: some tuning params bad", port_num);
 			sbl->link[port_num].tune_param_oob_count++;
 			return -ELNRNG;
-		} else {
-			sbl_dev_dbg(sbl->dev, "p%d: all tuning params good",
-				port_num);
-			sbl->link[port_num].tune_param_oob_count = 0;
 		}
+		sbl_dev_dbg(sbl->dev, "p%d: all tuning params good", port_num);
+		sbl->link[port_num].tune_param_oob_count = 0;
 
 		// Set up PCAL
 		//   (This can reduce the eye heights but increase the eye widths).
@@ -3369,7 +3264,7 @@ void sbl_log_port_eye_heights(struct sbl_inst *sbl, int port_num)
 	}
 }
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 int sbl_port_check_eyes(struct sbl_inst *sbl, int port_num)
 {
 	unsigned long holdoff_end_jiffies;
@@ -3448,17 +3343,14 @@ int sbl_port_check_eyes(struct sbl_inst *sbl, int port_num)
 			sbl_dev_dbg(sbl->dev, "p%ds%d eye[%d] height: 0x%x",
 				port_num, serdes, eye, eye_heights[eye]);
 			if (eye_heights[eye] < min_eye_height) {
-				sbl_dev_dbg(sbl->dev, "p%ds%d eye[%d] height (0x%x) less than "
-					 "requirement (0x%x)!",
-					 port_num, serdes, eye,
-					 eye_heights[eye], min_eye_height);
+				sbl_dev_dbg(sbl->dev, "p%ds%d eye[%d] height (0x%x) less than requirement (0x%x)!",
+					 port_num, serdes, eye, eye_heights[eye], min_eye_height);
 				return -ECHRNG;
 			} else if ((sbl->link[port_num].loopback_mode !=
 				    SBL_LOOPBACK_MODE_LOCAL) &&
 				   (eye_heights[eye] > max_eye_height)) {
-				sbl_dev_dbg(sbl->dev, "p%ds%d eye[%d] height (0x%x) greater than "
-					"max (0x%x)!", port_num, serdes, eye,
-					eye_heights[eye], max_eye_height);
+				sbl_dev_dbg(sbl->dev, "p%ds%d eye[%d] height (0x%x) greater than max (0x%x)!",
+						port_num, serdes, eye, eye_heights[eye], max_eye_height);
 				return -ECHRNG;
 			}
 		}
@@ -3603,9 +3495,8 @@ int sbl_port_start_pcal(struct sbl_inst *sbl, int port_num)
 						SPICO_INT_DATA_DFE_CONT_PCAL,
 						NULL,
 						SPICO_INT_VALIDATE_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 	link->pcal_running = true;
 	link->pcal_start_jiffies = jiffies;
@@ -3629,9 +3520,8 @@ int sbl_port_stop_pcal(struct sbl_inst *sbl, int port_num)
 						SPICO_INT_DATA_DFE_PAUSE_PCAL,
 						NULL,
 						SPICO_INT_VALIDATE_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 
 	sbl->link[port_num].pcal_running = false;
@@ -3689,9 +3579,9 @@ int sbl_serdes_minitune_setup(struct sbl_inst *sbl, int port_num)
 						SPICO_INT_DATA_ICAL_EFFORT_SEL,
 						&result,
 						SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev,
 			   "p%ds%d: mt: Updating ICAL effort from 0x%x to 0x%x",
 			   port_num, serdes, result,
@@ -3701,9 +3591,9 @@ int sbl_serdes_minitune_setup(struct sbl_inst *sbl, int port_num)
 						SPICO_INT_DATA_ICAL_EFFORT_0,
 						&result,
 						SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev,
 				"p%ds%d: mt: Failed updating ICAL effort (0x%x)!",
@@ -3716,9 +3606,9 @@ int sbl_serdes_minitune_setup(struct sbl_inst *sbl, int port_num)
 						SPICO_INT_DATA_EID_FILTER_SEL,
 						&result,
 						SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		DEV_TRACE2(sbl->dev,
 			   "p%ds%d: mt: Updating EID Filter from 0x%x to 0x%x",
 			   port_num, serdes, result,
@@ -3728,9 +3618,9 @@ int sbl_serdes_minitune_setup(struct sbl_inst *sbl, int port_num)
 						SPICO_INT_DATA_EID_FILTER_DFE,
 						&result,
 						SPICO_INT_RETURN_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		if (result != SPICO_INT_CM4_HAL_READ) {
 			sbl_dev_err(sbl->dev,
 				"p%ds%d: mt: Failed updating EID Filter (0x%x)!",
@@ -3921,9 +3811,8 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 			continue;
 		err = sbl_serdes_init(sbl, port_num, serdes, encoding,
 					   divisor, width);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 
 	for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
@@ -3932,9 +3821,8 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 			continue;
 		err = sbl_serdes_polarity_ctrl(sbl, port_num, serdes,
 						    encoding, allow_an);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 
 	// Set Rx Termination
@@ -3948,9 +3836,8 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 						SPICO_INT_CM4_INT_RX_TERM,
 						SPICO_INT_DATA_RXT_FLOAT, NULL,
 						SPICO_INT_VALIDATE_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			}
 		}
 		break;
 	case SBL_LINK_PARTNER_NIC:
@@ -3963,9 +3850,8 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 						SPICO_INT_CM4_INT_RX_TERM,
 						SPICO_INT_DATA_RXT_AVDD, NULL,
 						SPICO_INT_VALIDATE_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			}
 		}
 		break;
 	default:
@@ -3985,9 +3871,8 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 						SPICO_INT_CM4_LOOPBACK,
 						SPICO_INT_DATA_ILB, NULL,
 						SPICO_INT_VALIDATE_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			}
 		}
 		break;
 	case SBL_LOOPBACK_MODE_REMOTE:
@@ -4000,9 +3885,8 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 						SPICO_INT_CM4_LOOPBACK,
 						SPICO_INT_DATA_ELB, NULL,
 						SPICO_INT_VALIDATE_RESULT);
-			if (err) {
+			if (err)
 				return err;
-			}
 		}
 		break;
 	default:
@@ -4024,8 +3908,7 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 								&values);
 			if (err) {
 				sbl_dev_warn(sbl->dev,
-					 "p%ds%d: Unable to read config list!",
-					 port_num, serdes);
+						"p%ds%d: Unable to read config list!", port_num, serdes);
 				use_default_tx_eq = true;
 				use_default_gs    = true;
 			}
@@ -4039,8 +3922,7 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 							 values.pre3);
 				if (err) {
 					sbl_dev_warn(sbl->dev,
-					 "Bad settings for port %d! "
-					 "Applying defaults.", port_num);
+							"Bad settings for port %d! Applying defaults.", port_num);
 					use_default_tx_eq = true;
 				}
 			}
@@ -4052,8 +3934,7 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 						 SBL_DFLT_PORT_CONFIG_PRE2,
 						 SBL_DFLT_PORT_CONFIG_PRE3);
 				if (err) {
-					sbl_dev_err(sbl->dev, "Default serdes "
-					"atten/pre/post settings failed!");
+					sbl_dev_err(sbl->dev, "Default serdes atten/pre/post settings failed!");
 					return err;
 				}
 			}
@@ -4064,8 +3945,7 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 						      values.gs2);
 				if (err) {
 					sbl_dev_warn(sbl->dev,
-					 "Bad gs1/gs2 settings for port %d! "
-					 "Applying defaults.", port_num);
+							 "Bad gs1/gs2 settings for port %d! Applying defaults.", port_num);
 					use_default_gs = true;
 				}
 			}
@@ -4075,8 +3955,7 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 					      SBL_DFLT_PORT_CONFIG_GS2);
 				if (err) {
 					sbl_dev_err(sbl->dev,
-						"Default serdes gainshape "
-						"settings failed!");
+						"Default serdes gainshape settings failed!");
 					return err;
 				}
 			}
@@ -4097,19 +3976,13 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 						SPICO_INT_RETURN_RESULT);
 				if (err) {
 					sbl_dev_warn(sbl->dev,
-						 "p%ds%d: interrupt 0x%x "
-						 "data 0x%x failed!", port_num,
-						 serdes, values.intr_val[j],
-						 values.data_val[j]);
+						 "p%ds%d: interrupt 0x%x data 0x%x failed!", port_num,
+						 serdes, values.intr_val[j], values.data_val[j]);
 				}
 				if (result != values.intr_val[j]) {
 					sbl_dev_dbg(sbl->dev,
-						 "p%ds%d: interrupt:0x%x data:0x%x result:0x%x != "
-						 "code:0x%x. This is okay in some cases.",
-						 port_num, serdes,
-						 values.intr_val[j],
-						 values.data_val[j], result,
-						 values.intr_val[j]);
+						 "p%ds%d: interrupt:0x%x data:0x%x result:0x%x != code:0x%x. This is okay in some cases.",
+						 port_num, serdes, values.intr_val[j], values.data_val[j], result, values.intr_val[j]);
 				}
 			}
 		}
@@ -4125,17 +3998,16 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 						SPICO_INT_CM4_TX_PHASE_CAL,
 						SPICO_INT_DATA_TPCE, NULL,
 						SPICO_INT_VALIDATE_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 
 	// Set Rx Phase Slip
-	if (sbl->link[port_num].loopback_mode == SBL_LOOPBACK_MODE_LOCAL) {
+	if (sbl->link[port_num].loopback_mode == SBL_LOOPBACK_MODE_LOCAL)
 		rx_phase_slip_reapply = 1;
-	} else {
+	else
 		rx_phase_slip_reapply = 0;
-	}
+
 	rx_phase_slip_cnt = sbl->iattr.rx_phase_slip_cnt;
 	if (rx_phase_slip_cnt > SPICO_INT_DATA_RX_PHASE_MAX) {
 		sbl_dev_warn(sbl->dev,
@@ -4157,9 +4029,8 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 						(rx_phase_slip_reapply << SPICO_INT_DATA_RXP_APPLY_OFFSET) |
 						(rx_phase_slip_cnt << SPICO_INT_DATA_RX_PHASE_OFFSET), NULL,
 						SPICO_INT_VALIDATE_RESULT);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 
 	switch (sbl->link[port_num].loopback_mode) {
@@ -4168,25 +4039,22 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 		for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
 			err = sbl_set_tx_rx_enable(sbl, port_num, serdes,
 							false, false, false);
-			if (err) {
+			if (err)
 				return err;
-			}
 		}
 		break;
 	case SBL_LOOPBACK_MODE_REMOTE:
 	case SBL_LOOPBACK_MODE_OFF:
 		// Disable TX
 		for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
-			if (rx_serdes_required_for_link_mode(sbl, port_num, serdes)) {
+			if (rx_serdes_required_for_link_mode(sbl, port_num, serdes))
 				rx_en = true;
-			} else {
+			else
 				rx_en = false;
-			}
 			err = sbl_set_tx_rx_enable(sbl, port_num, serdes,
 							false, rx_en, false);
-			if (err) {
+			if (err)
 				return err;
-			}
 		}
 		break;
 	default:
@@ -4200,32 +4068,28 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 	// Enable tx on physical lane 0 - this has the clock for all serdes and
 	//  is always required.
 	// rx based on link mode
-	if (rx_serdes_required_for_link_mode(sbl, port_num, 0)) {
+	if (rx_serdes_required_for_link_mode(sbl, port_num, 0))
 		rx_en = true;
-	} else {
+	else
 		rx_en = false;
-	}
 	// txo based on link mode
-	if (get_serdes_tx_mask(sbl, port_num) & (1<<0)) {
+	if (get_serdes_tx_mask(sbl, port_num) & (1<<0))
 		txo_en = true;
-	} else {
+	else
 		txo_en = false;
-	}
 	err = sbl_set_tx_rx_enable(sbl, port_num, 0,
 					true, rx_en, txo_en);
-	if (err) {
+	if (err)
 		return err;
-	}
 
-	msleep(1);
+	usleep_range(1000, 2000);
 
 	// Enable lane 1 2 3 as needed
 	for (serdes = 1; serdes < sbl->switch_info->num_serdes; ++serdes) {
-		if (rx_serdes_required_for_link_mode(sbl, port_num, serdes)) {
+		if (rx_serdes_required_for_link_mode(sbl, port_num, serdes))
 			rx_en = true;
-		} else {
+		else
 			rx_en = false;
-		}
 		if (tx_serdes_required_for_link_mode(sbl, port_num, serdes)) {
 			tx_en = true;
 			txo_en = true;
@@ -4235,9 +4099,8 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 		}
 		err = sbl_set_tx_rx_enable(sbl, port_num, serdes,
 						tx_en, rx_en, txo_en);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 
 	for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
@@ -4248,15 +4111,13 @@ int sbl_serdes_config(struct sbl_inst *sbl, int port_num, bool allow_an)
 		    SBL_TUNING_PATTERN_CORE) {
 			err = sbl_set_tx_data_sel(sbl, port_num, serdes,
 						       SBL_DS_CORE);
-			if (err) {
+			if (err)
 				return err;
-			}
 		} else {
 			err = sbl_set_tx_data_sel(sbl, port_num, serdes,
 						       SBL_DS_PRBS);
-			if (err) {
+			if (err)
 				return err;
-			}
 		}
 	}
 
@@ -4286,7 +4147,7 @@ int sbl_serdes_tuning(struct sbl_inst *sbl, int port_num)
 				port_num);
 		link->tune_param_oob_count = 0;
 		is_retune = false;
-	} else 	if ((link->blattr.options & SBL_OPT_USE_SAVED_PARAMS) &&
+	} else if ((link->blattr.options & SBL_OPT_USE_SAVED_PARAMS) &&
 			(link->loopback_mode != SBL_LOOPBACK_MODE_LOCAL) &&
 			!sbl_debug_option(sbl, port_num, SBL_DEBUG_INHIBIT_USE_SAVED_TP)) {
 		is_retune = sbl_is_retune(sbl, port_num);
@@ -4301,24 +4162,19 @@ int sbl_serdes_tuning(struct sbl_inst *sbl, int port_num)
 		sbl_dev_dbg(sbl->dev, "p%d: Applying saved tuning params",
 				port_num);
 		for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
-			if (!rx_serdes_required_for_link_mode(sbl, port_num,
-							      serdes))
+			if (!rx_serdes_required_for_link_mode(sbl, port_num, serdes))
 				continue;
-			err = sbl_apply_serdes_tuning_params(sbl, port_num,
-								  serdes);
+			err = sbl_apply_serdes_tuning_params(sbl, port_num, serdes);
 			if (err) {
 				sbl_dev_err(sbl->dev, "p%ds%d: Failed to apply saved tuning params!",
 						port_num, serdes);
 				mutex_unlock(&link->tuning_params_mtx);
 				return err;
-			} else {
-				sbl_dev_dbg(sbl->dev, "p%ds%d: saved tuning params applied",
-						port_num, serdes);
 			}
+			sbl_dev_dbg(sbl->dev, "p%ds%d: saved tuning params applied", port_num, serdes);
 		}
 	} else {
-		sbl_dev_dbg(sbl->dev, "p%d: No saved tuning params found",
-			port_num);
+		sbl_dev_dbg(sbl->dev, "p%d: No saved tuning params found", port_num);
 	}
 	mutex_unlock(&link->tuning_params_mtx);
 
@@ -4413,9 +4269,9 @@ int sbl_serdes_tuning(struct sbl_inst *sbl, int port_num)
 					if (!rx_serdes_required_for_link_mode(sbl, port_num, serdes))
 						continue;
 					err = sbl_set_prbs_rx_mode(sbl, port_num, serdes);
-					if (err) {
+					if (err)
 						return err;
-					}
+
 				}
 			}
 			goto out;
@@ -4514,9 +4370,9 @@ int sbl_spico_reset(struct sbl_inst *sbl, int port_num)
 				mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
 				return err;
 			}
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 			result[serdes] = SPICO_STATE_PAUSE;
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
+#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 			if ((result[serdes] & SPICO_STATE_MASK) == SPICO_STATE_PAUSE) {
 				sbl_dev_dbg(sbl->dev, "p%ds%d: SPICO reset PAUSE: pass %d",
 					port_num, serdes, pass);

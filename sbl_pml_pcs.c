@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_pml_pcs.c
- *
- * Copyright 2019,2022-2024 Hewlett Packard Enterprise Development LP
- *
- * core PML block functions
- */
+/* Copyright 2019,2022-2024 Hewlett Packard Enterprise Development LP */
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -136,7 +130,7 @@ static int sbl_pml_pcs_config(struct sbl_inst *sbl, int port_num)
 	default:
 		sbl_dev_dbg(sbl->dev, "%d: pcs fec mode invalid (%d)", port_num, link->blattr.fec_mode);
 		return -EBADRQC;
-       }
+	}
 	val64 = SBL_PML_CFG_RX_PCS_ENABLE_CTL_OS_UPDATE(val64, 0ULL);                   /* ordered sets off */
 	val64 = SBL_PML_CFG_RX_PCS_HEALTH_BAD_SENSITIVITY_UPDATE(val64, 4ULL);          /* less sensitive */
 	val64 = SBL_PML_CFG_RX_PCS_ENABLE_RX_SM_UPDATE(val64,                           /* state machine */
@@ -640,7 +634,7 @@ restart:
 		} else if (elapsed > 50)
 			msleep(100);
 		else
-			msleep(10);
+			usleep_range(10000, 11000);
 	}
 
 	/*
@@ -682,7 +676,7 @@ restart:
 		} else if (elapsed > 50)
 			msleep(100);
 		else
-			msleep(10);
+			usleep_range(10000, 11000);
 	}
 
 out:
@@ -824,7 +818,7 @@ static int sbl_pml_pcs_fault_clear_wait(struct sbl_inst *sbl, int port_num)
 		else if (elapsed > 100)
 			msleep(100);
 		else
-			msleep(10);
+			usleep_range(10000, 11000);
 	}
 
 out:
@@ -896,11 +890,11 @@ bool sbl_pml_pcs_high_serdes_error(struct sbl_inst *sbl, int port_num)
 	u64 val64;
 
 	val64 = sbl_read64(sbl, base|SBL_PML_STS_RX_PCS_OFFSET);
-	return 	SBL_PML_STS_RX_PCS_HI_SER_GET(val64);
+	return SBL_PML_STS_RX_PCS_HI_SER_GET(val64);
 }
 
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 bool sbl_pml_pcs_up(struct sbl_inst *sbl, int port_num)
 {
 	return true;
@@ -913,7 +907,7 @@ bool sbl_pml_pcs_up(struct sbl_inst *sbl, int port_num)
 
 	val64 = sbl_read64(sbl, base|SBL_PML_STS_RX_PCS_OFFSET);
 
-	return 	SBL_PML_STS_RX_PCS_ALIGN_STATUS_GET(val64) &&
+	return SBL_PML_STS_RX_PCS_ALIGN_STATUS_GET(val64) &&
 			!SBL_PML_STS_RX_PCS_FAULT_GET(val64) &&
 			!SBL_PML_STS_RX_PCS_LOCAL_FAULT_GET(val64) &&
 			!SBL_PML_STS_RX_PCS_HI_SER_GET(val64);
@@ -931,7 +925,7 @@ bool sbl_pml_recovery_no_faults(struct sbl_inst *sbl, int port_num)
 	sbl_dev_dbg(sbl->dev, "%d:sbl_pml_recovery fault info val=0x%llx aml=0x%llx fecl:0x%x",
 		     port_num, val64, SBL_PML_STS_RX_PCS_AM_LOCK_GET(val64), link->active_fec_lanes);
 
-	return 	SBL_PML_STS_RX_PCS_ALIGN_STATUS_GET(val64) &&
+	return SBL_PML_STS_RX_PCS_ALIGN_STATUS_GET(val64) &&
 			!SBL_PML_STS_RX_PCS_FAULT_GET(val64) &&
 			!SBL_PML_STS_RX_PCS_LOCAL_FAULT_GET(val64) &&
 			!SBL_PML_STS_RX_PCS_HI_SER_GET(val64) &&

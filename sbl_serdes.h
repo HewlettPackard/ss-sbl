@@ -1,11 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /* Copyright 2019-2020,2022-2023 Hewlett Packard Enterprise Development LP. All rights reserved. */
 
-/*
- * sbl_serdes.h
- *
- *  Exported serdes interface definition
- */
+
 #ifndef _SBL_SERDES_H_
 #define _SBL_SERDES_H_
 
@@ -27,7 +23,7 @@ int sbl_serdes_test(struct sbl_inst *sbl);
  *
  * @param sbl sbl_inst pointer containing target config and state
  * @param port_num target port number
- * @param force force reset and flash even if current fw is at the correct
+ * @param force reset and flash even if current fw is at the correct
  *        rev and build number
  *
  * @return 0 on success or negative errno on failure

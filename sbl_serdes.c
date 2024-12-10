@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_serdes.c
- *
- * Copyright 2019-2022, 2024 Hewlett Packard Enterprise Development LP
- *
- * kernel serdes control interface
- */
+/* Copyright 2019-2022, 2024 Hewlett Packard Enterprise Development LP */
 
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -28,7 +22,7 @@ static int sbl_serdes_stop_internal(struct sbl_inst *sbl, int port_num);
 static int sbl_serdes_optical_lock_delay(struct sbl_inst *sbl, int port_num);
 
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 int sbl_serdes_load(struct sbl_inst *sbl, int port_num, bool force)
 {
 	return 0;
@@ -856,14 +850,8 @@ void sbl_serdes_dump_configs(struct sbl_inst *sbl)
 	spin_lock(&sbl->serdes_config_lock);
 	list_for_each_entry_reverse(sc, &sbl->serdes_config_list, list) {
 		sbl_dev_info(sbl->dev,
-			"serdes config %d: dflt: %d, tag %d, "
-			"mask0 0x%llx, match0 0x%llx, "
-			"mask1 0x%llx, match1 0x%llx, "
-			"ports 0x%llx, serdes 0x%x\n",
-			count++, sc->is_default, sc->tag,
-			sc->tp_state_mask0, sc->tp_state_match0,
-			sc->tp_state_mask1, sc->tp_state_match1,
-			sc->port_mask, sc->serdes_mask);
+			"serdes config %d: dflt: %d, tag %d, mask0 0x%llx, match0 0x%llx, mask1 0x%llx, match1 0x%llx, ports 0x%llx, serdes 0x%x\n",
+			count++, sc->is_default, sc->tag, sc->tp_state_mask0, sc->tp_state_match0, sc->tp_state_mask1, sc->tp_state_match1, sc->port_mask, sc->serdes_mask);
 	}
 	spin_unlock(&sbl->serdes_config_lock);
 }
@@ -963,12 +951,11 @@ EXPORT_SYMBOL(sbl_serdes_sysfs_sprint);
 /**
  * @brief Get the serdes firmware version information for the port as a string.
  * @details Multiple serdes firmware versions exist per port. Each serdes lane
- * 		firmware version is listed on a newline.
- * @param[in] sbl			Slingshot base link instance.
- * @param[in] port_num		Port number to get the serdes firmware version for.
- * @param[out] buf			Serdes firmware version string.
- * @param[in] size			Size of the buffer allocated for the Serdes
- * 							firmware version string.
+ * firmware version is listed on a newline.
+ * @param[in] sbl	Slingshot base link instance.
+ * @param[in] port_num	Port number to get the serdes firmware version for.
+ * @param[out] buf	Serdes firmware version string.
+ * @param[in] size	Size of the buffer allocated for the Serdes firmware version string.
  *
  * @return On success the number of bytes written to the buffer is returned.
  * -EINVAL is returned when the sbl instance or port number is invalid and
@@ -984,6 +971,7 @@ int sbl_serdes_fw_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, si
 	ssize_t s = 0;
 
 	int err = sbl_validate_instance(sbl);
+
 	if (err)
 		return err;
 
@@ -991,7 +979,7 @@ int sbl_serdes_fw_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, si
 	if (err)
 		return err;
 
-	if (NULL == buf || size == 0U)
+	if (buf == NULL || size == 0U)
 		return -ENOMEM;
 
 	memset(fw, 0, sizeof(fw));
@@ -1025,13 +1013,14 @@ int sbl_sbm_fw_sysfs_sprint(struct sbl_inst *sbl, int ring, char *buf, size_t si
 	uint fw_rev, fw_build = 0;
 
 	int err = sbl_validate_instance(sbl);
+
 	if (err)
 		return err;
 
 	if (sbl_get_num_sbus_rings(sbl) < ring || ring < 0)
 		return -EINVAL;
 
-	if (NULL == buf || size == 0U)
+	if (buf == NULL || size == 0U)
 		return -ENOMEM;
 
 	sbl_sbm_get_fw_vers(sbl, ring, &fw_rev, &fw_build);

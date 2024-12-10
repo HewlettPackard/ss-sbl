@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_pml.c
- *
- * Copyright 2019-2023 Hewlett Packard Enterprise Development LP
- *
- * core PML block functions
- */
+/* Copyright 2019-2023 Hewlett Packard Enterprise Development LP */
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -375,7 +369,7 @@ void sbl_pml_link_down_async_alert(struct sbl_inst *sbl, int port_num, u32 down_
 
 	/*
 	 * going down or in recovery state, so don't need more intrs
-	*/
+	 */
 	sbl_pml_disable_intr_handler(sbl, port_num, err_flags);
 
 	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_INHIBIT_CLEANUP)) {
@@ -592,6 +586,7 @@ int sbl_pml_hdlr(struct sbl_inst *sbl, int port_num, void *data)
 	u64 val64;
 	struct lane_degrade degrade_data;
 	int alert = SBL_ASYNC_ALERT_INVALID;
+	int result;
 	unsigned long irq_flags;
 
 	raised_flgs = sbl_read64(sbl, base|SBL_PML_ERR_FLG_OFFSET) & link->intr_err_flgs;
@@ -632,11 +627,15 @@ int sbl_pml_hdlr(struct sbl_inst *sbl, int port_num, void *data)
 				&degrade_data, sizeof(degrade_data));
 	}
 
-	if (SBL_PML_ERR_FLG_PCS_TX_DEGRADE_FAILURE_GET(raised_flgs))
-	    alert = SBL_ASYNC_ALERT_TX_DEGRADE_FAILURE;
+	result = SBL_PML_ERR_FLG_PCS_TX_DEGRADE_FAILURE_GET(raised_flgs);
 
-	if (SBL_PML_ERR_FLG_PCS_RX_DEGRADE_FAILURE_GET(raised_flgs))
-	    alert = SBL_ASYNC_ALERT_RX_DEGRADE_FAILURE;
+	if (result)
+		alert = SBL_ASYNC_ALERT_TX_DEGRADE_FAILURE;
+
+	result = SBL_PML_ERR_FLG_PCS_RX_DEGRADE_FAILURE_GET(raised_flgs);
+
+	if (result)
+		alert = SBL_ASYNC_ALERT_RX_DEGRADE_FAILURE;
 
 	if (alert) {
 		/*

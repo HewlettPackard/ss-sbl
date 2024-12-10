@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_misc.c
- *
- * Copyright 2019-2024 Hewlett Packard Enterprise Development LP
- *
- * internal functions
- *
- */
+/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
 
 #include <linux/kernel.h>
 #include <sbl/sbl_pml.h>

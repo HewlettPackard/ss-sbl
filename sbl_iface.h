@@ -26,7 +26,7 @@ extern "C" {
 #define SBL_TRACE2(dev, format, args...) DEV_TRACE2(dev, format, ## args)
 #define SBL_TRACE3(dev, format, args...) DEV_TRACE3(dev, format, ## args)
 
-inline int sbl_iface_sbus_op(SBL_INST *sbl, int ring, u32 req_data,
+inline int sbl_iface_sbus_op(SBL_INST * sbl, int ring, u32 req_data,
 			     u8 data_addr, u8 rx_addr, u8 command,
 			     u32 *rsp_data, u8 *result_code, u8 *overrun,
 			     int timeout, u32 flags)

@@ -75,9 +75,9 @@ is_pcie_serdes_addr(u32 sbus_addr)
 	u16 rx_addr = SBUS_RX_ADDR(sbus_addr);
 #if defined(CONFIG_SBL_PLATFORM_ROS_HW)
 	// Valid for Rosetta
-	if ((ring == 0) && (rx_addr == SBUS_RING0_PCIE_SERDES_SPICO)) {
+	if ((ring == 0) && (rx_addr == SBUS_RING0_PCIE_SERDES_SPICO))
 		return true;
-	}
+
 	return false;
 #else
 	// Valid for Cassini
@@ -98,9 +98,9 @@ is_pcie_serdes_pcs_addr(u32 sbus_addr)
 	u16 rx_addr = SBUS_RX_ADDR(sbus_addr);
 #if defined(CONFIG_SBL_PLATFORM_ROS_HW)
 	// Valid for Rosetta
-	if ((ring == 0) && (rx_addr == SBUS_RING0_PCIE_PCS)) {
+	if ((ring == 0) && (rx_addr == SBUS_RING0_PCIE_PCS))
 		return true;
-	}
+
 	return false;
 #else
 	// Valid for Cassini
@@ -187,71 +187,68 @@ sbus_addr_to_string(u32 sbus_addr, char *data_str)
 #if defined(CONFIG_SBL_PLATFORM_ROS_HW)
     // Valid for Rosetta
 	} else if (ring == 0) {
-		if (rx_addr == SBUS_RING0_CORE_PLL) {
+		if (rx_addr == SBUS_RING0_CORE_PLL)
 			sprintf(data_str, "CORE_PLL");
-		} else if (rx_addr == SBUS_RING0_PCIE_PLL) {
+		else if (rx_addr == SBUS_RING0_PCIE_PLL)
 			sprintf(data_str, "PCIE_PLL");
-		} else if (rx_addr == SBUS_RING0_PCIE_SERDES_SPICO) {
+		else if (rx_addr == SBUS_RING0_PCIE_SERDES_SPICO)
 			sprintf(data_str, "PCIE_SERDES_SPICO");
-		} else if (rx_addr == SBUS_RING0_PCIE_PCS) {
+		else if (rx_addr == SBUS_RING0_PCIE_PCS)
 			sprintf(data_str, "PCIE_PCS");
-		} else if (rx_addr == SBUS_RING0_PMRO0) {
+		else if (rx_addr == SBUS_RING0_PMRO0)
 			sprintf(data_str, "PMRO0");
-		} else if (rx_addr == SBUS_RING0_THERMVOLT) {
+		else if (rx_addr == SBUS_RING0_THERMVOLT)
 			sprintf(data_str, "THERMVOLT");
-		} else if (rx_addr == SBUS_RING0_PMRO1) {
+		else if (rx_addr == SBUS_RING0_PMRO1)
 			sprintf(data_str, "PMRO1");
-		} else if (rx_addr == SBUS_RING0_SBM0) {
+		else if (rx_addr == SBUS_RING0_SBM0)
 			sprintf(data_str, "SBM0");
-		} else if (rx_addr == SBUS_RING0_SBM0_SPICO) {
+		else if (rx_addr == SBUS_RING0_SBM0_SPICO)
 			sprintf(data_str, "SBM0_SPICO");
-		} else if (is_cm4_serdes_addr(sbus_addr)) {
+		else if (is_cm4_serdes_addr(sbus_addr))
 			sprintf(data_str, "CM4_SERDES");
-		} else {
+		else
 			sprintf(data_str, "UNKNOWN");
-		}
 	} else if (ring == 1) {
-		if (rx_addr == SBUS_RING1_PMRO2) {
+		if (rx_addr == SBUS_RING1_PMRO2)
 			sprintf(data_str, "PMRO2");
-		} else if (rx_addr == SBUS_RING1_PMRO3) {
+		else if (rx_addr == SBUS_RING1_PMRO3)
 			sprintf(data_str, "PMRO3");
-		} else if (rx_addr == SBUS_RING1_SBM1) {
+		else if (rx_addr == SBUS_RING1_SBM1)
 			sprintf(data_str, "SBM1");
-		} else if (rx_addr == SBUS_RING1_SBM1_SPICO) {
+		else if (rx_addr == SBUS_RING1_SBM1_SPICO)
 			sprintf(data_str, "SBM1_SPICO");
-		} else if (is_cm4_serdes_addr(sbus_addr)) {
+		else if (is_cm4_serdes_addr(sbus_addr))
 			sprintf(data_str, "CM4_SERDES");
-		} else {
+		else
 			sprintf(data_str, "UNKNOWN");
-		}
 #else
     // Valid for Cassini - rings 0 and 1 are the same
 	} else if (ring == 0 || ring == 1) {
-		if (rx_addr == SBUS_RINGX_PCIE_PLL0) {
+		if (rx_addr == SBUS_RINGX_PCIE_PLL0)
 			sprintf(data_str, "PCIE_PLL0");
-		} else if (rx_addr == SBUS_RINGX_PCIE_PLL1) {
+		else if (rx_addr == SBUS_RINGX_PCIE_PLL1)
 			sprintf(data_str, "PCIE_PLL1");
-		} else if (rx_addr == SBUS_RINGX_PCIE_PLL2) {
+		else if (rx_addr == SBUS_RINGX_PCIE_PLL2)
 			sprintf(data_str, "PCIE_PLL2");
-		} else if (rx_addr == SBUS_RINGX_CORE_PLL) {
+		else if (rx_addr == SBUS_RINGX_CORE_PLL)
 			sprintf(data_str, "CORE_PLL");
-		} else if (rx_addr == SBUS_RINGX_PMRO0) {
+		else if (rx_addr == SBUS_RINGX_PMRO0)
 			sprintf(data_str, "PMRO0");
-		} else if (rx_addr == SBUS_RINGX_PMRO1) {
+		else if (rx_addr == SBUS_RINGX_PMRO1)
 			sprintf(data_str, "PMRO1");
-		} else if (is_pcie_serdes_addr(sbus_addr)) {
+		else if (is_pcie_serdes_addr(sbus_addr))
 			sprintf(data_str, "PCIE_SERDES_SPICO");
-		} else if (is_pcie_serdes_pcs_addr(sbus_addr)) {
+		else if (is_pcie_serdes_pcs_addr(sbus_addr))
 			sprintf(data_str, "PCIE_SERDES_PCS0");
-		} else if (rx_addr == SBUS_RINGX_SBM) {
+		else if (rx_addr == SBUS_RINGX_SBM)
 			sprintf(data_str, "SBM");
-		} else if (rx_addr == SBUS_RINGX_SBM_SPICO) {
+		else if (rx_addr == SBUS_RINGX_SBM_SPICO)
 			sprintf(data_str, "SBM_SPICO");
-		} else if (is_cm4_serdes_addr(sbus_addr)) {
+		else if (is_cm4_serdes_addr(sbus_addr))
 			sprintf(data_str, "CM4_SERDES");
-		} else {
+		else
 			sprintf(data_str, "UNKNOWN");
-		}
 #endif
 	} else {
 		sprintf(data_str, "UNKNOWN");
@@ -846,30 +843,30 @@ static void sbus_msg(void *inst, u32 sbus_addr, u32 req_data,
 	char sbus_addr_str[SBL_MAX_STR_LEN], cmd_str[SBL_MAX_STR_LEN];
 	char reg_addr_str[SBL_MAX_STR_LEN], rc_str[SBL_MAX_STR_LEN];
 	char message[SBL_MAX_STR_LEN];
-	if (!sbl) {
+
+	if (!sbl)
 		return;
-	}
 
 	sbus_addr_to_string(sbus_addr, sbus_addr_str);
 	sbus_reg_addr_to_string(sbus_addr, reg_addr, reg_addr_str);
 	sbus_cmd_to_string(command, cmd_str);
 	sbus_result_code_to_string(result_code, rc_str);
-	snprintf(message, SBL_MAX_STR_LEN, "SBUS_OP: addr:0x%03x(%-20s) req_data:0x%08x"
-		 " reg_addr:0x%04x(%-15s) command:0x%02x(%-24s), rsp_data:0x%08x "
-		 "result_code:0x%01x(%-14s) overrun:%d timeout:0x%04x flags:0x%04x "
-		 "rc:%d",
-		 sbus_addr, sbus_addr_str, req_data, reg_addr, reg_addr_str,
-		 command, cmd_str, rsp_data, result_code, rc_str, overrun,
-		 timeout, flags, rc);
-	if (severity >= LEVEL_ERR) {
+
+	snprintf(message, SBL_MAX_STR_LEN, "SBUS_OP: addr:0x%03x(%-20s) req_data:0x%08x reg_addr:0x%04x(%-15s)",
+		 sbus_addr, sbus_addr_str, req_data, reg_addr, reg_addr_str);
+	snprintf(message, SBL_MAX_STR_LEN, "SBUS_OP: command:0x%02x(%-24s), rsp_data:0x%08x result_code:0x%01x(%-14s)",
+		 command, cmd_str, rsp_data, result_code, rc_str);
+	snprintf(message, SBL_MAX_STR_LEN, "SBUS_OP: overrun:%d timeout:0x%04x flags:0x%04x rc:%d",
+		 overrun, timeout, flags, rc);
+	if (severity >= LEVEL_ERR)
 		SBL_ERR(sbl->dev, "%s", message);
-	} else if (severity >= LEVEL_WARN) {
+	else if (severity >= LEVEL_WARN)
 		SBL_WARN(sbl->dev, "%s", message);
-	} else if (severity >= LEVEL_INFO) {
+	else if (severity >= LEVEL_INFO)
 		SBL_INFO(sbl->dev, "%s", message);
-	} else {
+	else
 		SBL_TRACE1(sbl->dev, "%s", message);
-	}
+
 }
 #endif
 
@@ -878,6 +875,7 @@ int sbl_sbus_wr(void *inst, u32 sbus_addr, u8 reg_addr,
 {
 	SBL_INST *sbl = (SBL_INST *)inst;
 	u32 unused;
+
 	return sbl_sbus_op_aux(sbl, sbus_addr, reg_addr, SBUS_IFACE_DST_CORE |
 			       SBUS_CMD_WRITE, sbus_data, &unused);
 }
@@ -890,6 +888,7 @@ int sbl_sbus_rd(void *inst, u32 sbus_addr, u8 reg_addr,
 		u32 *result)
 {
 	SBL_INST *sbl = (SBL_INST *)inst;
+
 	return sbl_sbus_op_aux(sbl, sbus_addr, reg_addr, SBUS_IFACE_DST_CORE |
 			       SBUS_CMD_READ, 0, result);
 }
@@ -909,9 +908,9 @@ int sbl_serdes_mem_rd(void *inst, u32 port_num, u32 serdes,
 					SPICO_INT_CM4_MEM_READ | addr,
 					SPICO_INT_DATA_NONE, data,
 					SPICO_INT_RETURN_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	SBL_TRACE2(sbl->dev, "p%ds%d: addr:0x%x data:0x%x", port_num, serdes, addr, *data);
 
 	return 0;
@@ -928,9 +927,9 @@ int sbl_serdes_mem_wr(void *inst, u32 port_num, u32 serdes,
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_MEM_WRITE | addr,
 					data, NULL, SPICO_INT_IGNORE_RESULT);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	SBL_TRACE2(sbl->dev, "p%ds%d: addr:0x%x data:0x%x", port_num, serdes, addr,
 		   data);
 
@@ -947,14 +946,14 @@ int sbl_serdes_mem_rmw(void *inst, u32 port_num, u32 serdes,
 	SBL_TRACE2(sbl->dev, "p%ds%d: addr:0x%x data:0x%x mask:0x%x", port_num,
 		   serdes, addr, data, mask);
 	err = sbl_serdes_mem_rd(sbl, port_num, serdes, addr, &rdata);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	wdata = (rdata & ~mask) | (data & mask);
 	err = sbl_serdes_mem_wr(sbl, port_num, serdes, addr, wdata);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	SBL_TRACE2(sbl->dev, "p%ds%d: addr:0x%x rmw_data:0x%x", port_num, serdes,
 		   addr, wdata);
 
@@ -985,9 +984,8 @@ int sbl_spico_burst_upload(void *inst, u32 sbus, u32 reg,
 				       SPICO_SBR_DATA_W1_OFFSET |
 				       (fw_data[byte+4]<<8 | fw_data[byte+5]) <<
 				       SPICO_SBR_DATA_W2_OFFSET);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 	if (fw_size - byte == 4) {
 		err = sbl_sbus_wr(sbl, sbus, reg, SPICO_SBR_DATA_BE_01 |
@@ -995,21 +993,20 @@ int sbl_spico_burst_upload(void *inst, u32 sbus, u32 reg,
 				       SPICO_SBR_DATA_W0_OFFSET |
 				       (fw_data[byte+2]<<8 | fw_data[byte+3]) <<
 				       SPICO_SBR_DATA_W1_OFFSET);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 	} else if (fw_size - byte == 2) {
 		err = sbl_sbus_wr(sbl, sbus, reg, SPICO_SBR_DATA_BE_0 |
 				       (fw_data[byte+0]<<8 | fw_data[byte+1]) <<
 				       SPICO_SBR_DATA_W0_OFFSET);
-		if (err) {
+		if (err)
 			return err;
-		}
 	}
 	return 0;
 }
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 int sbl_sbus_op_aux(void *inst, u32 sbus_addr, u8 reg_addr,
 		     u8 command, u32 sbus_data, u32 *result)
 {
@@ -1046,8 +1043,8 @@ int sbl_sbus_op_aux(void *inst, u32 sbus_addr, u8 reg_addr,
 		sbus_msg(sbl, sbus_addr, sbus_data, reg_addr, command,
 			 0, result_code, overrun, sbus_op_timeout_ms,
 			 sbus_op_flags, err, LEVEL_WARN);
-		WARN(1, "sbl_sbus_op_aux: Unlocked SBUS ring %d!", sbus_ring);
-	 }
+		WARN(1, "%s: Unlocked SBUS ring %d!", __func__, sbus_ring);
+	}
 #endif /*  __KERNEL__ */
 
 	// Perform SBus operation
@@ -1083,45 +1080,44 @@ int sbl_sbus_op_aux(void *inst, u32 sbus_addr, u8 reg_addr,
 	}
 	switch (command & 0x3) {
 	case SBUS_CMD_RESET:
-		if (result_code == SBUS_RC_RESET) {
+		if (result_code == SBUS_RC_RESET)
 			valid_result = true;
-		}
+
 		break;
 	case SBUS_CMD_WRITE:
-		if (result_code == SBUS_RC_WRITE_COMPLETE) {
+		if (result_code == SBUS_RC_WRITE_COMPLETE)
 			valid_result = true;
-		}
+
 		break;
 	case SBUS_CMD_READ:
-		if (result_code == SBUS_RC_READ_COMPLETE) {
+		if (result_code == SBUS_RC_READ_COMPLETE)
 			valid_result = true;
-		}
+
 		break;
 	case SBUS_CMD_READ_RESULT:
-		if (result_code == SBUS_RC_READ_ALL_COMPLETE) {
+		if (result_code == SBUS_RC_READ_ALL_COMPLETE)
 			valid_result = true;
-		}
+
 		break;
 	}
 
 	if (!valid_result) {
 		SBL_WARN(sbl->dev, "Unexpected result code (%d) 0x%x!",
-			 result_code, command);
+				result_code, command);
 		sbus_msg(sbl, sbus_addr, sbus_data, reg_addr, command,
-			 *result, result_code, overrun, sbus_op_timeout_ms,
-			 sbus_op_flags, err, LEVEL_WARN);
+				*result, result_code, overrun, sbus_op_timeout_ms,
+				sbus_op_flags, err, LEVEL_WARN);
 		return -ENOMSG;
-	} else {
-		sbus_msg(sbl, sbus_addr, sbus_data, reg_addr, command,
-			 *result, result_code, overrun, sbus_op_timeout_ms,
-			 sbus_op_flags, err, LEVEL_DBG);
 	}
+	sbus_msg(sbl, sbus_addr, sbus_data, reg_addr, command,
+			*result, result_code, overrun, sbus_op_timeout_ms,
+			sbus_op_flags, err, LEVEL_DBG);
 
 	return 0;
 }
 #endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 		      u32 *result)
 {
@@ -1149,7 +1145,7 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 #ifdef __KERNEL__
 	// Safety check
 	if (!mutex_is_locked(SBUS_RING_MTX(sbl, sbus_ring))) {
-		SBL_WARN(sbl->dev, "sbl_sbm_spico_int: Unlocked SBUS ring %d!", sbus_ring);
+		SBL_WARN(sbl->dev, "%s: Unlocked SBUS ring %d!", __func__, sbus_ring);
 		WARN(1, "sbl_sbus_op_aux: Unlocked SBUS ring %d!", sbus_ring);
 	}
 #endif /*  __KERNEL__ */
@@ -1161,23 +1157,22 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 		((code & SBMS_INTERRUPT_CODE_MASK)<<SBMS_INTERRUPT_CODE_OFFSET);
 
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_DMEM_IN, intr_in);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	err = sbl_sbus_rd(sbl, sbus_addr, SPICO_SBR_ADDR_INTR, &intr_out);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	intr_out |= SBMS_INTERRUPT_STATUS_OK;
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_INTR, intr_out);
-	if (err) {
+	if (err)
 		return err;
-	}
+
 	intr_out ^= SBMS_INTERRUPT_STATUS_OK;
 	err = sbl_sbus_wr(sbl, sbus_addr, SPICO_SBR_ADDR_INTR, intr_out);
-	if (err) {
+	if (err)
 		return err;
-	}
 
 	// Poll for interrupt completion
 #ifdef __KERNEL__
@@ -1188,13 +1183,13 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 	do {
 		err = sbl_sbus_rd(sbl, sbus_addr, SPICO_SBR_ADDR_DMEM_OUT,
 				       &intr_out);
-		if (err) {
+		if (err)
 			return err;
-		}
+
 		// Check in progress bit
-		if ((intr_out & SBMS_INTERRUPT_IN_PROGRESSS_MASK) == 0) {
+		if ((intr_out & SBMS_INTERRUPT_IN_PROGRESSS_MASK) == 0)
 			break;
-		}
+
 		msleep(sbus_int_poll_interval);
 #ifdef __KERNEL__
 	} while (time_is_after_jiffies(last_jiffy));
@@ -1203,8 +1198,7 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 #endif /*  __KERNEL__ */
 	if (intr_out & SBMS_INTERRUPT_IN_PROGRESSS_MASK) {
 		SBL_ERR(sbl->dev,
-			"SBM_INT: sbus_addr:0x%03x int:0x%x(%s) data:0x%x "
-			"timed out (timeout:%ds)!",
+			"SBM_INT: sbus_addr:0x%03x int:0x%x(%s) data:0x%x timed out (timeout:%ds)!",
 			sbus_addr, code, intr_str, data, sbus_int_timeout);
 		return -ETIME;
 	}
@@ -1225,9 +1219,8 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 			SBMS_INTERRUPT_DATA_OFFSET;
 	} else {
 		SBL_ERR(sbl->dev,
-			"SBM_INT: sbus_addr:0x%03x int:0x%x(%s) data:0x%x Failed with "
-			"status 0x%x!", sbus_addr, code, intr_str, data,
-			(intr_out & SBMS_INTERRUPT_STATUS_MASK));
+			"SBM_INT: sbus_addr:0x%03x int:0x%x(%s) data:0x%x Failed with status 0x%x!",
+			sbus_addr, code, intr_str, data, (intr_out & SBMS_INTERRUPT_STATUS_MASK));
 		return -EBADE;
 	}
 
@@ -1261,15 +1254,15 @@ static int sbl_chip_ring_sbus_to_port_serdes(void *inst, int chip,
 
 	for (port = 0; port < sbl->switch_info->num_ports; ++port) {
 		for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
-			if (chip != sbl->switch_info->ports[port].serdes[serdes].device) {
+			if (chip != sbl->switch_info->ports[port].serdes[serdes].device)
 				continue;
-			}
-			if (ring != sbl->switch_info->ports[port].serdes[serdes].sbus_ring) {
+
+			if (ring != sbl->switch_info->ports[port].serdes[serdes].sbus_ring)
 				continue;
-			}
-			if (sbus != sbl->switch_info->ports[port].serdes[serdes].rx_addr) {
+
+			if (sbus != sbl->switch_info->ports[port].serdes[serdes].rx_addr)
 				continue;
-			}
+
 			*port_out = port;
 			*serdes_out = serdes;
 			return 0;
@@ -1287,21 +1280,22 @@ int sbl_serdes_spico_int2(void *inst, u32 sbus_addr,
 {
 	SBL_INST *sbl = (SBL_INST *)inst;
 	int port_num, serdes;
+
 	if (sbl_chip_ring_sbus_to_port_serdes(sbl, 0,
-					      SBUS_RING(sbus_addr),
-					      SBUS_RX_ADDR(sbus_addr),
-					      &port_num, &serdes)) {
-	    SBL_ERR(sbl->dev,
-		    "Failed converting %d:%d:%d to port/serdes!",
-		    0, SBUS_RING(sbus_addr), SBUS_RX_ADDR(sbus_addr));
-	    return -1;
+						SBUS_RING(sbus_addr),
+						SBUS_RX_ADDR(sbus_addr),
+						&port_num, &serdes)) {
+		SBL_ERR(sbl->dev,
+			"Failed converting %d:%d:%d to port/serdes!",
+			0, SBUS_RING(sbus_addr), SBUS_RX_ADDR(sbus_addr));
+		return -1;
 	}
 
 	return sbl_serdes_spico_int(sbl, port_num, serdes, code, data, result,
 				    result_action);
 }
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 			  int code, int data, u16 *result, u8 result_action)
 {
@@ -1313,11 +1307,10 @@ int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 		SBL_ERR(sbl->dev, "result pointer was NULL!");
 		return -1;
 	}
-	if (result_action != SPICO_INT_RETURN_RESULT) {
+	if (result_action != SPICO_INT_RETURN_RESULT)
 		p_result = &result_out;
-	} else {
+	else
 		p_result = result;
-	}
 
 	*p_result = code;
 	return 0;
@@ -1348,11 +1341,10 @@ int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 		SBL_ERR(sbl->dev, "result pointer was NULL!");
 		return -1;
 	}
-	if (result_action != SPICO_INT_RETURN_RESULT) {
+	if (result_action != SPICO_INT_RETURN_RESULT)
 		p_result = &result_out;
-	} else {
+	else
 		p_result = result;
-	}
 
 	// Make a fake SerDes sbus_addr so spico_interrupt_to_string gives us the
 	//  right debug string. This function is only called for CM4 SerDes, so this
@@ -1369,22 +1361,19 @@ int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 					   serdes_op_flags);
 	if (err) {
 		SBL_ERR(sbl->dev,
-			"SERDES_INT: p%ds%d sbl_serdes_op failed! (rc:%d) "
-			"int:0x%02x(%s) data:0x%04x", port_num, serdes, err,
-			code, intr_str, data);
+				"SERDES_INT: p%ds%d sbl_serdes_op failed! (rc:%d) int:0x%02x(%s) data:0x%04x",
+				port_num, serdes, err, code, intr_str, data);
 		return err;
-	} else {
-		SBL_TRACE1(sbl->dev,
+	}
+	SBL_TRACE1(sbl->dev,
 			"SERDES_INT: p%ds%d int:0x%02x(%s) data:0x%04x -> 0x%04x",
 			port_num, serdes, code, intr_str, data, *p_result);
-	}
 
 	if ((result_action == SPICO_INT_VALIDATE_RESULT) &&
 	    ((*p_result & SPICO_INT_RESULT_CODE_MASK) != code)) {
 		SBL_ERR(sbl->dev,
-			"SERDES_INT: p%ds%d int:0x%02x(%s) data:0x%04x -> 0x%04x "
-			"Unexpected result! Expected 0x%04x!", port_num, serdes, code,
-			intr_str, data, *p_result & SPICO_INT_RESULT_CODE_MASK, code);
+			"SERDES_INT: p%ds%d int:0x%02x(%s) data:0x%04x -> 0x%04x Unexpected result! Expected 0x%04x!",
+			port_num, serdes, code, intr_str, data, *p_result & SPICO_INT_RESULT_CODE_MASK, code);
 		return -EBADE;
 	}
 
@@ -1393,4 +1382,4 @@ int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 #ifdef __KERNEL__
 EXPORT_SYMBOL(sbl_serdes_spico_int);
 #endif
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
+#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */

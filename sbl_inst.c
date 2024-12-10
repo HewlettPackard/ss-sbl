@@ -80,7 +80,6 @@ struct sbl_inst *sbl_new_instance(void *accessor, void *pci_accessor,
 
 	sbl = kzalloc(sizeof(struct sbl_inst), GFP_KERNEL);
 	if (!sbl) {
-		sbl_dev_err(dev, "fail to allocate instance\n");
 		err = -ENOMEM;
 		goto out;
 	}
@@ -124,8 +123,7 @@ struct sbl_inst *sbl_new_instance(void *accessor, void *pci_accessor,
 		err = -EINVAL;
 		goto out_free;
 	default:
-		sbl_dev_err(sbl->dev, "Unknown uC platform (%d)!\n",
-			init_attr->uc_platform);
+		sbl_dev_err(sbl->dev, "Unknown uC platform (%d)!\n", init_attr->uc_platform);
 		err = -EINVAL;
 		goto out_free;
 	}
@@ -135,32 +133,28 @@ struct sbl_inst *sbl_new_instance(void *accessor, void *pci_accessor,
 		 sbl->switch_info->num_ports, sbl->switch_info->num_serdes);
 
 	sbl->sbus_ring_mtx =
-		kzalloc(sbl->switch_info->num_sbus_rings*sizeof(struct mutex),
-			GFP_KERNEL);
+		kcalloc(sbl->switch_info->num_sbus_rings, sizeof(struct mutex), GFP_KERNEL);
 	if (!sbl->sbus_ring_mtx) {
 		err = -ENOMEM;
 		goto out_free;
 	}
 
 	sbl->sbm_fw_mtx =
-		kzalloc(sbl->switch_info->num_sbus_rings*sizeof(struct mutex),
-			GFP_KERNEL);
+		kzalloc(sbl->switch_info->num_sbus_rings*sizeof(struct mutex), GFP_KERNEL);
 	if (!sbl->sbm_fw_mtx) {
 		err = -ENOMEM;
 		goto out_free_sbus_mtx;
 	}
 
 	sbl->reload_sbm_fw =
-		kzalloc(sbl->switch_info->num_sbus_rings*sizeof(bool),
-			GFP_KERNEL);
+		kzalloc(sbl->switch_info->num_sbus_rings*sizeof(bool), GFP_KERNEL);
 	if (!sbl->reload_sbm_fw) {
 		err = -ENOMEM;
 		goto out_free_sbm_fw_mtx;
 	}
 
 	sbl->sbm_fw_reload_count =
-		kzalloc(sbl->switch_info->num_sbus_rings*sizeof(atomic_t),
-			GFP_KERNEL);
+		kzalloc(sbl->switch_info->num_sbus_rings*sizeof(atomic_t), GFP_KERNEL);
 	if (!sbl->sbm_fw_reload_count) {
 		err = -ENOMEM;
 		goto out_free_reload_sbm;
@@ -276,7 +270,7 @@ void sbl_set_eth_name(struct sbl_inst *sbl, const char *name)
 	if (!sbl || !name)
 		return;
 
-	(void)strlcpy(sbl->iattr.eth_if_name, name, sizeof(sbl->iattr.eth_if_name));
+	strscpy(sbl->iattr.eth_if_name, name, sizeof(sbl->iattr.eth_if_name));
 
 	sbl_dev_info(sbl->dev, "%s eth if name changed to %s", sbl->iattr.inst_name, sbl->iattr.eth_if_name);
 }
@@ -376,7 +370,7 @@ static struct sbl_link *sbl_create_link_db(struct sbl_switch_info *switch_info)
 	int err;
 	struct sbl_link *link;
 
-	link = kzalloc(switch_info->num_ports*sizeof(struct sbl_link), GFP_KERNEL);
+	link = kcalloc(switch_info->num_ports, sizeof(struct sbl_link), GFP_KERNEL);
 	if (!link)
 		return ERR_PTR(-ENOMEM);
 
@@ -492,8 +486,8 @@ int sbl_initialise_instance(struct sbl_inst *sbl, struct sbl_instance_attr *attr
 	if (err) {
 		sbl_dev_err(sbl->dev, "initial serdes fw load failed [%d]", err);
 		return err;
-	} else
-		sbl_dev_err(sbl->dev, "serdes fw loaded");
+	}
+	sbl_dev_err(sbl->dev, "serdes fw loaded");
 
 	return 0;
 

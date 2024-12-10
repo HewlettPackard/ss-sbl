@@ -1,13 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-/*
- * sbl.h
- *
- * Copyright 2019-2024 Hewlett Packard Enterprise Development LP
- *
- * The interface exported to other modules
- *
- */
+/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
 
 #ifndef _SBL_H_
 #define _SBL_H_
@@ -20,8 +13,8 @@
 #include "uapi/sbl_counters.h"
 
 #define SBL_VERSION_MAJOR		      3
-#define SBL_VERSION_MINOR		     21
-#define SBL_VERSION_INC			     14
+#define SBL_VERSION_MINOR		     22
+#define SBL_VERSION_INC			      0
 
 #define SBL_MAGIC		     0x6273696c  /* sbli */
 #define SBL_INIT_ATTR_MAGIC	     0x62736965  /* sbla */

@@ -62,7 +62,7 @@ int sbl_sbm_firmware_flash_ring(struct sbl_inst *sbl, int first_ring,
  *
  * @param sbl sbl_inst pointer containing target config and state
  * @param port_num target port number
- * @param force force reset and flash even if current fw is at the correct
+ * @param force reset and flash even if current fw is at the correct
  *        rev and build number
  *
  * @return 0 on success or negative errno on failure
@@ -74,7 +74,7 @@ int sbl_serdes_firmware_flash(struct sbl_inst *sbl, int port_num, bool force);
  *
  * @param sbl sbl_inst pointer containing target config and state
  * @param port_num target port number
- * @param force force reset and flash even if current fw is at the correct
+ * @param force reset and flash even if current fw is at the correct
  *        rev and build number
  *
  * @return 0 on success or negative errno on failure

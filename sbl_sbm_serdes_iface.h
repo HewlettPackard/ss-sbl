@@ -140,7 +140,7 @@ int sbl_sbm_spico_int(void *sbl, u32 sbus_addr, int code,
  * @brief Write an interrupt request to a set of SerDes Spicos
  *
  * @param config_entry address list describing SerDes lanes
- * @param interrupt interrupt command
+ * @param interrupt command
  * @param data interrupt data
  * @param result pointer to store result in.
  * @param result_action ignore the interrupt result, store it to the result

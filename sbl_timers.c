@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright 2019-2024 Hewlett Packard Enterprise Development LP. All rights reserved.
+/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
 
-/*
- * sbl_timers.c
- *
- *   Timeout management
- *   For this first implementation just use jiffies
- *
- */
 
 //#define DEBUG     1
 
@@ -34,7 +27,7 @@ void sbl_link_init_start_timeout(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 
-	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __FUNCTION__);
+	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __func__);
 
 	spin_lock(&link->timeout_lock);
 	link->start_timeout = link->blattr.start_timeout;
@@ -54,7 +47,7 @@ void sbl_link_update_start_timeout(struct sbl_inst *sbl, int port_num, unsigned 
 {
 	struct sbl_link *link = sbl->link + port_num;
 
-	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __FUNCTION__);
+	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __func__);
 
 	spin_lock(&link->timeout_lock);
 	link->start_timeout = DIV_ROUND_UP(timeout_ms, 1000);
@@ -81,7 +74,7 @@ bool sbl_start_timeout(struct sbl_inst *sbl, int port_num)
 	spin_unlock(&link->timeout_lock);
 
 	if (timed_out)
-		sbl_dev_dbg(sbl->dev, "%d: %s timed out\n", port_num, __FUNCTION__);
+		sbl_dev_dbg(sbl->dev, "%d: %s timed out\n", port_num, __func__);
 
 	return timed_out;
 }
@@ -110,7 +103,7 @@ void sbl_start_timeout_ensure_remaining(struct sbl_inst *sbl, int port_num, unsi
 	unsigned long left;
 	unsigned long required = msecs_to_jiffies(1000*remaining_s);
 
-	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __FUNCTION__);
+	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __func__);
 
 	spin_lock(&link->timeout_lock);
 
@@ -134,7 +127,7 @@ void sbl_start_timeout_ensure_remaining(struct sbl_inst *sbl, int port_num, unsi
 		}
 	} else {
 		/* we should timeout but extend instead */
-		sbl_dev_info(sbl->dev, "%d: extending timeout by %ld \n", port_num,
+		sbl_dev_info(sbl->dev, "%d: extending timeout by %ld\n", port_num,
 				required/HZ);
 		link->start_timeout += required/HZ;
 		link->last_start_jiffy += required;
@@ -161,7 +154,7 @@ void sbl_link_start_record_timespec(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 
-	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __FUNCTION__);
+	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __func__);
 
 	spin_lock(&link->timeout_lock);
 	link->start_time = ktime_to_timespec64(ktime_sub(ktime_get(), link->start_time_begin));
@@ -175,7 +168,8 @@ void sbl_link_start_record_timespec(struct sbl_inst *sbl, int port_num)
 void sbl_link_up_begin(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
-	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __FUNCTION__);
+
+	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __func__);
 
 	spin_lock(&link->timeout_lock);
 	link->up_time_begin = ktime_get();
@@ -187,7 +181,7 @@ void sbl_link_up_record_timespec(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 
-	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __FUNCTION__);
+	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __func__);
 
 	spin_lock(&link->timeout_lock);
 	link->up_time = ktime_to_timespec64(ktime_sub(ktime_get(), link->up_time_begin));
@@ -203,7 +197,7 @@ void sbl_link_tune_begin(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 
-	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __FUNCTION__);
+	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __func__);
 
 	spin_lock(&link->timeout_lock);
 	link->tune_time_begin = ktime_get();
@@ -228,7 +222,7 @@ void sbl_link_tune_zero_total_timespec(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 
-	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __FUNCTION__);
+	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __func__);
 
 	spin_lock(&link->timeout_lock);
 	link->tune_time.tv_sec = 0;
@@ -242,12 +236,12 @@ void sbl_link_tune_update_total_timespec(struct sbl_inst *sbl, int port_num)
 	struct sbl_link *link = sbl->link + port_num;
 	u64 ns;
 
-	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __FUNCTION__);
+	sbl_dev_dbg(sbl->dev, "%d: %s\n", port_num, __func__);
 
 	spin_lock(&link->timeout_lock);
 	link->tune_time = ktime_to_timespec64(ktime_sub(ktime_get(), link->tune_time_begin));
 
-	link->total_tune_time.tv_sec += link->tune_time.tv_sec ;
+	link->total_tune_time.tv_sec += link->tune_time.tv_sec;
 	ns = link->total_tune_time.tv_nsec + link->tune_time.tv_nsec;
 	if (ns > 1000000000ULL) {
 		link->total_tune_time.tv_sec += 1;

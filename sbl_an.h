@@ -1,10 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-//
-// sbl_an.h
-//
-// Copyright 2019-2020 Hewlett Packard Enterprise Development LP
-//
+/* Copyright 2019-2020 Hewlett Packard Enterprise Development LP */
+
 // This header file includes definitions relating to the autonegotiation
 // feature. This information comes largely from Clause 73 of 802.3-2015
 //

@@ -1,13 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+// SPDX-License-Identifier: GPL-2.0
 
-/**
- * @file sbl_counters.c
- *
- * Copyright 2019, 2022 Hewlett Packard Enterprise Development LP
- *
- * @brief SBL software counter support
- *
- */
+/* Copyright 2019, 2022 Hewlett Packard Enterprise Development LP */
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -41,10 +34,8 @@ int sbl_link_counters_init(struct sbl_link *link)
  */
 void sbl_link_counters_term(struct sbl_link *link)
 {
-	if (link->counters) {
-		kfree(link->counters);
-		link->counters = NULL;
-	}
+	kfree(link->counters);
+	link->counters = NULL;
 }
 
 /*

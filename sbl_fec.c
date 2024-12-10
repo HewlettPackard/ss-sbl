@@ -250,17 +250,15 @@ int sbl_fec_up_check(struct sbl_inst *sbl, int port_num)
 		if (ucw_err)
 			sbl_dev_err(sbl->dev, "%d: fec up check: ucw fail", port_num);
 
-		if ((link->dfe_tune_count == SBL_DFE_USED_SAVED_PARAMS) && (stp_ccw_thresh_adj > 0)) {
+		if ((link->dfe_tune_count == SBL_DFE_USED_SAVED_PARAMS) && (stp_ccw_thresh_adj > 0))
 			stp_ccw_err = sbl_fec_ccw_rate_bad(sbl, port_num, stp_ccw_thresh_adj, true);
-		} else {
+		else
 			ccw_err = sbl_fec_ccw_rate_bad(sbl, port_num, ccw_thresh_adj, false);
-		}
 
-		if (ccw_err) {
+		if (ccw_err)
 			sbl_dev_err(sbl->dev, "%d: fec up check: ccw fail", port_num);
-		} else if (stp_ccw_err) {
+		else if (stp_ccw_err)
 			sbl_dev_err(sbl->dev, "%d: fec up check: stp ccw fail", port_num);
-		}
 
 		if (ucw_err || ccw_err || stp_ccw_err) {
 			sbl_link_counters_incr(sbl, port_num, fec_up_fail);
@@ -449,11 +447,10 @@ static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 	spin_lock(&fec_prmts->fec_cw_lock);
 	ccw_hwm = fec_prmts->fec_ccw_hwm;
 #ifdef CONFIG_SBL_PLATFORM_ROS_HW
-	if (use_stp_thresh) {
+	if (use_stp_thresh)
 		ccw_bad = fec_prmts->fec_stp_ccw_thresh;
-	} else {
+	else
 		ccw_bad = fec_prmts->fec_ccw_thresh;
-	}
 #else
 	ccw_bad = 21250000;
 #endif
@@ -472,7 +469,7 @@ static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 	}
 
 	/*
-	 * apply percentage adjustment 
+	 * apply percentage adjustment
 	 */
 	ccw_bad = ccw_bad * thresh_adj / 100;
 
@@ -755,12 +752,11 @@ int sbl_fec_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t s
 		if (sbl_pml_pcs_aligned(sbl, port_num)) {
 			spin_lock(&fec_prmts->fec_cnt_lock);
 			if (fec_prmts->fec_rates) {
-				s += snprintf(buf+s, size-s, "fec monitor: rates- ccw %lld, ucw %lld/%lld, llr_tx_replay %lld, "
-						"window %ld, (%lld %lld %lld %lld %lld %lld %lld %lld)\n",
-						fec_prmts->fec_rates->ccw,
-						fec_prmts->fec_rates->ucw, fec_prmts->fec_curr_cnts->ucw,
-						fec_prmts->fec_rates->llr_tx_replay,
-						fec_prmts->fec_rates->time,
+				s += snprintf(buf+s, size-s, "fec monitor: rates- ccw %lld, ucw %lld/%lld",
+						fec_prmts->fec_rates->ccw, fec_prmts->fec_rates->ucw, fec_prmts->fec_curr_cnts->ucw);
+				s += snprintf(buf+s, size-s, ", llr_tx_replay %lld, window %ld",
+						fec_prmts->fec_rates->llr_tx_replay, fec_prmts->fec_rates->time);
+				s += snprintf(buf+s, size-s, ", (%lld %lld %lld %lld %lld %lld %lld %lld)\n",
 						fec_prmts->fec_rates->fecl[0], fec_prmts->fec_rates->fecl[1],
 						fec_prmts->fec_rates->fecl[2], fec_prmts->fec_rates->fecl[3],
 						fec_prmts->fec_rates->fecl[4], fec_prmts->fec_rates->fecl[5],

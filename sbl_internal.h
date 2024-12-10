@@ -1,13 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-/*
- * sbl_internal.h
- *
- * Copyright 2019-2023 Hewlett Packard Enterprise Development LP
- *
- *
- *
- */
+/* Copyright 2019-2023 Hewlett Packard Enterprise Development LP */
 
 #ifndef _SBL_INTERNAL_H_
 #define _SBL_INTERNAL_H_
@@ -60,8 +53,7 @@
 #define SBL_PML_REC_POLL_INTERVAL                       4  /* ms */
 #define SBL_PML_REC_LLR_TIMEOUT_OFFSET                  8  /* ms */
 
-struct sbl_pml_recovery
-{
+struct sbl_pml_recovery {
 	struct sbl_inst *sbl;
 	struct timer_list timer;
 	bool  started;
@@ -167,8 +159,7 @@ struct sbl_link {
 
 /* debug support */
 bool sbl_debug_option(struct sbl_inst *sbl, int port_num, u32 flags);
-void dev_ignore(struct device *dev, const char *format, ...)
-	__attribute__((format(printf, 2, 3)));
+void dev_ignore(struct device *dev, const char *format, ...) __printf(2, 3);
 
 
 /* access the single char dev */
@@ -281,30 +272,12 @@ void sbl_link_counters_term(struct sbl_link *link);
 int sbl_link_counters_incr(struct sbl_inst *sbl, int port_num, u16 counter);
 
 #ifdef CONFIG_SBL_PLATFORM_ROS_HW
-#define sbl_dev_err(_dev, _fmt, ...) \
-do { \
-	dev_err((_dev), (_fmt), ##__VA_ARGS__); \
-} while (0)
-#define sbl_dev_dbg(_dev, _fmt, ...) \
-do { \
-	dev_dbg((_dev), (_fmt), ##__VA_ARGS__); \
-} while (0)
-#define sbl_dev_warn(_dev, _fmt, ...) \
-do { \
-	dev_warn((_dev), (_fmt), ##__VA_ARGS__); \
-} while (0)
-#define sbl_dev_info(_dev, _fmt, ...) \
-do { \
-	dev_info((_dev), (_fmt), ##__VA_ARGS__); \
-} while (0)
-#define sbl_dev_err_ratelimited(_dev, _fmt, ...) \
-do { \
-	dev_err_ratelimited((_dev), (_fmt), ##__VA_ARGS__); \
-} while (0)
-#define sbl_dev_dbg_ratelimited(_dev, _fmt, ...) \
-do { \
-	dev_dbg_ratelimited((_dev), (_fmt), ##__VA_ARGS__); \
-} while (0)
+#define sbl_dev_err(_dev, _fmt, ...) dev_err((_dev), (_fmt), ##__VA_ARGS__)
+#define sbl_dev_dbg(_dev, _fmt, ...) dev_dbg((_dev), (_fmt), ##__VA_ARGS__)
+#define sbl_dev_warn(_dev, _fmt, ...) dev_warn((_dev), (_fmt), ##__VA_ARGS__)
+#define sbl_dev_info(_dev, _fmt, ...) dev_info((_dev), (_fmt), ##__VA_ARGS__)
+#define sbl_dev_err_ratelimited(_dev, _fmt, ...) dev_err_ratelimited((_dev), (_fmt), ##__VA_ARGS__)
+#define sbl_dev_dbg_ratelimited(_dev, _fmt, ...) dev_dbg_ratelimited((_dev), (_fmt), ##__VA_ARGS__)
 #else
 #define sbl_dev_err(_dev, _fmt, ...) \
 do { \

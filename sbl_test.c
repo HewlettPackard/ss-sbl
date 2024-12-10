@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_test.c
- *
- * Copyright 2019-2021 Hewlett Packard Enterprise Development LP
- *
- * Development test code
- *
- */
+/* Copyright 2019-2021 Hewlett Packard Enterprise Development LP */
 
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -43,7 +36,7 @@ int sbl_test_core_intr(struct sbl_inst *sbl, int port_num)
 	if (err)
 		return err;
 
-	dev_dbg(sbl->dev, "%s starting\n", __FUNCTION__);
+	dev_dbg(sbl->dev, "%s starting\n", __func__);
 
 	err = sbl_pml_serdes_op(sbl,
 			port_num, /* port num */
@@ -124,7 +117,7 @@ int sbl_test_link_up(struct sbl_inst *sbl, int port_num, int loopback_mode)
 	if (err)
 		return err;
 
-	dev_dbg(sbl->dev, "%s starting\n", __FUNCTION__);
+	dev_dbg(sbl->dev, "%s starting\n", __func__);
 
 	err = sbl_validate_port_num(sbl, port_num);
 	if (err)
@@ -180,7 +173,7 @@ int sbl_test_link_reup(struct sbl_inst *sbl, int port_num, int loopback_mode)
 	if (err)
 		return err;
 
-	dev_dbg(sbl->dev, "%s starting\n", __FUNCTION__);
+	dev_dbg(sbl->dev, "%s starting\n", __func__);
 
 	err = sbl_validate_port_num(sbl, port_num);
 	if (err)
@@ -221,7 +214,7 @@ int sbl_test_link_down(struct sbl_inst *sbl, int port_num)
 	if (err)
 		return err;
 
-	dev_dbg(sbl->dev, "%s starting\n", __FUNCTION__);
+	dev_dbg(sbl->dev, "%s starting\n", __func__);
 
 	err = sbl_validate_port_num(sbl, port_num);
 	if (err)
@@ -249,7 +242,7 @@ int sbl_test_link_reset(struct sbl_inst *sbl, int port_num)
 	if (err)
 		return err;
 
-	dev_dbg(sbl->dev, "%s starting\n", __FUNCTION__);
+	dev_dbg(sbl->dev, "%s starting\n", __func__);
 
 	err = sbl_validate_port_num(sbl, port_num);
 	if (err)
@@ -276,7 +269,7 @@ int sbl_test_serdes_stop(struct sbl_inst *sbl, int port_num)
 	if (err)
 		return err;
 
-	dev_dbg(sbl->dev, "%s starting\n", __FUNCTION__);
+	dev_dbg(sbl->dev, "%s starting\n", __func__);
 
 	err = sbl_validate_port_num(sbl, port_num);
 	if (err)
@@ -304,7 +297,7 @@ int sbl_test_pcs_tx_rf(struct sbl_inst *sbl, int port_num)
 	if (err)
 		return err;
 
-	dev_dbg(sbl->dev, "%s starting\n", __FUNCTION__);
+	dev_dbg(sbl->dev, "%s starting\n", __func__);
 
 	err = sbl_validate_port_num(sbl, port_num);
 	if (err)
@@ -330,7 +323,7 @@ int sbl_test_scratch(struct sbl_inst *sbl, int port_num)
 	if (err)
 		return err;
 
-	dev_dbg(sbl->dev, "%s toggling reload serdes fw option\n", __FUNCTION__);
+	dev_dbg(sbl->dev, "%s toggling reload serdes fw option\n", __func__);
 
 	err = sbl_validate_port_num(sbl, port_num);
 	if (err)

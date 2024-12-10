@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_pml_llr.c
- *
- * Copyright 2019-2024 Hewlett Packard Enterprise Development LP
- *
- * LLR (link-level retry) functions
- */
+/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -219,7 +213,7 @@ static int sbl_pml_llr_ready_wait(struct sbl_inst *sbl, int port_num)
 		}
 
 		/* should be relatively well synchronised by this point */
-		msleep(5);
+		usleep_range(5000, 6000);
 	}
 
 	err = 0;
@@ -233,7 +227,7 @@ out:
 u32 sbl_pml_llr_get_state(struct sbl_inst *sbl, int port_num)
 {
 	u32 base  = SBL_PML_BASE(port_num);
-	u64 val64 = sbl_read64(sbl, base|SBL_PML_STS_LLR_OFFSET);;
+	u64 val64 = sbl_read64(sbl, base|SBL_PML_STS_LLR_OFFSET);
 
 	switch (SBL_PML_STS_LLR_LLR_STATE_GET(val64)) {
 	case 0: /* OFF */
@@ -327,9 +321,9 @@ static int sbl_pml_llr_measure_loop_time_ns(struct sbl_inst *sbl, int port_num,
 		sbl_dev_dbg(sbl->dev, "%d: LLR measure time = %lldns (%d)", port_num, time64, x);
 
 		/* if we didn't get a valid time, then wait to retry */
-		if (!time64) {
+		if (!time64)
 			msleep(SBL_PML_LLR_TIMING_RETRY_DELAY);
-		}
+
 		/* if we did get a valid time, then check it here */
 		else if ((time64 >= min_loop_time) && (time64 <= max_loop_time)) {
 			/* save the fastest time here */
@@ -571,7 +565,7 @@ bool sbl_pml_llr_check_is_ready(struct sbl_inst *sbl, int port_num, unsigned int
 	do {
 		if (sbl_pml_llr_get_state(sbl, port_num) == SBL_PML_LLR_STATE_ADVANCE)
 			return true;
-		msleep(5);
+		usleep_range(5000, 6000);
 	} while (time_before(jiffies, to_jiffy));
 
 	return false;

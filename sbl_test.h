@@ -1,14 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-/*
- * sbl_test.h
- *
- * Copyright 2019-2021 Hewlett Packard Enterprise Development LP
- *
- * All rights reserved.
- *
- *  Exported test functions
- */
+/* Copyright 2019-2021 Hewlett Packard Enterprise Development LP */
+
 #ifndef _SBL_TEST_H_
 #define _SBL_TEST_H_
 

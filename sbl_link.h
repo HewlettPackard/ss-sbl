@@ -1,14 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
 
-/*
- * sbl_link.h
- *
- * Copyright 2019-2022 Hewlett Packard Enterprise Development LP
- *
- * link manipulation
- *
- */
+/* Copyright 2019-2022 Hewlett Packard Enterprise Development LP */
 
 #ifndef _SBL_LINK_H_
 #define _SBL_LINK_H_

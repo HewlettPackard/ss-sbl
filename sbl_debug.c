@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_debug.c
- *
- * Copyright 2019-2022 Hewlett Packard Enterprise Development LP
- *
- */
+/* Copyright 2019-2022 Hewlett Packard Enterprise Development LP */
 
 
 #include <linux/types.h>

@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_link_an.c
- *
- * Copyright 2019-2024 Hewlett Packard Enterprise Development LP
- */
+/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
 
 
 #include <linux/types.h>
@@ -153,7 +149,7 @@ int sbl_link_autoneg(struct sbl_inst *sbl, int port_num)
 		err = sbl_an_serdes_start(sbl, port_num);
 		if (err)
 			break;
-		msleep(1);
+		usleep_range(1000, 2000);
 
 		err = sbl_an_pml_setup(sbl, port_num);
 		if (err)
@@ -263,7 +259,7 @@ out:
  *    26 Feb 2021 - added SM exchange to work around rosetta interrupt bug
  *
  */
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 static int sbl_an_exchange(struct sbl_inst *sbl, int port_num)
 {
 	if (sbl_base_link_start_cancelled(sbl, port_num))
@@ -403,7 +399,7 @@ static int sbl_an_exchange(struct sbl_inst *sbl, int port_num)
 			link->an_rx_count++;
 		}
 
-		/* go to the next next page */
+		/* go to the additional next page */
 		xcng_count++;
 
 		/* Too many Rx pages ?*/
@@ -470,7 +466,7 @@ static int sbl_an_exchange(struct sbl_inst *sbl, int port_num)
 			link->an_rx_count++;
 		}
 
-		/* go to the next next page */
+		/* go to the additional next page */
 		xcng_count++;
 
 		/* Too many Rx pages ?*/
@@ -619,7 +615,7 @@ static int sbl_an_sm_is_np_exchange_done(struct sbl_inst *sbl, int port_num, u64
 		if (sbl_start_timeout(sbl, port_num))
 			return -ETIMEDOUT;
 
-		msleep(1);
+		usleep_range(1000, 2000);
 
 		pcs_an_next_page_reg = sbl_read64(sbl, (SBL_PML_BASE(port_num) | SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_OFFSET));
 		*sm_state            = SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_STATE_GET(pcs_an_next_page_reg);
@@ -644,9 +640,8 @@ static bool sbl_an_sm_is_exchange_done(struct sbl_inst *sbl, int port_num, u64 s
 {
 	u64 pcs_an_next_page_reg = 0;
 
-	if (sm_state == SBL_PML_AUTONEG_STATE_AN_GOOD_CHECK) {
+	if (sm_state == SBL_PML_AUTONEG_STATE_AN_GOOD_CHECK)
 		return true;
-	}
 
 	pcs_an_next_page_reg = sbl_read64(sbl, (SBL_PML_BASE(port_num) | SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_OFFSET));
 
@@ -745,15 +740,14 @@ static int sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num)
 	link->an_tx_page[2] = 0ULL;
 	link->an_tx_page[2] |= AN_NP_OUI_VER_0_1;
 	/* LLR options here */
-	if ((link->blattr.llr_mode == SBL_LLR_MODE_AUTO)) {
+	if (link->blattr.llr_mode == SBL_LLR_MODE_AUTO) {
 		if (!(link->blattr.options & SBL_OPT_DISABLE_AN_LLR)) {
 			link->an_tx_page[2] |= (AN_OPT_LLR << AN_OPT_BASE_BIT);
-			if (link->blattr.options & SBL_OPT_ENABLE_ETHER_LLR) {
+			if (link->blattr.options & SBL_OPT_ENABLE_ETHER_LLR)
 				link->an_tx_page[2] |= (AN_OPT_ETHER_LLR << AN_OPT_BASE_BIT);
-			}
-			if (link->blattr.options & SBL_OPT_ENABLE_IFG_HPC_WITH_LLR) {
+
+			if (link->blattr.options & SBL_OPT_ENABLE_IFG_HPC_WITH_LLR)
 				link->an_tx_page[2] |= (AN_OPT_HPC_WITH_LLR << AN_OPT_BASE_BIT);
-			}
 			/* TODO: add IPV4 option */
 		}
 	}
@@ -959,6 +953,26 @@ static bool sbl_an_100cr4_fixup(struct sbl_inst *sbl, int port_num)
 	return true;
 }
 
+/* save away the LLR options here */
+static void sbl_an_save_llr_options(struct sbl_link *link, int x)
+{
+	if (link->blattr.llr_mode == SBL_LLR_MODE_AUTO) {
+		if (!(link->blattr.options & SBL_OPT_DISABLE_AN_LLR)) {
+			if (link->an_rx_page[x] & (AN_OPT_LLR << AN_OPT_BASE_BIT))
+				link->an_options |= AN_OPT_LLR;
+			if (link->an_rx_page[x] & (AN_OPT_ETHER_LLR << AN_OPT_BASE_BIT)) {
+				if (link->blattr.options & SBL_OPT_ENABLE_ETHER_LLR)
+					link->an_options |= AN_OPT_ETHER_LLR;
+			}
+			if (link->an_rx_page[x] & (AN_OPT_HPC_WITH_LLR << AN_OPT_BASE_BIT)) {
+				if (link->blattr.options & SBL_OPT_ENABLE_IFG_HPC_WITH_LLR)
+					link->an_options |= AN_OPT_HPC_WITH_LLR;
+			}
+			/* TODO: add IPV4 option */
+		}
+	}
+
+}
 
 static int sbl_an_ability_match(struct sbl_inst *sbl, int port_num)
 {
@@ -972,7 +986,7 @@ static int sbl_an_ability_match(struct sbl_inst *sbl, int port_num)
 
 	sbl_dev_dbg(sbl->dev, "an %d: rx count = %d", port_num, link->an_rx_count);
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM)
+#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 	/* Netsim/Z1: No AN happening, so just force the response data to the
 	 *   tx data to ensure capability match
 	 */
@@ -1063,39 +1077,22 @@ static int sbl_an_ability_match(struct sbl_inst *sbl, int port_num)
 		/* do unformatted page */
 		switch (last_msg_code) {
 		case AN_NP_CODE_OUI_EXTENDED_MSG:
-			if (expect_hpe) {
-				/* got a HPE OUI message - check the unformatted page and set options */
-				switch (link->an_rx_page[x] & AN_NP_OUI_VER_MASK) {
-				case AN_NP_OUI_VER_0_1:
-					/* save away the LLR options here */
-					if (link->blattr.llr_mode == SBL_LLR_MODE_AUTO) {
-						if (!(link->blattr.options & SBL_OPT_DISABLE_AN_LLR)) {
-							if (link->an_rx_page[x] & (AN_OPT_LLR << AN_OPT_BASE_BIT)) {
-								link->an_options |= AN_OPT_LLR;
-							}
-							if (link->an_rx_page[x] & (AN_OPT_ETHER_LLR << AN_OPT_BASE_BIT)) {
-								if (link->blattr.options & SBL_OPT_ENABLE_ETHER_LLR) {
-									link->an_options |= AN_OPT_ETHER_LLR;
-								}
-							}
-							if (link->an_rx_page[x] & (AN_OPT_HPC_WITH_LLR << AN_OPT_BASE_BIT)) {
-								if (link->blattr.options & SBL_OPT_ENABLE_IFG_HPC_WITH_LLR) {
-									link->an_options |= AN_OPT_HPC_WITH_LLR;
-								}
-							}
-							/* TODO: add IPV4 option */
-						}
-					}
-					/* save away cassini version here */
-					link->lp_subtype = ((link->an_rx_page[x] >> AN_LP_SUBTYPE_BASE_BIT) & AN_LP_SUBTYPE_MASK);
-					sbl_dev_dbg(sbl->dev, "an %d: HPE an_options = 0x%X, lp_subtype = %d", port_num, link->an_options, link->lp_subtype);
-					break;
-				default:
-					sbl_dev_dbg(sbl->dev, "an %d: unknown OUI version 0x%llX", port_num, link->an_rx_page[x] & AN_NP_OUI_VER_MASK);
-					break;
-				}
-				expect_hpe = false;
+			if (!expect_hpe)
+				break;
+
+			/* got a HPE OUI message - check the unformatted page and set options */
+			switch (link->an_rx_page[x] & AN_NP_OUI_VER_MASK) {
+			case AN_NP_OUI_VER_0_1:
+				sbl_an_save_llr_options(link, x);
+				/* save away cassini version here */
+				link->lp_subtype = ((link->an_rx_page[x] >> AN_LP_SUBTYPE_BASE_BIT) & AN_LP_SUBTYPE_MASK);
+				sbl_dev_dbg(sbl->dev, "an %d: HPE an_options = 0x%X, lp_subtype = %d", port_num, link->an_options, link->lp_subtype);
+				break;
+			default:
+				sbl_dev_dbg(sbl->dev, "an %d: unknown OUI version 0x%llX", port_num, link->an_rx_page[x] & AN_NP_OUI_VER_MASK);
+				break;
 			}
+			expect_hpe = false;
 			break;
 		default:
 			sbl_dev_dbg(sbl->dev, "an %d: unknown ufp = 0x%llX", port_num, link->an_rx_page[x]);
@@ -1105,7 +1102,6 @@ static int sbl_an_ability_match(struct sbl_inst *sbl, int port_num)
 
 	return 0;
 }
-
 
 static void sbl_an_update_timeout(struct sbl_inst *sbl, int port_num)
 {

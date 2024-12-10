@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_pml_mac.c
- *
- * Copyright 2019-2021 Hewlett Packard Enterprise Development LP
- *
- * core PML block functions
- */
+/* Copyright 2019-2021 Hewlett Packard Enterprise Development LP */
 
 #include <linux/types.h>
 #include <linux/kernel.h>

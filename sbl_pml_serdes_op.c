@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright 2019-2023 Hewlett Packard Enterprise Development LP. All rights reserved.
-/*
- * sbl_pml_serdes_op.c
- */
+/* Copyright 2019-2023 Hewlett Packard Enterprise Development LP */
 
 //#define DEBUG     1
 

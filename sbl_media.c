@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- * sbl_media.c
- *
- * Copyright 2019, 2021-2024 Hewlett Packard Enterprise Development LP
- *
- *
- *
- */
+/* Copyright 2019, 2021-2024 Hewlett Packard Enterprise Development LP */
 
 //#define DEBUG     1
 
@@ -54,7 +47,7 @@ int sbl_media_config(struct sbl_inst *sbl, int port_num,
 	if (!(link->blstate & (SBL_BASE_LINK_STATUS_UNCONFIGURED|SBL_BASE_LINK_STATUS_DOWN))) {
 
 		sbl_dev_err(sbl->dev, "%d: wrong state (%s) to configure media\n", port_num,
-				sbl_link_state_str(link->blstate));
+			sbl_link_state_str(link->blstate));
 		spin_unlock(&link->lock);
 		return -EUCLEAN;
 	}
@@ -99,7 +92,7 @@ int sbl_media_unconfig(struct sbl_inst *sbl, int port_num)
 			SBL_BASE_LINK_STATUS_STOPPING))) {
 
 		sbl_dev_err(sbl->dev, "%d: wrong state (%s) to unconfigure media\n", port_num,
-				sbl_link_state_str(link->blstate));
+			sbl_link_state_str(link->blstate));
 		spin_unlock(&link->lock);
 		return -EUCLEAN;
 	}
@@ -127,8 +120,7 @@ bool sbl_media_check_mode_supported(struct sbl_inst *sbl, int port_num, u32 link
 		 * assume its OK so we can carry on
 		 * if its not we will fail later anyway
 		 */
-		sbl_dev_warn(sbl->dev, "%d: no media info - assuming link mode OK",
-			port_num);
+		sbl_dev_warn(sbl->dev, "%d: no media info - assuming link mode OK", port_num);
 		return true;
 	}
 
@@ -154,15 +146,14 @@ bool sbl_media_check_mode_supported(struct sbl_inst *sbl, int port_num, u32 link
 		return true;
 
 	if ((link->blattr.options & SBL_OPT_ALLOW_MEDIA_BAD_MODE) ||
-		sbl_debug_option(sbl, port_num, SBL_DEBUG_ALLOW_MEDIA_BAD_MODE)) {
+			sbl_debug_option(sbl, port_num, SBL_DEBUG_ALLOW_MEDIA_BAD_MODE)) {
 		sbl_dev_warn(sbl->dev, "%d: link mode (%s) not supported by media - ignored",
 			port_num, sbl_link_mode_str(link_mode));
 		return true;
-	} else {
-		sbl_dev_err(sbl->dev, "%d: link mode (%s) not supported by media",
-			port_num, sbl_link_mode_str(link_mode));
-		return false;
 	}
+	sbl_dev_err(sbl->dev, "%d: link mode (%s) not supported by media",
+		port_num, sbl_link_mode_str(link_mode));
+	return false;
 }
 
 bool sbl_media_check_headshell_reset_supported(struct sbl_inst *sbl, int port_num)
@@ -239,14 +230,11 @@ static bool sbl_media_check_len_supported(struct sbl_inst *sbl, int port_num, u6
 	default:
 		if ((link->blattr.options & SBL_OPT_ALLOW_MEDIA_BAD_LEN) ||
 				sbl_debug_option(sbl, port_num, SBL_DEBUG_ALLOW_MEDIA_BAD_LEN)) {
-			sbl_dev_warn(sbl->dev, "%d: unsupported media len (%lld) - ignored",
-					port_num, len);
+			sbl_dev_warn(sbl->dev, "%d: unsupported media len (%lld) - ignored", port_num, len);
 			return true;
-		} else {
-			sbl_dev_err(sbl->dev, "%d: unsupported media len (%lld)",
-					port_num, len);
-			return false;
 		}
+		sbl_dev_err(sbl->dev, "%d: unsupported media len (%lld)", port_num, len);
+		return false;
 	}
 }
 
@@ -382,8 +370,7 @@ u64 sbl_media_get_loop_time_ns(struct sbl_inst *sbl, int port_num,
 		return link->llr_loop_time;
 
 	if (measurement_only) {
-		sbl_dev_warn(sbl->dev, "%d: measured loop time not found",
-				port_num);
+		sbl_dev_warn(sbl->dev, "%d: measured loop time not found", port_num);
 		return 0;
 	}
 
