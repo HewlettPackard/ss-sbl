@@ -579,7 +579,7 @@ static int sbl_pml_pcs_alignment_wait(struct sbl_inst *sbl, int port_num)
 {
 	unsigned long start_jiffy;
 	int elapsed;
-	int err;
+	int err = 0;
 
 	sbl_dev_dbg(sbl->dev, "%d: pml pcs alignment wait\n", port_num);
 
