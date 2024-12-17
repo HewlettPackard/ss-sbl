@@ -3,7 +3,7 @@
 /**
  * @file uapi/sbl_serdes.h
  *
- * Copyright 2019, 2022 Hewlett Packard Enterprise Development LP
+ * Copyright 2019, 2022, 2024 Hewlett Packard Enterprise Development LP
  *
  * @brief Base-link SerDes configuration
  *
@@ -101,7 +101,7 @@ extern "C" {
 #define SBL_DFE_G11_MIN		 -4  //relaxed
 #define SBL_DFE_G11_MAX		 4   //relaxed
 #define SBL_DFE_G12_MIN		 -3  //relaxed
-#define SBL_DFE_G12_MAX		 3   //relaxed
+#define SBL_DFE_G12_MAX		 4   //relaxed
 #define SBL_DFE_G13_MIN		 0
 #define SBL_DFE_G13_MAX		 0
 
