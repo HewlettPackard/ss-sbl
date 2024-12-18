@@ -45,7 +45,7 @@ def scimageProject = new SBLProject(
         script:            this,         // necessary for scripts within library
         project_name:      'slingshot_base_link',
         build_steps:       'build_rosetta_drivers,build_hms_sbl_iface',
-        ct_build_steps:    'build_rosetta_jni'
+        ct_build_steps:    'build_rosetta_drivers,build_rosetta_jni'
     )
 
 script {
