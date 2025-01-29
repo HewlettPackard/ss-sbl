@@ -1,5 +1,5 @@
 #
-# Copyright 2023 Hewlett Packard Enterprise Development LP
+# Copyright 2023,2025 Hewlett Packard Enterprise Development LP
 #
 
 ## Global options
@@ -34,8 +34,8 @@ SHS_MAKE_ARGS="\
 #   kernel that the module is being built for.
 
 # QUIRK: see description of SHS_MAKE_ENVVARS in comment above
-MAKE="${SHS_MAKE_ENVVARS} 'make' ${SHS_MAKE_ARGS} modules"
-CLEAN="'make' ${SHS_MAKE_ARGS} clean"
+MAKE="${SHS_MAKE_ENVVARS} 'make' --jobs=${parallel_jobs} ${SHS_MAKE_ARGS} modules"
+CLEAN="'make' --jobs=${parallel_jobs} ${SHS_MAKE_ARGS} clean"
 
 ## SHS global default DKMS settings (expected to not change between any SHS components)
 # Rebuild and autoinstall automatically when dkms_autoinstaller runs for a new kernel
