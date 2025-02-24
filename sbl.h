@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
+/* Copyright 2019-2025 Hewlett Packard Enterprise Development LP */
 
 #ifndef _SBL_H_
 #define _SBL_H_
@@ -14,7 +14,7 @@
 
 #define SBL_VERSION_MAJOR		      3
 #define SBL_VERSION_MINOR		     22
-#define SBL_VERSION_INC			      1
+#define SBL_VERSION_INC			      2
 
 #define SBL_MAGIC		     0x6273696c  /* sbli */
 #define SBL_INIT_ATTR_MAGIC	     0x62736965  /* sbla */
