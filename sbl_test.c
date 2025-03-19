@@ -7,7 +7,7 @@
 
 #include "uapi/sbl_serdes_defaults.h"
 
-#include "sbl_kconfig.h"
+#include "uapi/sbl_kconfig.h"
 #include "sbl.h"
 #include "sbl_serdes.h"
 #include "sbl_serdes_fn.h"

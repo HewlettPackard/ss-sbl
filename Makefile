@@ -81,7 +81,7 @@ stage_install: setup modules
 	$(INSTALL) -m 644 sbl_an.h $(STAGING_DIR)/usr/include/linux
 	$(INSTALL) -d $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 sbl_sbm_serdes_iface.h $(STAGING_DIR)/usr/include/uapi
-	$(INSTALL) -m 644 sbl_kconfig.h $(STAGING_DIR)/usr/include/uapi
+	$(INSTALL) -m 644 uapi/sbl_kconfig.h $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 uapi/sbl.h $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 uapi/sbl_serdes_defaults.h $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 uapi/sbl_serdes.h $(STAGING_DIR)/usr/include/uapi

@@ -10,7 +10,7 @@
 #include <linux/slab.h>
 #include <linux/version.h>
 
-#include "sbl_kconfig.h"
+#include "uapi/sbl_kconfig.h"
 #include "sbl.h"
 #include <linux/of.h>
 #include "sbl_internal.h"

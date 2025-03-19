@@ -7,7 +7,7 @@
 #include <linux/slab.h>
 #include <linux/delay.h>
 
-#include "sbl_kconfig.h"
+#include "uapi/sbl_kconfig.h"
 #include "sbl.h"
 #include "sbl_constants.h"
 #include "sbl_serdes.h"
