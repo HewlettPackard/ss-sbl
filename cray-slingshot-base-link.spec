@@ -113,14 +113,14 @@ done
 
 install -D -m 644 source/sbl.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl.h
 install -D -m 644 source/sbl_an.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl_an.h
+install -D -m 644 source/sbl_kconfig.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl_kconfig.h
+install -D -m 644 source/sbl_serdes_map.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl_serdes_map.h
 install -D -m 644 source/uapi/sbl.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl.h
 install -D -m 644 source/uapi/sbl_cassini.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_cassini.h
 install -D -m 644 source/uapi/sbl_counters.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_counters.h
 install -D -m 644 source/uapi/sbl_iface_constants.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_iface_constants.h
 install -D -m 644 source/uapi/sbl_serdes.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_serdes.h
 install -D -m 644 source/uapi/sbl_serdes_defaults.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_serdes_defaults.h
-install -D -m 644 source/sbl_serdes_map.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl_serdes_map.h
-install -D -m 644 source/uapi/sbl_kconfig.h $RPM_BUILD_ROOT/%{_includedir}/linux/uapi/sbl_kconfig.h
 
 %if 0%{?rhel}
 # Centos/Rocky/RHEL does not exclude the depmod-generated modules.* files from

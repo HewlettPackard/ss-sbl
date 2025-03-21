@@ -11,7 +11,7 @@
 #include <sbl/sbl_pml.h>
 
 
-#include "uapi/sbl_kconfig.h"
+#include "sbl_kconfig.h"
 #include "sbl.h"
 #include "sbl_serdes.h"
 #include "sbl_internal.h"

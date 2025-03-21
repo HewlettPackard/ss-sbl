@@ -12,7 +12,7 @@
 #include <linux/slab.h>
 #include <linux/of.h>
 
-#include "uapi/sbl_kconfig.h"
+#include "sbl_kconfig.h"
 #include "sbl.h"
 #include "uapi/sbl_iface_constants.h"
 #include "sbl_constants.h"

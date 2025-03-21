@@ -12,7 +12,7 @@
 #include "uapi/sbl_iface_constants.h"
 #include "uapi/sbl_serdes_defaults.h"
 #include "sbl_constants.h"
-#include "uapi/sbl_kconfig.h"
+#include "sbl_kconfig.h"
 #include "sbl.h"
 #include "sbl_serdes_map.h"
 #include "sbl_serdes.h"
