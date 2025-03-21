@@ -9,7 +9,7 @@ class SBLProject extends SCImageProject {
     String project_name
     String build_steps
     String ct_build_steps = ""
-    String tools_branch = "master"
+    String tools_branch = "main"
     String tools_url = "ssh://git@github.hpe.com/hpe/hpc-hms_ec-hms-scimage.git"
     String repo_base = "https://arti.hpc.amslabs.hpecorp.net/artifactory"
     String repo_key = "sshot-fwimage-debian"
