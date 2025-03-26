@@ -8,7 +8,7 @@ rpmBuild(
     rpmBuildCmd: "cassini_rpm_build/rpm_build.sh _arch=\$arch _buildname=\$buildname _os=\$os",
     fanout_params: ["rhel_9_4", "rhel_9_5"],
     build_arch: "aarch64",
-    masterBranch: "integration",
+    masterBranch: "main",
     recv_triggers: ["cassini-headers-built"],
     send_triggers: ["slingshot_base_link-centos-built"],
     manifestGen: "true",
