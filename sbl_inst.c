@@ -297,11 +297,12 @@ int sbl_delete_instance(struct sbl_inst *sbl)
 	for (i = 0; i < CONFIG_SBL_NUM_PORTS; ++i) {
 		link = sbl->link + i;
 
+		cancel_work_sync(&link->fec_data->fec_timer_work);
+		del_timer_sync(&link->fec_data->fec_timer);
 		kfree(link->fec_data->fec_prmts->fec_rates);
 		link->fec_data->fec_prmts->fec_rates = NULL;
 		kfree(link->fec_data->fec_prmts);
 		link->fec_data->fec_prmts = NULL;
-		cancel_work_sync(&link->fec_data->fec_timer_work);
 		kfree(link->fec_data);
 		link->fec_data = NULL;
 	}
