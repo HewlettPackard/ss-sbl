@@ -81,11 +81,11 @@ stage_install: setup modules
 	$(INSTALL) -m 644 sbl_an.h $(STAGING_DIR)/usr/include/linux
 	$(INSTALL) -m 644 sbl_kconfig.h $(STAGING_DIR)/usr/include/linux
 	$(INSTALL) -d $(STAGING_DIR)/usr/include/uapi
-	$(INSTALL) -m 644 sbl_sbm_serdes_iface.h $(STAGING_DIR)/usr/include/uapi
+	$(INSTALL) -m 644 sbl_sbm_serdes.h $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 uapi/sbl.h $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 uapi/sbl_serdes_defaults.h $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 uapi/sbl_serdes.h $(STAGING_DIR)/usr/include/uapi
-	$(INSTALL) -m 644 uapi/sbl_iface_constants.h $(STAGING_DIR)/usr/include/uapi
+	$(INSTALL) -m 644 uapi/sbl_sbm_constants.h $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 uapi/sbl_counters.h $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 uapi/sbl_cassini.h $(STAGING_DIR)/usr/include/uapi
 
@@ -95,11 +95,11 @@ stage_uninstall:
 	$(RM) $(STAGING_DIR)/usr/include/linux/sbl_test.h
 	$(RM) $(STAGING_DIR)/usr/include/linux/sbl_an.h
 	$(RM) $(STAGING_DIR)/usr/include/linux/sbl_kconfig.h
-	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_sbm_serdes_iface.h
+	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_sbm_serdes.h
 	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl.h
 	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_serdes_defaults.h
 	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_serdes.h
-	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_iface_constants.h
+	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_sbm_constants.h
 	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_counters.h
 
 # 'make rpm' target for Cassini hosts

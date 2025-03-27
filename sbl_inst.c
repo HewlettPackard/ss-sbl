@@ -14,7 +14,7 @@
 
 #include "sbl_kconfig.h"
 #include "sbl.h"
-#include "uapi/sbl_iface_constants.h"
+#include "uapi/sbl_sbm_constants.h"
 #include "sbl_constants.h"
 #include "sbl_serdes.h"
 #include "sbl_config_list.h"

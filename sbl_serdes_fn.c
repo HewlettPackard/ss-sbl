@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
+/* Copyright 2019-2025 Hewlett Packard Enterprise Development LP */
 
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -9,14 +9,14 @@
 #include <sbl/sbl_pml.h>
 
 
-#include "uapi/sbl_iface_constants.h"
+#include "uapi/sbl_sbm_constants.h"
 #include "uapi/sbl_serdes_defaults.h"
 #include "sbl_constants.h"
 #include "sbl_kconfig.h"
 #include "sbl.h"
 #include "sbl_serdes_map.h"
 #include "sbl_serdes.h"
-#include "sbl_sbm_serdes_iface.h"
+#include "sbl_sbm_serdes.h"
 #include "sbl_serdes_fn.h"
 #include "sbl_internal.h"
 #include "sbl_config_list.h"

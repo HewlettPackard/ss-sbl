@@ -1,15 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-/* Copyright 2019-2020,2022-2023 Hewlett Packard Enterprise Development LP. All rights reserved. */
+/* Copyright 2019-2020,2022-2023,2025 Hewlett Packard Enterprise Development LP. All rights reserved. */
 
-/*
- * sbl_constants.h
- */
-#ifndef _SBL_IFACE_CONSTANTS_H_
-#define _SBL_IFACE_CONSTANTS_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef _SBL_SBM_CONSTANTS_H_
+#define _SBL_SBM_CONSTANTS_H_
 
 /* Port Macro constants */
 #define SBL_SERDES_LANES_PER_PORT            4
@@ -334,7 +327,4 @@ extern "C" {
 #define SBUS_SENSOR_ADDR_SENSOR_A2D_VIN_5_VOLTAGE_SENSOR 81
 #define SBUS_SENSOR_ADDR_IP_IDENTIFICATION_REGISTER      255
 
-#ifdef __cplusplus
-}
-#endif
-#endif /* _SBL_IFACE_CONSTANTS_H_ */
+#endif /* _SBL_SBM_CONSTANTS_H_ */
