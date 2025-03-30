@@ -264,20 +264,6 @@ static int sbl_fec_init(struct sbl_inst *sbl)
 	return 0;
 }
 
-#ifndef CONFIG_SBL_PLATFORM_ROS_HW
-void sbl_set_eth_name(struct sbl_inst *sbl, const char *name)
-{
-	if (!sbl || !name)
-		return;
-
-	strscpy(sbl->iattr.eth_if_name, name, sizeof(sbl->iattr.eth_if_name));
-
-	sbl_dev_info(sbl->dev, "%s eth if name changed to %s", sbl->iattr.inst_name, sbl->iattr.eth_if_name);
-}
-EXPORT_SYMBOL(sbl_set_eth_name);
-#endif
-
-
 int sbl_delete_instance(struct sbl_inst *sbl)
 {
 	struct sbl_link *link;

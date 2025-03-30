@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
-/* Copyright 2019-2023 Hewlett Packard Enterprise Development LP */
+/* Copyright 2019-2023,2025 Hewlett Packard Enterprise Development LP */
 
-//#define DEBUG     1
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -17,10 +16,7 @@
 #include "sbl_internal.h"
 
 
-
 static inline bool sbl_pml_serdes_op_busy(struct sbl_inst *sbl, int port_num);
-
-
 
 /*
  * Perform a serdes "operation"

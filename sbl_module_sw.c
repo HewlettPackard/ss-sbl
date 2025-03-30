@@ -231,7 +231,6 @@ out:
  *   The char device is only used for fw loading and printing to the console
  *   For now multiple instances all share the same device
  */
-//#define __init
 static int __init sbl_init(void)
 {
 	int err;
@@ -303,7 +302,6 @@ EXPORT_SYMBOL(sbl_get_switch_info);
 /*
  * module exit function
  */
-//#define __exit
 static void __exit sbl_exit(void)
 {
 	pr_info("%s : module unloading\n", module_name(THIS_MODULE));
@@ -347,7 +345,6 @@ u64 sbl_llr_edge_cap_seq_max_get(void)
 	return llr_edge_cap_seq_max;
 }
 
-#if defined(CONFIG_SBL_PLATFORM_ROS_HW)
 static unsigned long llr_fabric_cap_data_max = 0x800; /* HW reset value */
 module_param_cb(llr_fabric_cap_data_max, &llr_cap_ops, &llr_fabric_cap_data_max, 0664);
 MODULE_PARM_DESC(llr_fabric_cap_data_max, "LLR data capacity max for fabric link");
@@ -363,7 +360,6 @@ u64 sbl_llr_fabric_cap_seq_max_get(void)
 {
 	return llr_fabric_cap_seq_max;
 }
-#endif
 
 
 MODULE_LICENSE("GPL");

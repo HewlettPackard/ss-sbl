@@ -1126,22 +1126,4 @@ int sbl_pml_pcs_lane_degrade_sysfs_sprint(struct sbl_inst *sbl, int port_num, ch
 	return s;
 }
 EXPORT_SYMBOL(sbl_pml_pcs_lane_degrade_sysfs_sprint);
-
-#ifndef CONFIG_SBL_PLATFORM_ROS_HW
-int sbl_pml_pcs_speed_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	int s = 0;
-
-	spin_lock(&link->lock);
-	if (link->pcs_config)
-		s += snprintf(buf+s, size-s, "%s", sbl_link_mode_str(link->link_mode));
-	else
-		s += snprintf(buf+s, size-s, "NA");
-	spin_unlock(&link->lock);
-
-	return s;
-}
-EXPORT_SYMBOL(sbl_pml_pcs_speed_sysfs_sprint);
-#endif
 #endif

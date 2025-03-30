@@ -14,7 +14,7 @@
 
 #define SBL_VERSION_MAJOR		      3
 #define SBL_VERSION_MINOR		     22
-#define SBL_VERSION_INC			      11
+#define SBL_VERSION_INC			      12
 
 #define SBL_MAGIC		     0x6273696c  /* sbli */
 #define SBL_INIT_ATTR_MAGIC	     0x62736965  /* sbla */
@@ -255,9 +255,7 @@ int sbl_get_num_sbus_rings(struct sbl_inst *sbl);
 struct sbl_inst *sbl_new_instance(void *accessor, void *pci_accessor,
 				  const struct sbl_ops *ops,
 				  struct sbl_init_attr *init_attr);
-#ifndef CONFIG_SBL_PLATFORM_ROS_HW
 void   sbl_set_eth_name(struct sbl_inst *sbl, const char *name);
-#endif
 int    sbl_delete_instance(struct sbl_inst *sbl);
 int    sbl_initialise_instance(struct sbl_inst *sbl, struct sbl_instance_attr *attr);
 int    sbl_restore_instance(struct sbl_inst *sbl);
@@ -301,10 +299,8 @@ int  sbl_base_link_dump_attr(struct sbl_inst *sbl, int port_num,
 /*
  * fec thresholds
  */
-#ifndef CONFIG_SBL_PLATFORM_ROS_HW
 int  sbl_link_get_fec_thresholds(struct sbl_inst *sbl, int port_num,
 		int *ucw_bad, int *ccw_bad, int *fecl_warn);
-#endif
 u64  sbl_link_get_ucw_thresh_ieee(struct sbl_inst *sbl, int port_num);
 u64  sbl_link_get_ucw_thresh_hpe(struct sbl_inst *sbl, int port_num);
 u64  sbl_link_get_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num);

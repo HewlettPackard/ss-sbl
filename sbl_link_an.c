@@ -42,10 +42,6 @@ static bool sbl_an_base_is_page_recv(struct sbl_inst *sbl, int port_num) __maybe
 static bool sbl_an_is_base_page(struct sbl_inst *sbl, int port_num) __maybe_unused;
 static bool sbl_an_next_is_complete(struct sbl_inst *sbl, int port_num) __maybe_unused;
 static bool sbl_an_is_next_page(struct sbl_inst *sbl, int port_num) __maybe_unused;
-#ifdef CONFIG_SBL_PLATFORM_ROS_HW
-static int  sbl_an_sm_is_np_exchange_done(struct sbl_inst *sbl, int port_num, u64 *sm_state);
-static bool sbl_an_sm_is_exchange_done(struct sbl_inst *sbl, int port_num, u64 sm_state);
-#endif  /* CONFIG_SBL_PLATFORM_ROS_HW */
 static bool sbl_an_100cr4_fixup(struct sbl_inst *sbl, int port_num);
 
 int sbl_link_autoneg(struct sbl_inst *sbl, int port_num)
@@ -597,58 +593,6 @@ static bool sbl_an_is_next_page(struct sbl_inst *sbl, int port_num)
 
 	return value;
 }
-
-
-#ifdef CONFIG_SBL_PLATFORM_ROS_HW
-/*
- * np exchange - check for complete or done
- */
-static int sbl_an_sm_is_np_exchange_done(struct sbl_inst *sbl, int port_num, u64 *sm_state)
-{
-	u64           pcs_an_next_page_reg = 0;
-	unsigned long to_jiffy             = jiffies + msecs_to_jiffies(100);
-
-	do {
-
-		if (sbl_base_link_start_cancelled(sbl, port_num))
-			return -ECANCELED;
-		if (sbl_start_timeout(sbl, port_num))
-			return -ETIMEDOUT;
-
-		usleep_range(1000, 2000);
-
-		pcs_an_next_page_reg = sbl_read64(sbl, (SBL_PML_BASE(port_num) | SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_OFFSET));
-		*sm_state            = SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_STATE_GET(pcs_an_next_page_reg);
-
-		if (*sm_state == SBL_PML_AUTONEG_STATE_COMPLETE_ACK)
-			return 0;
-		if (*sm_state == SBL_PML_AUTONEG_STATE_AN_GOOD_CHECK)
-			return 0;
-
-	} while (time_before(jiffies, to_jiffy));
-
-	return -ETIME;
-}
-#endif /* CONFIG_SBL_PLATFORM_ROS_HW */
-
-
-#ifdef CONFIG_SBL_PLATFORM_ROS_HW
-/*
- * exchange - check for done
- */
-static bool sbl_an_sm_is_exchange_done(struct sbl_inst *sbl, int port_num, u64 sm_state)
-{
-	u64 pcs_an_next_page_reg = 0;
-
-	if (sm_state == SBL_PML_AUTONEG_STATE_AN_GOOD_CHECK)
-		return true;
-
-	pcs_an_next_page_reg = sbl_read64(sbl, (SBL_PML_BASE(port_num) | SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_OFFSET));
-
-	return (SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_STATE_GET(pcs_an_next_page_reg) == SBL_PML_AUTONEG_STATE_AN_GOOD_CHECK);
-}
-#endif /* CONFIG_SBL_PLATFORM_ROS_HW */
-
 
 /*
  * Setup the pages

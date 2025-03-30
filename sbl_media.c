@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/* Copyright 2019, 2021-2024 Hewlett Packard Enterprise Development LP */
-
-//#define DEBUG     1
+/* Copyright 2019, 2021-2025 Hewlett Packard Enterprise Development LP */
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -439,24 +437,4 @@ int sbl_media_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t
 	return s;
 }
 EXPORT_SYMBOL(sbl_media_sysfs_sprint);
-
-#ifndef CONFIG_SBL_PLATFORM_ROS_HW
-int sbl_media_type_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	int s = 0;
-
-	spin_lock(&link->lock);
-
-	if (link->mconfigured)
-		s += snprintf(buf+s, size-s, "%s", sbl_link_media_str(link->mattr.media));
-	else
-		s += snprintf(buf+s, size-s, "NA");
-
-	spin_unlock(&link->lock);
-
-	return s;
-}
-EXPORT_SYMBOL(sbl_media_type_sysfs_sprint);
-#endif
 #endif
