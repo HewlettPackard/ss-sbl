@@ -118,6 +118,7 @@ int sbl_fec_thresholds_set(struct sbl_inst *sbl, int port_num,
 
 	case SBL_LINK_FEC_OFF:
 		ccw = 0;
+		stp_ccw = 0;
 		break;
 
 	case SBL_LINK_FEC_IEEE:
