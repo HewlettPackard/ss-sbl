@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
+/* Copyright 2019-2025 Hewlett Packard Enterprise Development LP */
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -736,6 +736,7 @@ void sbl_base_link_try_start_fail_cleanup(struct sbl_inst *sbl, int port_num)
 		switch (link->blerr) {
 
 		case -EADV:          /* pcs startup saw high serdes error rate */
+		case -EBADE:         /* bad page exchange during auto neg */
 		case -ENETDOWN:      /* pcs dropped out after starting */
 		case -ECHRNG:        /* serdes eye heights went bad during pcs startup */
 		case -ELNRNG:        /* unable to tune properly */
