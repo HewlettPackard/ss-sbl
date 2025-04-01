@@ -48,7 +48,7 @@ extern "C" {
 #define SBL_CTLE_LF_MAX_MAX      15
 
 #define SBL_FFE_PRE2_MIN	 -10 //relaxed
-#define SBL_FFE_PRE2_MAX	 2  //relaxed to 2 for BJ_100G
+#define SBL_FFE_PRE2_MAX	 3  //relaxed to 3 for BJ_100G
 #define SBL_FFE_PRE1_MIN	 0
 #define SBL_FFE_PRE1_MAX	 11  //relaxed
 #define SBL_FFE_POST1_MIN	 -3
