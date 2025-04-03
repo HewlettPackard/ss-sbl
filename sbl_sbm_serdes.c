@@ -11,7 +11,6 @@
 #include "sbl_serdes_map.h"
 #include "sbl_sbm.h"
 
-#if !defined(CONFIG_SBL_PLATFORM_CAS_EMU) && !defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 static void
 sbus_reg_addr_to_string(u32 sbus_addr, u8 reg_addr, char *reg_addr_str)
 {
@@ -259,9 +258,7 @@ sbus_reg_addr_to_string(u32 sbus_addr, u8 reg_addr, char *reg_addr_str)
 		sprintf(reg_addr_str, "UNKNOWN");
 	}
 }
-#endif
 
-#if !defined(CONFIG_SBL_PLATFORM_CAS_EMU) && !defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 static void
 sbus_cmd_to_string(u8 command, char *cmd_str)
 {
@@ -314,9 +311,7 @@ sbus_cmd_to_string(u8 command, char *cmd_str)
 	}
 	sprintf(cmd_str, "%s:%s:%s", str0, str1, str2);
 }
-#endif
 
-#if !defined(CONFIG_SBL_PLATFORM_CAS_EMU) && !defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 static void
 sbus_result_code_to_string(u8 result_code, char *rc_string)
 {
@@ -350,9 +345,7 @@ sbus_result_code_to_string(u8 result_code, char *rc_string)
 		break;
 	}
 }
-#endif
 
-#if !defined(CONFIG_SBL_PLATFORM_CAS_EMU) && !defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 static void
 spico_interrupt_to_string(u32 sbus_addr, u16 interrupt, char *intr_str)
 {
@@ -586,9 +579,7 @@ spico_interrupt_to_string(u32 sbus_addr, u16 interrupt, char *intr_str)
 		sprintf(intr_str, "UNKNOWN");
 	}
 }
-#endif
 
-#if !defined(CONFIG_SBL_PLATFORM_CAS_EMU) && !defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 static void sbus_msg_print(void *inst, int severity, const char *message)
 {
 	struct sbl_inst *sbl = inst;
@@ -604,9 +595,7 @@ static void sbus_msg_print(void *inst, int severity, const char *message)
 	else
 		SBL_TRACE1(sbl->dev, "%s", message);
 }
-#endif
 
-#if !defined(CONFIG_SBL_PLATFORM_CAS_EMU) && !defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 static void sbus_msg(void *inst, u32 sbus_addr, u32 req_data,
 		u8 reg_addr, u8 command, u32 rsp_data,
 		u8 result_code, u8 overrun, int timeout,
@@ -639,7 +628,6 @@ static void sbus_msg(void *inst, u32 sbus_addr, u32 req_data,
 			overrun, timeout, flags, rc);
 	sbus_msg_print(inst, severity, message);
 }
-#endif
 
 int sbl_sbus_wr(void *inst, u32 sbus_addr, u8 reg_addr,
 		u32 sbus_data)
@@ -775,14 +763,6 @@ int sbl_spico_burst_upload(void *inst, u32 sbus, u32 reg,
 	return 0;
 }
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-int sbl_sbus_op_aux(void *inst, u32 sbus_addr, u8 reg_addr,
-		     u8 command, u32 sbus_data, u32 *result)
-{
-	*result = 0;
-	return 0;
-}
-#else
 int sbl_sbus_op_aux(void *inst, u32 sbus_addr, u8 reg_addr,
 		     u8 command, u32 sbus_data, u32 *result)
 {
@@ -798,6 +778,10 @@ int sbl_sbus_op_aux(void *inst, u32 sbus_addr, u8 reg_addr,
 	int sbus_op_flags = sbl_sbm_get_sbus_op_flags(sbl);
 	void *accessor = sbl;
 
+	if (!sbl->is_hw) {
+		*result = 0;
+		return 0;
+	}
 	// Safety check
 	if (!mutex_is_locked(SBUS_RING_MTX(sbl, sbus_ring))) {
 		sbus_msg(sbl, sbus_addr, sbus_data, reg_addr, command,
@@ -874,16 +858,7 @@ int sbl_sbus_op_aux(void *inst, u32 sbus_addr, u8 reg_addr,
 
 	return 0;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
-		      u32 *result)
-{
-	*result = 0;
-	return 0;
-}
-#else
 int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 		      u32 *result)
 {
@@ -897,6 +872,10 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 	unsigned long last_jiffy;
 	u32 sbus_ring = SBUS_RING(sbus_addr);
 
+	if (!sbl->is_hw) {
+		*result = 0;
+		return 0;
+	}
 	// Safety check
 	if (!mutex_is_locked(SBUS_RING_MTX(sbl, sbus_ring))) {
 		SBL_WARN(sbl->dev, "%s: Unlocked SBUS ring %d!", __func__, sbus_ring);
@@ -977,7 +956,6 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 	return 0;
 }
 EXPORT_SYMBOL(sbl_sbm_spico_int);
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 
 /**
  * @brief Returns a SBUS master address based on a ring number
@@ -1040,28 +1018,6 @@ int sbl_serdes_spico_int2(void *inst, u32 sbus_addr,
 				    result_action);
 }
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
-			  int code, int data, u16 *result, u8 result_action)
-{
-	struct sbl_inst *sbl = inst;
-	u16 *p_result;
-	u16 result_out;
-
-	if ((result_action == SPICO_INT_RETURN_RESULT) && (result == NULL)) {
-		SBL_ERR(sbl->dev, "result pointer was NULL!");
-		return -1;
-	}
-	if (result_action != SPICO_INT_RETURN_RESULT)
-		p_result = &result_out;
-	else
-		p_result = result;
-	}
-
-	*p_result = code;
-	return 0;
-}
-#else
 int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 			  int code, int data, u16 *result, u8 result_action)
 {
@@ -1084,6 +1040,10 @@ int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 	else
 		p_result = result;
 
+	if (!sbl->is_hw) {
+		*p_result = code;
+		return 0;
+	}
 	// Make a fake SerDes sbus_addr so spico_interrupt_to_string gives us the
 	//  right debug string. This function is only called for CM4 SerDes, so this
 	//  will always give the correct string.
@@ -1116,4 +1076,3 @@ int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 	return 0;
 }
 EXPORT_SYMBOL(sbl_serdes_spico_int);
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/* Copyright 2019-2022, 2024 Hewlett Packard Enterprise Development LP */
+/* Copyright 2019-2022, 2024-2025 Hewlett Packard Enterprise Development LP */
 
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -21,16 +21,12 @@ static atomic_t sbl_next_serdes_config_tag = ATOMIC_INIT(-1);
 static int sbl_serdes_stop_internal(struct sbl_inst *sbl, int port_num);
 static int sbl_serdes_optical_lock_delay(struct sbl_inst *sbl, int port_num);
 
-
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-int sbl_serdes_load(struct sbl_inst *sbl, int port_num, bool force)
-{
-	return 0;
-}
-#else
 int sbl_serdes_load(struct sbl_inst *sbl, int port_num, bool force)
 {
 	int err;
+
+	if (!sbl->is_hw)
+		return 0;
 
 	if (port_num == SBL_ALL_PORTS) {
 		err = sbl_apply_sbus_divider(sbl, SBL_SBUS_DIVIDER_DFLT);
@@ -59,7 +55,6 @@ int sbl_serdes_load(struct sbl_inst *sbl, int port_num, bool force)
 
 	return 0;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
 EXPORT_SYMBOL(sbl_serdes_load);
 
 

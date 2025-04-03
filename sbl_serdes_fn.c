@@ -566,7 +566,6 @@ int sbl_sbm_firmware_flash_ring(struct sbl_inst *sbl, int first_ring,
 	return err;
 }
 
-#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW)
 static void sbl_serdes_firmware_validation(struct sbl_inst *sbl, const struct firmware *fw,
 					u32 sbus_addr, u32 result, u32 sbus_ring)
 {
@@ -603,9 +602,7 @@ static void sbl_serdes_firmware_validation(struct sbl_inst *sbl, const struct fi
 	else
 		sbl_dev_info(sbl->dev, "r%d: No SBM FW corruption found", sbus_ring);
 }
-#endif
 
-#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW)
 int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 				   bool force)
 {
@@ -616,6 +613,9 @@ int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 	const struct firmware *fw = NULL;
 	int fw_rev, fw_build;
 	int serdes = 0;
+
+	if (!sbl->is_hw)
+		return 0;
 
 	if (port_num == SBL_ALL_PORTS)
 		return -ENOTSUPP;
@@ -784,13 +784,6 @@ int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
 	 */
 	return rc;
 }
-#else
-int sbl_serdes_firmware_flash_safe(struct sbl_inst *sbl, int port_num,
-				   bool force)
-{
-	return 0;
-}
-#endif /* defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW) */
 
 int sbl_serdes_firmware_flash(struct sbl_inst *sbl, int port_num, bool force)
 {
@@ -981,6 +974,9 @@ int sbl_validate_serdes_fw_vers(struct sbl_inst *sbl, int port_num, int serdes,
 	DEV_TRACE2(sbl->dev, "p%ds%d: desired rev: 0x%x, desired build: 0x%x",
 		   port_num, serdes, fw_rev, fw_build);
 
+	if (!sbl->is_hw)
+		return 0;
+
 	if (sbl_serdes_spico_int(sbl, port_num, serdes, SPICO_INT_CM4_REV_ID,
 				 SPICO_INT_DATA_NONE, &curr_fw_rev,
 				 SPICO_INT_RETURN_RESULT)) {
@@ -1020,6 +1016,9 @@ int sbl_sbm_firm_upload(struct sbl_inst *sbl, int sbus_ring,
 {
 	u32 sbus_addr, unused, crc_result;
 	int err;
+
+	if (!sbl->is_hw)
+		return 0;
 
 	// SBUS Critical Section
 	mutex_lock(SBUS_RING_MTX(sbl, sbus_ring));
@@ -1108,13 +1107,11 @@ int sbl_sbm_firm_upload(struct sbl_inst *sbl, int sbus_ring,
 	if (err)
 		goto err_out;
 
-#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW)
 	if (crc_result != SPICO_RESULT_SBR_CRC_PASS) {
 		sbl_dev_err(sbl->dev, "0x%x: CRC check fail (result 0x%x, expected 0x%x)!",
 			sbus_addr, crc_result, SPICO_RESULT_SBR_CRC_PASS);
 		err = -EBADE;
 	}
-#endif /* defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW) */
 
 	// Increment sbus master fw reload counter
 	atomic_inc(&sbl->sbm_fw_reload_count[sbus_ring]);
@@ -1261,9 +1258,9 @@ int sbl_serdes_firm_upload(struct sbl_inst *sbl, int port_num, size_t fw_size,
 		for (serdes = first_serdes; serdes <= last_serdes; ++serdes)
 			sbl_link_counters_incr(sbl, port_num, serdes0_fw_reload + serdes);
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-	return 0;
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
+	if (!sbl->is_hw)
+		return 0;
+
 
 	sbl_dev_dbg(sbl->dev, "p%d: Validating flash..", port_num);
 	for (port = first_port; port <= last_port; ++port) {
@@ -1484,13 +1481,13 @@ static int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 					port_num, serdes, i,
 					tps->params[serdes].p4lv[i]);
 		}
-#if defined(CONFIG_SBL_PLATFORM_ROS_HW) || defined(CONFIG_SBL_PLATFORM_CAS_HW)
+
 		if (sbl_validate_serdes_fw_vers(sbl, port_num, serdes,
 					SBL_KNOWN_FW0_REV,
 					SBL_KNOWN_FW0_BUILD)) {
 			return -EADDRNOTAVAIL;
 		}
-#endif /* (CONFIG_SBL_PLATFORM_ROS_HW) || (CONFIG_SBL_PLATFORM_CAS_HW) */
+
 		for (i = 0; i < NUM_AFEC_PARAMS; ++i) {
 			err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_MEM_READ |
@@ -1509,21 +1506,6 @@ static int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
 	return 0;
 }
 
-
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
-{
-	int err;
-	struct sbl_tuning_params tps;
-
-	err = sbl_get_serdes_tuning_params(sbl, port_num, &tps);
-	if (err)
-		return err;
-
-	return 0;
-
-}
-#else
 int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 {
 	int i, serdes, err;
@@ -1547,6 +1529,9 @@ int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 		kfree(tps);
 		return err;
 	}
+
+	if (!sbl->is_hw)
+		return 0;
 
 	for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
 		if (!rx_serdes_required_for_link_mode(sbl, port_num, serdes))
@@ -1775,7 +1760,6 @@ int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 	kfree(tps);
 	return 0;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
 
 int sbl_save_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 {
@@ -2602,13 +2586,6 @@ static bool get_serdes_precoding(struct sbl_inst *sbl, int port_num)
 	}
 }
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-int sbl_set_tx_rx_enable(struct sbl_inst *sbl, int port_num, int serdes,
-			 bool tx_en, bool rx_en, bool txo_en)
-{
-	return 0;
-}
-#else
 int sbl_set_tx_rx_enable(struct sbl_inst *sbl, int port_num, int serdes,
 			 bool tx_en, bool rx_en, bool txo_en)
 {
@@ -2620,6 +2597,9 @@ int sbl_set_tx_rx_enable(struct sbl_inst *sbl, int port_num, int serdes,
 
 	DEV_TRACE2(sbl->dev, "p%ds%d: tx_en: %d rx_en: %d txo_en: %d",
 		   port_num, serdes, tx_en, rx_en, txo_en);
+
+	if (!sbl->is_hw)
+		return 0;
 
 	if (tx_en)
 		int_data |= SPICO_INT_DATA_SET_TX_EN;
@@ -2658,7 +2638,6 @@ int sbl_set_tx_rx_enable(struct sbl_inst *sbl, int port_num, int serdes,
 
 	return 0;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 
 int sbl_set_tx_eq(struct sbl_inst *sbl, int port_num, int serdes,
 		  int atten, int pre, int post, int pre2, int pre3)
@@ -2745,25 +2724,6 @@ int sbl_set_tx_eq(struct sbl_inst *sbl, int port_num, int serdes,
 	return rc;
 }
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-int sbl_set_gs(struct sbl_inst *sbl, int port_num, int serdes, int gs1, int gs2)
-{
-	if ((gs1 < RXEQ_DFE_GS1_MIN) || (gs1 > RXEQ_DFE_GS1_MAX)) {
-		sbl_dev_err(sbl->dev,
-			"Invalid value for gs1(%d) Expected in the range of %d to %d",
-			gs1, RXEQ_DFE_GS1_MIN, RXEQ_DFE_GS1_MAX);
-		return -EINVAL;
-	}
-	if ((gs2 < RXEQ_DFE_GS2_MIN) || (gs2 > RXEQ_DFE_GS2_MAX)) {
-		sbl_dev_err(sbl->dev,
-			"Invalid value for gs2(%d) Expected in the range of %d to %d",
-			gs2, RXEQ_DFE_GS2_MIN, RXEQ_DFE_GS2_MAX);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-#else
 int sbl_set_gs(struct sbl_inst *sbl, int port_num, int serdes, int gs1, int gs2)
 {
 	int err;
@@ -2783,6 +2743,9 @@ int sbl_set_gs(struct sbl_inst *sbl, int port_num, int serdes, int gs1, int gs2)
 			gs2, RXEQ_DFE_GS2_MIN, RXEQ_DFE_GS2_MAX);
 		return -EINVAL;
 	}
+
+	if (!sbl->is_hw)
+		return 0;
 
 	/* Write GS1 */
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
@@ -2840,15 +2803,7 @@ int sbl_set_gs(struct sbl_inst *sbl, int port_num, int serdes, int gs1, int gs2)
 
 	return 0;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-int sbl_set_tx_data_sel(struct sbl_inst *sbl, int port_num, int serdes,
-			int data_sel)
-{
-	return 0;
-}
-#else
 int sbl_set_tx_data_sel(struct sbl_inst *sbl, int port_num, int serdes,
 			int data_sel)
 {
@@ -2857,6 +2812,9 @@ int sbl_set_tx_data_sel(struct sbl_inst *sbl, int port_num, int serdes,
 	int retry_cnt = 0;
 
 	DEV_TRACE2(sbl->dev, "p%ds%d data_sel: %d", port_num, serdes, data_sel);
+
+	if (!sbl->is_hw)
+		return 0;
 
 	if (data_sel == SBL_DS_CORE) {
 		do {
@@ -2898,7 +2856,6 @@ int sbl_set_tx_data_sel(struct sbl_inst *sbl, int port_num, int serdes,
 		port_num, serdes, data_sel);
 	return -EBADE;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
 
 int sbl_set_prbs_rx_mode(struct sbl_inst *sbl, int port_num, int serdes)
 {
@@ -3037,9 +2994,8 @@ int sbl_serdes_dfe_tune_start(struct sbl_inst *sbl, int port_num, int serdes,
 	/* sync with sysfs */
 	mb();
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-	return 0;
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
+	if (!sbl->is_hw)
+		return 0;
 
 	DEV_TRACE2(sbl->dev, "p%ds%d: Updating ICAL effort from 0x%x to 0x%x",
 		   port_num, serdes, result, link->ical_effort);
@@ -3101,9 +3057,8 @@ int sbl_serdes_dfe_tune_wait(struct sbl_inst *sbl, int port_num)
 					port_num, serdes);
 				return -EIO;
 			}
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-			result = DFE_CAL_DONE;
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
+			if (!sbl->is_hw)
+				result = DFE_CAL_DONE;
 
 			if (result & DFE_LOS_MASK) {
 				sbl_dev_warn(sbl->dev, "p%ds%d: Loss of signal when in DFE tune!",
@@ -3270,27 +3225,6 @@ void sbl_log_port_eye_heights(struct sbl_inst *sbl, int port_num)
 	}
 }
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-int sbl_port_check_eyes(struct sbl_inst *sbl, int port_num)
-{
-	unsigned long holdoff_end_jiffies;
-	struct sbl_link *link = sbl->link + port_num;
-
-	// pcal can generate bad eyes temporarily when its starting up so
-	// if its not settled yet ignore this test
-	if (link->pcal_running && link->blattr.pcal_eyecheck_holdoff) {
-		holdoff_end_jiffies = link->pcal_start_jiffies +
-				msecs_to_jiffies(link->blattr.pcal_eyecheck_holdoff);
-		if (time_is_after_jiffies(holdoff_end_jiffies)) {
-			sbl_dev_info(sbl->dev, "p%d: holding off eye checks",
-					 port_num);
-			return 0;
-		}
-	}
-
-	return 0;
-}
-#else
 int sbl_port_check_eyes(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -3311,6 +3245,9 @@ int sbl_port_check_eyes(struct sbl_inst *sbl, int port_num)
 			return 0;
 		}
 	}
+
+	if (!sbl->is_hw)
+		return 0;
 
 	// setup test criteria
 	switch (link->link_mode) {
@@ -3364,7 +3301,6 @@ int sbl_port_check_eyes(struct sbl_inst *sbl, int port_num)
 
 	return 0;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
 
 //
 // Constructs maps of
@@ -4376,9 +4312,10 @@ int sbl_spico_reset(struct sbl_inst *sbl, int port_num)
 				mutex_unlock(SBUS_RING_MTX(sbl, sbus_ring));
 				return err;
 			}
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-			result[serdes] = SPICO_STATE_PAUSE;
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM) */
+
+			if (!sbl->is_hw)
+				result[serdes] = SPICO_STATE_PAUSE;
+
 			if ((result[serdes] & SPICO_STATE_MASK) == SPICO_STATE_PAUSE) {
 				sbl_dev_dbg(sbl->dev, "p%ds%d: SPICO reset PAUSE: pass %d",
 					port_num, serdes, pass);

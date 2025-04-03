@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/*
- *
- * Copyright 2019-2024 Hewlett Packard Enterprise Development LP
- *
- * Slingshot link manager driver for the first generation adapter
- */
+/* Copyright 2019-2025 Hewlett Packard Enterprise Development LP */
 
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -95,6 +90,7 @@ struct sbl_inst *sbl_new_instance(void *accessor, void *pci_accessor,
 
 	/* Initialize the hardware-specific map */
 #ifdef CONFIG_SBL_PLATFORM_ROS_HW
+	sbl->is_hw = true;
 	sbl->switch_info = sbl_get_switch_info(NULL);
 	if (sbl->switch_info == NULL) {
 		sbl_dev_err(sbl->dev, "Unable to get sbl_switch_info\n");
@@ -102,6 +98,7 @@ struct sbl_inst *sbl_new_instance(void *accessor, void *pci_accessor,
 		goto out_free;
 	}
 #else
+	sbl->is_hw = init_attr->is_hw;
 	switch (init_attr->uc_platform) {
 	case SBL_UC_PLATFORM_SAWTOOTH:
 		if (init_attr->uc_nic == 0) {

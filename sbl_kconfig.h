@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-/* Copyright 2019-2020,2022-2023 Hewlett Packard Enterprise Development LP. All rights reserved. */
+/* Copyright 2019-2020,2022-2023,2025 Hewlett Packard Enterprise Development LP. All rights reserved. */
 /*
  *
  * Kconfig fixup for external modules
@@ -13,8 +13,6 @@
  *   We must also define one of the following target platforms:
  *    PLATFORM_ROSETTA_HW=1
  *    PLATFORM_CASSINI_HW=1
- *    PLATFORM_CASSINI_EMU=1
- *    PLATFORM_CASSINI_SIM=1
  *
  *   If we ever need to build in-tree then constructing a Kconfig
  *   file should be simple
@@ -56,38 +54,16 @@
 #define CONFIG_SBL_NUM_PORTS            1
 #define CONFIG_SBL_NUM_SBUS_RINGS       1  /* 2 rings, but only one per NIC */
 
-/*
- * Cassini emulation platform
- */
-#elif defined(SBL_PLATFORM_CAS_EMU)
-
-#define CONFIG_SBL_PLATFORM_CAS		y
-#define CONFIG_SBL_PLATFORM_CAS_EMU	y
-#define CONFIG_SBL_BUILD_NAME		"cassini-emulation"
-#define CONFIG_SBL_NUM_PORTS            1
-#define CONFIG_SBL_NUM_SBUS_RINGS       1  /* 2 rings, but only one per NIC */
-
-/*
- * Cassini netsim platform
- */
-#elif defined(SBL_PLATFORM_CAS_SIM)
-
-#define CONFIG_SBL_PLATFORM_CAS		y
-#define CONFIG_SBL_PLATFORM_CAS_SIM	y
-#define CONFIG_SBL_BUILD_NAME		"cassini-netsim"
-#define CONFIG_SBL_NUM_PORTS            1
-#define CONFIG_SBL_NUM_SBUS_RINGS       1 /* 2 rings, but only one per NIC */
-
 #else /* SBL_PLATFORM_* */
 /*
- * undefined platform not possible, cant build
+ * undefined platform not possible, can't build
  */
 #error  "Target platform not defined"
 #endif /* SBL_PLATFORM_* */
 
 #else /* SBL_EXTERNAL_BUILD */
 /*
- * undefined platform not possible, cant build
+ * undefined platform not possible, can't build
  */
 #error  "Non-external builds of SBL are not supported!"
 
@@ -95,7 +71,5 @@
 
 #undef SBL_PLATFORM_ROS_HW
 #undef SBL_PLATFORM_CAS_HW
-#undef SBL_PLATFORM_CAS_EMU
-#undef SBL_PLATFORM_CAS_SIM
 
 #endif /* _SBL_KCONFIG_H_ */

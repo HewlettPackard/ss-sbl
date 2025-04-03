@@ -14,7 +14,7 @@
 
 #define SBL_VERSION_MAJOR		      3
 #define SBL_VERSION_MINOR		     22
-#define SBL_VERSION_INC			      13
+#define SBL_VERSION_INC			      14
 
 #define SBL_MAGIC		     0x6273696c  /* sbli */
 #define SBL_INIT_ATTR_MAGIC	     0x62736965  /* sbla */
@@ -34,7 +34,6 @@
 
 /* min size of buffer for base link state string */
 #define SBL_BASE_LINK_STATE_STR_LEN	     (SBL_PCS_STATE_STR_LEN + 16)
-
 
 struct sbl_tuning_params;
 struct sbl_sc_values;
@@ -176,6 +175,7 @@ struct sbl_init_attr {
 #else /* CASSINI */
 	u32 uc_nic;
 	u32 uc_platform;
+	bool is_hw;
 #endif /* CASSINI */
 };
 
@@ -233,6 +233,8 @@ struct sbl_inst {
 	atomic_t *sbm_fw_reload_count;		 /* counter to track sbus master fw reload */
 
 	struct workqueue_struct *workq;
+
+	bool is_hw;
 };
 
 static inline int sbl_validate_instance(struct sbl_inst *sbl)

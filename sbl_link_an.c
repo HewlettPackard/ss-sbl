@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
+/* Copyright 2019-2025 Hewlett Packard Enterprise Development LP */
 
 
 #include <linux/types.h>
@@ -255,18 +255,6 @@ out:
  *    26 Feb 2021 - added SM exchange to work around rosetta interrupt bug
  *
  */
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-static int sbl_an_exchange(struct sbl_inst *sbl, int port_num)
-{
-	if (sbl_base_link_start_cancelled(sbl, port_num))
-		return -ECANCELED;
-
-	if (sbl_start_timeout(sbl, port_num))
-		return -ETIMEDOUT;
-
-	return 0;
-}
-#else
 static int sbl_an_exchange(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -287,6 +275,9 @@ static int sbl_an_exchange(struct sbl_inst *sbl, int port_num)
 		return -ECANCELED;
 	if (sbl_start_timeout(sbl, port_num))
 		return -ETIMEDOUT;
+
+	if (!sbl->is_hw)
+		return 0;
 
 	/* clear any previous pages */
 	memset(link->an_rx_page, 0, SBL_AN_MAX_RX_PAGES*sizeof(u64));
@@ -486,8 +477,6 @@ out_success:
 
 	return 0;
 }
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
-
 
 static void sbl_an_send_base_page(struct sbl_inst *sbl, int port_num)
 {
@@ -930,13 +919,12 @@ static int sbl_an_ability_match(struct sbl_inst *sbl, int port_num)
 
 	sbl_dev_dbg(sbl->dev, "an %d: rx count = %d", port_num, link->an_rx_count);
 
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-	/* Netsim/Z1: No AN happening, so just force the response data to the
-	 *   tx data to ensure capability match
-	 */
-	link->an_rx_page[0] = link->an_tx_page[0];
-#endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */
-
+	if (!sbl->is_hw) {
+		/* Netsim/Z1: No AN happening, so just force the response data to the
+		 *   tx data to ensure capability match
+		 */
+		link->an_rx_page[0] = link->an_tx_page[0];
+	}
 	/*
 	 * abilities
 	 */

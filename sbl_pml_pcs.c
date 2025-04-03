@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-/* Copyright 2019,2022-2024 Hewlett Packard Enterprise Development LP */
+/* Copyright 2019,2022-2025 Hewlett Packard Enterprise Development LP */
 
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -831,12 +831,6 @@ out:
 /*
  * helper state functions
  */
-#ifdef CONFIG_SBL_PLATFORM_CAS_SIM
-static bool sbl_pml_pcs_locked(struct sbl_inst *sbl, int port_num)
-{
-	return true;
-}
-#else
 static bool sbl_pml_pcs_locked(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -849,15 +843,7 @@ static bool sbl_pml_pcs_locked(struct sbl_inst *sbl, int port_num)
 
 	return (locked_lanes == link->active_fec_lanes);
 }
-#endif /* CONFIG_SBL_PLATFORM_CAS_SIM */
 
-
-#ifdef CONFIG_SBL_PLATFORM_CAS_SIM
-bool sbl_pml_pcs_aligned(struct sbl_inst *sbl, int port_num)
-{
-	return true;
-}
-#else
 bool sbl_pml_pcs_aligned(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -867,7 +853,6 @@ bool sbl_pml_pcs_aligned(struct sbl_inst *sbl, int port_num)
 
 	return (SBL_PML_STS_RX_PCS_ALIGN_STATUS_GET(val64) == 1);
 }
-#endif /* CONFIG_SBL_PLATFORM_CAS_SIM */
 EXPORT_SYMBOL(sbl_pml_pcs_aligned);
 
 
@@ -893,17 +878,13 @@ bool sbl_pml_pcs_high_serdes_error(struct sbl_inst *sbl, int port_num)
 	return SBL_PML_STS_RX_PCS_HI_SER_GET(val64);
 }
 
-
-#if defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined(CONFIG_SBL_PLATFORM_CAS_SIM)
-bool sbl_pml_pcs_up(struct sbl_inst *sbl, int port_num)
-{
-	return true;
-}
-#else
 bool sbl_pml_pcs_up(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
 	u64 val64;
+
+	if (!sbl->is_hw)
+		return true;
 
 	val64 = sbl_read64(sbl, base|SBL_PML_STS_RX_PCS_OFFSET);
 
@@ -912,7 +893,6 @@ bool sbl_pml_pcs_up(struct sbl_inst *sbl, int port_num)
 			!SBL_PML_STS_RX_PCS_LOCAL_FAULT_GET(val64) &&
 			!SBL_PML_STS_RX_PCS_HI_SER_GET(val64);
 }
-#endif
 
 bool sbl_pml_recovery_no_faults(struct sbl_inst *sbl, int port_num)
 {

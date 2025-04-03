@@ -1,7 +1,4 @@
-# Build for Cassini hardware by default; build for emulator or netsim by
-# defining the 'platform' macro.
-# e.g. rpmbuild --define 'platform PLATFORM_CASSINI_SIM' ...
-# If 'platform' is not defined, default to PLATFORM_CASSINI_HW
+# Build for Cassini hardware by default;
 %define platform_arg %{!?platform:PLATFORM_CASSINI_HW}%{?platform:%platform}=1
 
 %{!?dkms_source_tree:%define dkms_source_tree /usr/src}
