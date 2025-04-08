@@ -283,6 +283,14 @@ int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 	if (err) {
 		sbl_serdes_invalidate_tuning_params(sbl, port_num);
 		sbl_dev_info(sbl->dev, "%d: failed start fec check", err);
+
+		/*
+		 * SSHOTPLAT-5697 forces a maximum effort tune
+		 * straight away after FEC up check fails.
+		 */
+		sbl_dev_dbg(sbl->dev, "bl %d: forcing a maximum effort tune for next retry", port_num);
+		link->blattr.options |= SBL_OPT_DFE_ALWAYS_MAX_EFFORT;
+
 		goto out_pcs;
 	}
 
