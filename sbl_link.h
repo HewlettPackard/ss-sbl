@@ -38,9 +38,6 @@ enum sbl_link_info_flags {
 void sbl_link_info_set(struct sbl_inst *sbl, int port_num, u32 flag);
 void sbl_link_info_clear(struct sbl_inst *sbl, int port_num, u32 flag);
 
-int  sbl_an_sm_is_np_exchange_done(struct sbl_inst *sbl, int port_num, u64 *sm_state);
-bool sbl_an_sm_is_exchange_done(struct sbl_inst *sbl, int port_num, u64 sm_state);
-
 /*
  * sysfs
  */

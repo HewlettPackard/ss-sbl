@@ -88,3 +88,6 @@ void sbl_fec_modify_adjustments(struct sbl_inst *sbl, int port_num,
 int sbl_fec_txr_rate_set(struct sbl_inst *sbl, int port_num,
 		u32 txr_rate);
 void sbl_fec_timer_work(struct work_struct *work);
+void sbl_fec_ccw_bad_get(struct sbl_fec *fec_prmts, bool use_stp_thresh,
+			u64 *ccw_bad, u64 *ccw_hwm);
+void sbl_fec_ucw_bad_get(struct sbl_fec *fec_prmts, u64 *ucw_bad, u64 *ucw_hwm);

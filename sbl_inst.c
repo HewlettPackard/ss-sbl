@@ -16,17 +16,9 @@
 #include "sbl_serdes_map.h"
 #include "sbl_pml.h"
 #include "sbl_internal.h"
-#ifdef CONFIG_SBL_PLATFORM_CAS
-#include "uapi/sbl_cassini.h"
-#endif
 #include "sbl_fec.h"
 
 static atomic_t sbl_inst_id = ATOMIC_INIT(-1);
-#ifndef CONFIG_SBL_PLATFORM_ROS_HW
-struct sbl_switch_info cas_brazos_switch_info = SBL_CASSINI_BRAZOS_SW_INFO_INITIALIZER;
-struct sbl_switch_info cas_nic0_switch_info = SBL_CASSINI_NIC0_SW_INFO_INITIALIZER;
-struct sbl_switch_info cas_nic1_switch_info = SBL_CASSINI_NIC1_SW_INFO_INITIALIZER;
-#endif
 static struct sbl_link *sbl_create_link_db(struct sbl_switch_info *switch_info);
 static int sbl_setup_ops(struct sbl_inst *sbl, const struct sbl_ops *ops);
 static int sbl_setup_serdes_configs(struct sbl_inst *sbl);
@@ -89,43 +81,11 @@ struct sbl_inst *sbl_new_instance(void *accessor, void *pci_accessor,
 	sbl->workq = alloc_workqueue("%s", WQ_MEM_RECLAIM | WQ_UNBOUND, 0, "sbl-fec");
 
 	/* Initialize the hardware-specific map */
-#ifdef CONFIG_SBL_PLATFORM_ROS_HW
-	sbl->is_hw = true;
-	sbl->switch_info = sbl_get_switch_info(NULL);
-	if (sbl->switch_info == NULL) {
-		sbl_dev_err(sbl->dev, "Unable to get sbl_switch_info\n");
-		err = -ENOMSG;
-		goto out_free;
-	}
-#else
-	sbl->is_hw = init_attr->is_hw;
-	switch (init_attr->uc_platform) {
-	case SBL_UC_PLATFORM_SAWTOOTH:
-		if (init_attr->uc_nic == 0) {
-			sbl->switch_info = &cas_nic0_switch_info;
-		} else if (init_attr->uc_nic == 1) {
-			sbl->switch_info = &cas_nic1_switch_info;
-		} else {
-			sbl_dev_err(sbl->dev, "Bad NIC index (%d)!\n",
-				init_attr->uc_nic);
-			err = -EINVAL;
-			goto out_free;
-		}
-		break;
-	case SBL_UC_PLATFORM_BRAZOS:
-		sbl->switch_info = &cas_brazos_switch_info;
-		break;
-	case SBL_UC_PLATFORM_UNDEFINED:
-		sbl_dev_err(sbl->dev, "Undefined uC platform!\n");
-		err = -EINVAL;
-		goto out_free;
-	default:
-		sbl_dev_err(sbl->dev, "Unknown uC platform (%d)!\n", init_attr->uc_platform);
-		err = -EINVAL;
-		goto out_free;
-	}
+	err = sbl_switch_info_get(sbl, init_attr);
 
-#endif
+	if (err)
+		goto out_free;
+
 	sbl_dev_info(dev, "new instance (%d): %d ports x %d serdes\n", sbl->id,
 		 sbl->switch_info->num_ports, sbl->switch_info->num_serdes);
 

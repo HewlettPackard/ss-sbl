@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
 /*
- * Copyright 2024 Hewlett Packard Enterprise Development LP
+ * Copyright 2024-2025 Hewlett Packard Enterprise Development LP
  */
 
 #include <linux/types.h>
@@ -377,14 +377,7 @@ static bool sbl_fec_ucw_rate_bad(struct sbl_inst *sbl, int port_num,
 	u64 ucw_bad;
 	u64 ucw_hwm;
 
-	spin_lock(&fec_prmts->fec_cw_lock);
-	ucw_hwm = fec_prmts->fec_ucw_hwm;
-#ifdef CONFIG_SBL_PLATFORM_ROS_HW
-	ucw_bad = fec_prmts->fec_ucw_thresh;
-#else
-	ucw_bad = 21;
-#endif
-	spin_unlock(&fec_prmts->fec_cw_lock);
+	sbl_fec_ucw_bad_get(fec_prmts, &ucw_bad, &ucw_hwm);
 
 	/*
 	 * update high water mark
@@ -445,17 +438,7 @@ static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 	bool ignore_err;
 	u64 ccw_hwm;
 
-	spin_lock(&fec_prmts->fec_cw_lock);
-	ccw_hwm = fec_prmts->fec_ccw_hwm;
-#ifdef CONFIG_SBL_PLATFORM_ROS_HW
-	if (use_stp_thresh)
-		ccw_bad = fec_prmts->fec_stp_ccw_thresh;
-	else
-		ccw_bad = fec_prmts->fec_ccw_thresh;
-#else
-	ccw_bad = 21250000;
-#endif
-	spin_unlock(&fec_prmts->fec_cw_lock);
+	sbl_fec_ccw_bad_get(fec_prmts, use_stp_thresh, &ccw_bad, &ccw_hwm);
 
 	/*
 	 * update high water mark

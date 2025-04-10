@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-/* Copyright 2019-2023 Hewlett Packard Enterprise Development LP */
+/* Copyright 2019-2023,2025 Hewlett Packard Enterprise Development LP */
 
 #ifndef _SBL_INTERNAL_H_
 #define _SBL_INTERNAL_H_
@@ -186,6 +186,7 @@ void sbl_link_tune_begin(struct sbl_inst *sbl, int port_num);
 int  sbl_link_tune_elapsed(struct sbl_inst *sbl, int port_num);
 void sbl_link_tune_zero_total_timespec(struct sbl_inst *sbl, int port_num);
 void sbl_link_tune_update_total_timespec(struct sbl_inst *sbl, int port_num);
+int sbl_switch_info_get(struct sbl_inst *sbl, struct sbl_init_attr *init_attr);
 
 
 /* misc */
@@ -256,71 +257,25 @@ static inline void sbl_async_alert(struct sbl_inst *sbl, int port_num, int alert
 {
 	(*sbl->ops.sbl_async_alert)(sbl->accessor, port_num, alert_type, alert_data, size);
 }
-
+void sbl_llr_max_data_get(struct sbl_inst *sbl, int port_num,
+				u64 *cap_data_max, u64 *cap_seq_max);
+int sbl_frame_size(struct sbl_inst *sbl, int port_num);
 u64 sbl_llr_edge_cap_data_max_get(void);
 u64 sbl_llr_edge_cap_seq_max_get(void);
-#if defined(CONFIG_SBL_PLATFORM_ROS_HW)
-u64 sbl_llr_fabric_cap_data_max_get(void);
-u64 sbl_llr_fabric_cap_seq_max_get(void);
-#endif
-
+void sbl_an_send_next_page(struct sbl_inst *sbl, int port_num) __maybe_unused;
+void sbl_an_setup_next_page(struct sbl_inst *sbl, int port_num, int page_idx) __maybe_unused;
+void sbl_an_setup_null_page(struct sbl_inst *sbl, int port_num)  __maybe_unused;
+int sbl_an_page_exchange(struct sbl_inst *sbl, int port_num, unsigned long remaining_jiffies);
+bool sbl_an_is_next_page(struct sbl_inst *sbl, int port_num) __maybe_unused;
+void sbl_an_dump_state(struct sbl_inst *sbl, int port_num) __maybe_unused;
+void sbl_an_version_read(struct sbl_inst *sbl, int port_num);
+int  sbl_an_hw_wait_prepare(struct sbl_inst *sbl, int port_num)  __maybe_unused;
+bool sbl_an_next_is_complete(struct sbl_inst *sbl, int port_num) __maybe_unused;
 /*
  * SBL counter functions
  */
 int sbl_link_counters_init(struct sbl_link *link);
 void sbl_link_counters_term(struct sbl_link *link);
 int sbl_link_counters_incr(struct sbl_inst *sbl, int port_num, u16 counter);
-
-#ifdef CONFIG_SBL_PLATFORM_ROS_HW
-#define sbl_dev_err(_dev, _fmt, ...) dev_err((_dev), (_fmt), ##__VA_ARGS__)
-#define sbl_dev_dbg(_dev, _fmt, ...) dev_dbg((_dev), (_fmt), ##__VA_ARGS__)
-#define sbl_dev_warn(_dev, _fmt, ...) dev_warn((_dev), (_fmt), ##__VA_ARGS__)
-#define sbl_dev_info(_dev, _fmt, ...) dev_info((_dev), (_fmt), ##__VA_ARGS__)
-#define sbl_dev_err_ratelimited(_dev, _fmt, ...) dev_err_ratelimited((_dev), (_fmt), ##__VA_ARGS__)
-#define sbl_dev_dbg_ratelimited(_dev, _fmt, ...) dev_dbg_ratelimited((_dev), (_fmt), ##__VA_ARGS__)
-#else
-#define sbl_dev_err(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_err((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_err((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
-#define sbl_dev_dbg(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_dbg((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_dbg((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
-#define sbl_dev_warn(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_warn((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_warn((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
-#define sbl_dev_info(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_info((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_info((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
-#define sbl_dev_err_ratelimited(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_err_ratelimited((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_err_ratelimited((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
-#define sbl_dev_dbg_ratelimited(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_dbg_ratelimited((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_dbg_ratelimited((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
-#endif
 
 #endif /* _SBL_INTERNAL_H_ */

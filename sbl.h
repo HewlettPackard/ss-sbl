@@ -11,23 +11,17 @@
 
 #include "uapi/sbl.h"
 #include "uapi/sbl_counters.h"
+#include "sbl_platform.h"
 
 #define SBL_VERSION_MAJOR		      3
 #define SBL_VERSION_MINOR		     22
-#define SBL_VERSION_INC			      14
+#define SBL_VERSION_INC			      15
 
 #define SBL_MAGIC		     0x6273696c  /* sbli */
 #define SBL_INIT_ATTR_MAGIC	     0x62736965  /* sbla */
 
 #define SBL_AN_MAX_RX_PAGES		     20
 #define SBL_DFE_USED_SAVED_PARAMS	     -2
-
-/* PML clock */
-#ifdef CONFIG_SBL_PLATFORM_ROS
-#define SBL_CLOCK_FREQ_MHZ		   850
-#else
-#define SBL_CLOCK_FREQ_MHZ		  1000
-#endif
 
 /* min size of buffer for pcs state string */
 #define SBL_PCS_STATE_STR_LEN		     64
@@ -166,19 +160,6 @@ struct sbl_ops {
 	void (*sbl_async_alert)(void *accessor, int port_num, int alert_type, void *alert_data, int size);
 };
 
-/*
- * Configuration passing into SBL init
- */
-struct sbl_init_attr {
-	u32 magic;
-#ifdef CONFIG_SBL_PLATFORM_ROS_HW
-#else /* CASSINI */
-	u32 uc_nic;
-	u32 uc_platform;
-	bool is_hw;
-#endif /* CASSINI */
-};
-
 struct lane_degrade {
 	u64 tx;
 	u64 rx;
@@ -215,18 +196,7 @@ struct sbl_inst {
 
 	struct mutex *sbus_ring_mtx;		 /* locks for sbus critical section management */
 
-	#if defined(CONFIG_SBL_PLATFORM_ROS_HW)
-		#define SBUS_RING_MTX(sbl, ring) ((sbl)->sbus_ring_mtx + (ring))
-	#else
-		#define SBUS_RING_MTX(sbl, ring) ((sbl)->sbus_ring_mtx)
-	#endif
-
 	struct mutex *sbm_fw_mtx;		 /* locks for sbus master firmware load */
-	#if defined(CONFIG_SBL_PLATFORM_ROS_HW)
-		#define SBM_FW_MTX(sbl, ring) ((sbl)->sbm_fw_mtx + (ring))
-	#else
-		#define SBM_FW_MTX(sbl, ring) ((sbl)->sbm_fw_mtx)
-	#endif
 
 	bool *reload_sbm_fw;			 /* do we need to reload the sbm fw for each ring */
 

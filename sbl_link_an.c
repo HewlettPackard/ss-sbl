@@ -26,22 +26,15 @@
 
 static int  sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num);
 static int  sbl_an_pml_setup(struct sbl_inst *sbl, int port_num);
-static int  sbl_an_hw_wait_prepare(struct sbl_inst *sbl, int port_num)  __maybe_unused;
 static int  sbl_an_exchange(struct sbl_inst *sbl, int port_num);
 static void sbl_an_send_base_page(struct sbl_inst *sbl, int port_num) __maybe_unused;
 static u32  sbl_an_get_nonce(void) __maybe_unused;
-static void sbl_an_send_next_page(struct sbl_inst *sbl, int port_num) __maybe_unused;
-static void sbl_an_setup_next_page(struct sbl_inst *sbl, int port_num, int page_idx) __maybe_unused;
-static void sbl_an_setup_null_page(struct sbl_inst *sbl, int port_num)  __maybe_unused;
 static void sbl_an_pml_an_reset(struct sbl_inst *sbl, int port_num, u64 reset_state);
 static int  sbl_an_ability_match(struct sbl_inst *sbl, int port_num);
 static void sbl_an_update_timeout(struct sbl_inst *sbl, int port_num);
-static void sbl_an_dump_state(struct sbl_inst *sbl, int port_num) __maybe_unused;
 static bool sbl_an_base_is_complete(struct sbl_inst *sbl, int port_num) __maybe_unused;
 static bool sbl_an_base_is_page_recv(struct sbl_inst *sbl, int port_num) __maybe_unused;
 static bool sbl_an_is_base_page(struct sbl_inst *sbl, int port_num) __maybe_unused;
-static bool sbl_an_next_is_complete(struct sbl_inst *sbl, int port_num) __maybe_unused;
-static bool sbl_an_is_next_page(struct sbl_inst *sbl, int port_num) __maybe_unused;
 static bool sbl_an_100cr4_fixup(struct sbl_inst *sbl, int port_num);
 
 int sbl_link_autoneg(struct sbl_inst *sbl, int port_num)
@@ -262,12 +255,7 @@ static int sbl_an_exchange(struct sbl_inst *sbl, int port_num)
 	unsigned long timeout = msecs_to_jiffies(1000*link->blattr.pec.an_retry_timeout);
 	unsigned long remaining_jiffies;
 	u64 sts_autoneg_base_reg;
-	u64 sts_autoneg_next_reg;
-	int xcng_count;
 	int err;
-#ifdef CONFIG_SBL_PLATFORM_ROS_HW
-	u64 sm_state = 0;
-#endif /* CONFIG_SBL_PLATFORM_ROS_HW */
 
 	sbl_dev_dbg(sbl->dev, "an %d: exchange start", port_num);
 
@@ -337,136 +325,10 @@ static int sbl_an_exchange(struct sbl_inst *sbl, int port_num)
 	/*
 	 * next page exchange
 	 */
+	err = sbl_an_page_exchange(sbl, port_num, remaining_jiffies);
 
-	xcng_count = 1;  /* start at first next page entry */
-
-#ifdef CONFIG_SBL_PLATFORM_ROS_HW
-
-	/* -- State Machine polling based next page exchange sequence -- */
-
-	do {
-
-		sbl_dev_dbg(sbl->dev, "an %d: next page %d: start", port_num, xcng_count);
-
-		if (sbl_base_link_start_cancelled(sbl, port_num))
-			return -ECANCELED;
-		if (sbl_start_timeout(sbl, port_num))
-			return -ETIMEDOUT;
-
-		/* setup the next page (real or null) */
-		if (xcng_count < link->an_tx_count)
-			sbl_an_setup_next_page(sbl, port_num, xcng_count);
-		else
-			sbl_an_setup_null_page(sbl, port_num);
-
-		/* send the next page */
-		sbl_an_send_next_page(sbl, port_num);
-
-		/* check if the next page exchange is done */
-		err = sbl_an_sm_is_np_exchange_done(sbl, port_num, &sm_state);
-		if (err) {
-			sbl_dev_dbg(sbl->dev, "an %d: next page %d: exchange timeout", port_num, xcng_count);
-			sbl_an_dump_state(sbl, port_num);
-			return -ETIME;
-		}
-
-		/* check if received page is a next page */
-		if (!sbl_an_is_next_page(sbl, port_num)) {
-			sbl_dev_dbg_ratelimited(sbl->dev, "an %d: next page %d: missing next page indication, resend next-page",
-				    port_num, xcng_count);
-			sbl_an_dump_state(sbl, port_num);
-			continue;
-		}
-
-		/* put the received page in the buffer if indicated */
-		if (link->an_rx_page[xcng_count - 1] & AN_NP_NP_MASK) {
-			sts_autoneg_next_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_OFFSET);
-			link->an_rx_page[xcng_count] = SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_LP_NEXT_PAGE_GET(sts_autoneg_next_reg);
-			sbl_dev_dbg(sbl->dev, "an %d: rx next page: 0x%llx", port_num, link->an_rx_page[xcng_count]);
-			link->an_rx_count++;
-		}
-
-		/* go to the additional next page */
-		xcng_count++;
-
-		/* Too many Rx pages ?*/
-		if (xcng_count >= SBL_AN_MAX_RX_PAGES) {
-			sbl_dev_err_ratelimited(sbl->dev, "an %d: rx next page: too many pages %d", port_num, xcng_count);
-			sbl_an_dump_state(sbl, port_num);
-			return -EPROTO;
-		}
-
-		sbl_dev_dbg(sbl->dev, "an %d: sm_state = %s", port_num, sbl_an_state_str(sm_state));
-
-	/* check to see if the exchange is done */
-	} while (!sbl_an_sm_is_exchange_done(sbl, port_num, sm_state));
-
-#else /* CONFIG_SBL_PLATFORM_ROS_HW */
-
-	/* -- Interrupt based next page exchange sequence -- */
-
-	do {
-
-		sbl_dev_dbg(sbl->dev, "an %d: next page %d: start", port_num, xcng_count);
-
-		if (sbl_base_link_start_cancelled(sbl, port_num))
-			return -ECANCELED;
-		if (sbl_start_timeout(sbl, port_num))
-			return -ETIMEDOUT;
-
-		/* setup the next page (real or null) */
-		if (xcng_count < link->an_tx_count)
-			sbl_an_setup_next_page(sbl, port_num, xcng_count);
-		else
-			sbl_an_setup_null_page(sbl, port_num);
-
-		/* setup and enable interrupt */
-		err = sbl_an_hw_wait_prepare(sbl, port_num);
-		if (err)
-			return err;
-
-		/* send the next page */
-		sbl_an_send_next_page(sbl, port_num);
-
-		/* wait for next page interrupt */
-		remaining_jiffies = wait_for_completion_timeout(&link->an_hw_change, remaining_jiffies);
-		if (!remaining_jiffies) {
-			sbl_dev_err(sbl->dev, "an %d: next page %d: exchange timeout", port_num, xcng_count);
-			sbl_an_dump_state(sbl, port_num);
-			return -ETIME;
-		}
-
-		/* check if received page is a next page */
-		if (!sbl_an_is_next_page(sbl, port_num)) {
-			sbl_dev_dbg_ratelimited(sbl->dev, "an %d: next page %d: missing next page indication, resend next-page",
-				    port_num, xcng_count);
-			sbl_an_dump_state(sbl, port_num);
-			continue;
-
-		}
-
-		/* put the received page in the buffer if indicated */
-		if (link->an_rx_page[xcng_count - 1] & AN_NP_NP_MASK) {
-			sts_autoneg_next_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_OFFSET);
-			link->an_rx_page[xcng_count] = SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_LP_NEXT_PAGE_GET(sts_autoneg_next_reg);
-			sbl_dev_dbg(sbl->dev, "an %d: rx next page: 0x%llx", port_num, link->an_rx_page[xcng_count]);
-			link->an_rx_count++;
-		}
-
-		/* go to the additional next page */
-		xcng_count++;
-
-		/* Too many Rx pages ?*/
-		if (xcng_count >= SBL_AN_MAX_RX_PAGES) {
-			sbl_dev_err_ratelimited(sbl->dev, "an %d: rx next page: too many pages %d", port_num, xcng_count);
-			sbl_an_dump_state(sbl, port_num);
-			return -EPROTO;
-		}
-
-	/* check to see if the exchange is done */
-	} while (!sbl_an_next_is_complete(sbl, port_num));
-
-#endif /* CONFIG_SBL_PLATFORM_ROS_HW */
+	if (err)
+		return err;
 
 out_success:
 
@@ -495,7 +357,7 @@ static void sbl_an_send_base_page(struct sbl_inst *sbl, int port_num)
 }
 
 
-static void sbl_an_send_next_page(struct sbl_inst *sbl, int port_num)
+void sbl_an_send_next_page(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
 	u64 cfg_pcs_autoneg_reg;
@@ -553,7 +415,7 @@ static bool sbl_an_is_base_page(struct sbl_inst *sbl, int port_num)
 }
 
 
-static bool sbl_an_next_is_complete(struct sbl_inst *sbl, int port_num)
+bool sbl_an_next_is_complete(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
 	u64 sts_autoneg_next_reg;
@@ -563,7 +425,7 @@ static bool sbl_an_next_is_complete(struct sbl_inst *sbl, int port_num)
 	return SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_COMPLETE_GET(sts_autoneg_next_reg);
 }
 
-static bool sbl_an_is_next_page(struct sbl_inst *sbl, int port_num)
+bool sbl_an_is_next_page(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
 	u64 sts_autoneg_next_reg;
@@ -684,11 +546,7 @@ static int sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num)
 			/* TODO: add IPV4 option */
 		}
 	}
-#ifdef CONFIG_SBL_PLATFORM_CAS_HW
-	/* cassini version here */
-	/* TODO: read version from HW and set this correctly based on that */
-	link->an_tx_page[2] |= ((SBL_LP_SUBTYPE_CASSINI_V1 & AN_LP_SUBTYPE_MASK) << AN_LP_SUBTYPE_BASE_BIT);
-#endif
+	sbl_an_version_read(sbl, port_num);
 
 	sbl_dev_dbg(sbl->dev, "an %d: np ufp = 0x%llx", port_num, link->an_tx_page[2]);
 
@@ -698,7 +556,7 @@ static int sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num)
 }
 
 
-static void sbl_an_setup_next_page(struct sbl_inst *sbl, int port_num, int page_idx)
+void sbl_an_setup_next_page(struct sbl_inst *sbl, int port_num, int page_idx)
 {
 	struct sbl_link *link = sbl->link + port_num;
 	u32 base = SBL_PML_BASE(port_num);
@@ -711,7 +569,7 @@ static void sbl_an_setup_next_page(struct sbl_inst *sbl, int port_num, int page_
 }
 
 
-static void sbl_an_setup_null_page(struct sbl_inst *sbl, int port_num)
+void sbl_an_setup_null_page(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
 	u64 null_page;
@@ -816,7 +674,7 @@ static void sbl_an_pml_an_reset(struct sbl_inst *sbl, int port_num, u64 reset_st
 /*
  * setup to detect complete or page received error flags become set
  */
-static int sbl_an_hw_wait_prepare(struct sbl_inst *sbl, int port_num)
+int sbl_an_hw_wait_prepare(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 	int err;
@@ -1153,7 +1011,7 @@ int sbl_get_an_pages(struct sbl_inst *sbl, int port_num, int *count, u64 *pages)
 EXPORT_SYMBOL(sbl_get_an_pages);
 
 
-static void sbl_an_dump_state(struct sbl_inst *sbl, int port_num)
+void sbl_an_dump_state(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 	u32 base = SBL_PML_BASE(port_num);

@@ -36,13 +36,8 @@ int sbl_pml_mac_config(struct sbl_inst *sbl, int port_num)
 
 	/* tx mac config */
 	val64 = sbl_read64(sbl, base|SBL_PML_CFG_TX_MAC_OFFSET);
-#ifdef CONFIG_SBL_MAC_PCS_EMU
-	sbl_dev_warn(sbl->dev, "%d: MAC setting mac-pcs credits to 0xa", port_num);
-	val64 = SBL_PML_CFG_TX_MAC_PCS_CREDITS_UPDATE(val64, 0xaULL);
-#else
 	val64 = SBL_PML_CFG_TX_MAC_PCS_CREDITS_UPDATE(val64,
 			SBL_PML_CFG_TX_MAC_PCS_CREDITS_DFLT);
-#endif
 	val64 = SBL_PML_CFG_TX_MAC_IFG_MODE_UPDATE(val64, ifg_mode);
 	val64 = SBL_PML_CFG_TX_MAC_IEEE_IFG_ADJUSTMENT_UPDATE(val64, ifg_adjustment);
 	/* Short preamble is always 0 for now. See Rosetta ERRATA-2594 */
