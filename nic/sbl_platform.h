@@ -6,47 +6,22 @@
 #define SBM_FW_MTX(sbl, ring) ((sbl)->sbm_fw_mtx)
 
 #define sbl_dev_err(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_err((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_err((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
+	dev_err((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__)
+
 #define sbl_dev_dbg(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_dbg((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_dbg((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
+	dev_dbg((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__)
+
 #define sbl_dev_warn(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_warn((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_warn((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
+	dev_warn((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__)
+
 #define sbl_dev_info(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_info((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_info((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
+	dev_info((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__)
+
 #define sbl_dev_err_ratelimited(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_err_ratelimited((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_err_ratelimited((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
+	dev_err_ratelimited((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__)
+
 #define sbl_dev_dbg_ratelimited(_dev, _fmt, ...) \
-do { \
-	if (!sbl) \
-		dev_dbg_ratelimited((_dev), (_fmt), ##__VA_ARGS__); \
-	else \
-		dev_dbg_ratelimited((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__); \
-} while (0)
+	dev_dbg_ratelimited((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__)
 /*
  * Configuration passing into SBL init
  */

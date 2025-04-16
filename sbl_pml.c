@@ -227,7 +227,7 @@ void sbl_pml_set_defaults(struct sbl_inst *sbl, int port_num)
 			SBL_PML_CFG_LLR_SM_DFLT);
 
 	/* read to flush everything */
-	val64 = sbl_read64(sbl, base|SBL_PML_CFG_LLR_OFFSET);
+	sbl_read64(sbl, base|SBL_PML_CFG_LLR_OFFSET);
 }
 
 

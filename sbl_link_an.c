@@ -344,11 +344,10 @@ static void sbl_an_send_base_page(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 	u32 base = SBL_PML_BASE(port_num);
-	u64 val64;
 
 	/* first page is the base page (whole reg) */
 	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_BASE_PAGE_OFFSET, link->an_tx_page[0]);
-	val64 = sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_BASE_PAGE_OFFSET);
+	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_BASE_PAGE_OFFSET);
 
 	sbl_dev_dbg(sbl->dev, "an %d: tx base page: 0x%llx", port_num, link->an_tx_page[0]);
 

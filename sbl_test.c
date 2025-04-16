@@ -15,7 +15,7 @@
 #include "sbl_pml.h"
 #include "sbl_internal.h"
 #include "sbl_constants.h"
-
+#include "sbl_test.h"
 
 static bool sbl_test_crc_failure;
 

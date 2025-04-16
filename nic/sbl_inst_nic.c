@@ -13,9 +13,9 @@
 #include "uapi/sbl_cassini.h"
 #include "sbl_fec.h"
 
-struct sbl_switch_info cas_brazos_switch_info = SBL_CASSINI_BRAZOS_SW_INFO_INITIALIZER;
-struct sbl_switch_info cas_nic0_switch_info = SBL_CASSINI_NIC0_SW_INFO_INITIALIZER;
-struct sbl_switch_info cas_nic1_switch_info = SBL_CASSINI_NIC1_SW_INFO_INITIALIZER;
+static struct sbl_switch_info cas_brazos_switch_info = SBL_CASSINI_BRAZOS_SW_INFO_INITIALIZER;
+static struct sbl_switch_info cas_nic0_switch_info = SBL_CASSINI_NIC0_SW_INFO_INITIALIZER;
+static struct sbl_switch_info cas_nic1_switch_info = SBL_CASSINI_NIC1_SW_INFO_INITIALIZER;
 
 void sbl_set_eth_name(struct sbl_inst *sbl, const char *name)
 {

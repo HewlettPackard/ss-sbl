@@ -12,7 +12,6 @@
 #include "sbl_constants.h"
 #include "sbl_internal.h"
 
-
 /*
  * enum to string functions
  */

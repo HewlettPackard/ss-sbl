@@ -129,7 +129,7 @@ int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 	u32 ccw_adj = 0;
 	s32 ucw_in = SBL_LINK_FEC_HPE;
 	s32 ccw_in = SBL_LINK_FEC_HPE;
-	struct sbl_link *link = sbl->link + port_num;
+	struct sbl_link *link;
 
 	err = sbl_validate_instance(sbl);
 	if (err)

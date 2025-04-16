@@ -36,26 +36,16 @@ static u8 get_serdes_tx_mask(struct sbl_inst *sbl, int port_num);
 static u8 get_serdes_rx_mask(struct sbl_inst *sbl, int port_num);
 static bool get_serdes_precoding(struct sbl_inst *sbl, int port_num);
 
-/**
- * @brief dummy function used when DEV_TRACE2 or DEV_TRACE3 are not defined
- *
- * @param dev device pointer
- * @param format printk-like format and varargs
- *
- * @return none
+/*
+ * Dummy function used when DEV_TRACE2 or DEV_TRACE3 are not defined
  */
 void dev_ignore(struct device *dev, const char *format, ...)
 {
 
 }
 
-/**
- * @brief Creates a u64 hash key based on the currently requested serdes state
- *
- * @param sbl sbl_inst pointer containing target config and state
- * @param port_num target port number
- *
- * @return u64 hash of lp, tp, lm, lm, and cable info
+/*
+ * Creates a u64 hash key based on the currently requested serdes state
  */
 /* NOTE: enums need to be bitwise values to use this hashing */
 static u64 sbl_get_tp_hash0(struct sbl_inst *sbl, int port_num)
@@ -115,12 +105,8 @@ void sbl_serdes_get_fw_vers(struct sbl_inst *sbl, int port_num, int serdes,
 	}
 }
 
-/**
- * @brief Get mask of serdes used for target link mode
- *
- * @param port_num target port number
- *
- * @return serdes bit mask
+/*
+ * Get mask of serdes used for target link mode
  */
 static u8 get_serdes_tx_mask(struct sbl_inst *sbl, int port_num)
 {
@@ -158,12 +144,8 @@ static u8 get_serdes_tx_mask(struct sbl_inst *sbl, int port_num)
 	return serdes_mask;
 }
 
-/**
- * @brief Get mask of serdes used for target link mode
- *
- * @param port_num target port number
- *
- * @return serdes bit mask
+/*
+ * Get mask of serdes used for target link mode
  */
 static u8 get_serdes_rx_mask(struct sbl_inst *sbl, int port_num)
 {
@@ -206,13 +188,8 @@ static u8 get_serdes_rx_mask(struct sbl_inst *sbl, int port_num)
 	return serdes_mask;
 }
 
-/**
- * @brief Utility function to skip over irrelevant serdes lanes
- *
- * @param port_num target port number
- * @param serdes target serdes lane
- *
- * @return true if serdes required for link mode
+/*
+ * Utility function to skip over irrelevant serdes lanes
  */
 static bool tx_serdes_required_for_link_mode(struct sbl_inst *sbl, int port_num,
 					     int serdes)
@@ -227,13 +204,8 @@ static bool tx_serdes_required_for_link_mode(struct sbl_inst *sbl, int port_num,
 		return false;
 }
 
-/**
- * @brief Utility function to skip over irrelevant serdes lanes
- *
- * @param port_num target port number
- * @param serdes target serdes lane
- *
- * @return true if serdes required for link mode
+/*
+ * Utility function to skip over irrelevant serdes lanes
  */
 static bool rx_serdes_required_for_link_mode(struct sbl_inst *sbl, int port_num,
 					     int serdes)
@@ -246,12 +218,8 @@ static bool rx_serdes_required_for_link_mode(struct sbl_inst *sbl, int port_num,
 		return false;
 }
 
-/**
- * @brief Returns a count of the number of bits set in input val
- *
- * @param val value to count number of bits set
- *
- * @return number of bits set to 1 in val
+/*
+ * Returns a count of the number of bits set in input val
  */
 static int sbl_num_bits_set(u64 val)
 {
@@ -265,15 +233,8 @@ static int sbl_num_bits_set(u64 val)
 	return bits_set;
 }
 
-/**
- * @brief Looks up sbl_sc_val struct for the given port, serdes, and hash
- *
- * @param sbl sbl_inst pointer containing target config and state
- * @param port_num target port number
- * @param serdes target serdes lane
- * @param vals pointer to sbl_sc_values struct to populate
- *
- * @return 0 on success, or negative errno on failure
+/*
+ * Looks up sbl_sc_val struct for the given port, serdes, and hash
  */
 static int sbl_get_serdes_config_values(struct sbl_inst *sbl, int port_num,
 					int serdes, struct sbl_sc_values *vals)
@@ -353,14 +314,9 @@ static int sbl_get_serdes_config_values(struct sbl_inst *sbl, int port_num,
 	return -ENOENT;
 }
 
-/**
- *  @brief Checks if there are valid tuning params in the sbl struct which can
- *          be used for this serdes tune
- *
- * @param sbl sbl_inst pointer containing target config and state
- * @param port_num target port number
- *
- * @return true if there are valid, non-zero params, else false
+/*
+ * Checks if there are valid tuning params in the sbl struct which can
+ * be used for this serdes tune
  */
 static bool sbl_is_retune(struct sbl_inst *sbl, int port_num)
 {
@@ -418,17 +374,8 @@ static bool sbl_is_retune(struct sbl_inst *sbl, int port_num)
 	return false;
 }
 
-/**
- * @brief Parse the vers string into rev and build
- *
- *        vers 0xbeef_feed parses into rev: 0xbeef and build: 0xfeed
- *
- * @param vers input version string
- * @param fw_fname pointer firmware filename
- * @param rev pointer to rev int to populate
- * @param build pointer to build int to populate
- *
- * @return 0 on success or a negative number on failure.
+/*
+ * Parse the vers string into rev and build
  */
 static int sbl_parse_version_string(struct sbl_inst *sbl, char *fw_fname,
 				    int *fw_rev, int *fw_build)
@@ -1774,9 +1721,9 @@ int sbl_save_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 		sbl->link[port_num].tuning_params.tp_state_hash1);
 
 	err = sbl_get_serdes_tuning_params(sbl, port_num,
-					   &sbl->link[port_num].tuning_params);
+			&sbl->link[port_num].tuning_params);
 
-	return 0;
+	return err;
 }
 
 int sbl_apply_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
@@ -4226,7 +4173,7 @@ int sbl_serdes_tuning(struct sbl_inst *sbl, int port_num)
 				// applied tuning params so we can do a full tune
 				goto out;
 			}
-			// drop through
+			fallthrough;
 
 		case -ETIME:    // tuning did not complete
 		case -ECHRNG:   // eye heights bad
@@ -4260,7 +4207,7 @@ out:
 int sbl_spico_reset(struct sbl_inst *sbl, int port_num)
 {
 	int serdes;
-	int err;
+	int err = 0;
 	int pass;
 	u32 sbus_addr;
 	u32 sbus_ring;

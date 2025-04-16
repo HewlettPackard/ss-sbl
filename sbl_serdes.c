@@ -348,7 +348,7 @@ out:
 int sbl_serdes_reset(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link;
-	int fail_reset_serdes;
+	int fail_reset_serdes = 0;
 	int serdes;
 	int err;
 
@@ -943,18 +943,10 @@ int sbl_serdes_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_
 }
 EXPORT_SYMBOL(sbl_serdes_sysfs_sprint);
 
-/**
- * @brief Get the serdes firmware version information for the port as a string.
- * @details Multiple serdes firmware versions exist per port. Each serdes lane
+/*
+ * Get the serdes firmware version information for the port as a string.
+ * Multiple serdes firmware versions exist per port. Each serdes lane
  * firmware version is listed on a newline.
- * @param[in] sbl	Slingshot base link instance.
- * @param[in] port_num	Port number to get the serdes firmware version for.
- * @param[out] buf	Serdes firmware version string.
- * @param[in] size	Size of the buffer allocated for the Serdes firmware version string.
- *
- * @return On success the number of bytes written to the buffer is returned.
- * -EINVAL is returned when the sbl instance or port number is invalid and
- * -ENOMEM when the buf points to NULL or size is 0.
  */
 int sbl_serdes_fw_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
@@ -992,16 +984,8 @@ int sbl_serdes_fw_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, si
 }
 EXPORT_SYMBOL(sbl_serdes_fw_sysfs_sprint);
 
-/**
- * @brief Get the sbm firmware version information for the sbus ring as a string.
- * @param[in] sbl		Slingshot base link instance.
- * @param[in] ring		SBUS ring number to get the serdes firmware version for.
- * @param[out] buf		SBUS ring firmware version string.
- * @param[in] size		Size of the buffer allocated to hold the fw version string.
- *
- * @return On success number of bytes written to the buffer. -EINVAL when the sbl
- * instance or ring number is invalid. -ENOMEM when the buf points to NULL or size
- * is 0.
+/*
+ * Get the sbm firmware version information for the sbus ring as a string.
  */
 int sbl_sbm_fw_sysfs_sprint(struct sbl_inst *sbl, int ring, char *buf, size_t size)
 {
