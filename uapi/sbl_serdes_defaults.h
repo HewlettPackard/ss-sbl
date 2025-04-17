@@ -1,21 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /* Copyright 2019-2020,2022-2024 Hewlett Packard Enterprise Development LP. All rights reserved. */
 
-/**
- * @file uapi/sbl_serdes_defaults.h
- *
- * @brief Default serdes configuration values
- *
- *
- */
-
-
 #ifndef _SBL_UAPI_SBL_SERDES_DEFAULTS_H_
 #define _SBL_UAPI_SBL_SERDES_DEFAULTS_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * @brief Defaults for per-port SerDes attributes
@@ -75,9 +62,5 @@ extern "C" {
 
 #define SBL_DFLT_PORT_CONFIG_GS1_OPTICAL                     2
 #define SBL_DFLT_PORT_CONFIG_GS2_OPTICAL                     0
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif  /* _SBL_UAPI_SBL_SERDES_DEFAULTS_H_ */

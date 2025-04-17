@@ -922,8 +922,7 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 	} while (time_is_after_jiffies(last_jiffy));
 	if (intr_out & SBMS_INTERRUPT_IN_PROGRESSS_MASK) {
 		SBL_ERR(sbl->dev,
-			"SBM_INT: sbus_addr:0x%03x int:0x%x(%s) data:0x%x "
-			"timed out (timeout:%ds)!",
+			"SBM_INT: sbus_addr:0x%03x int:0x%x(%s) data:0x%x timed out (timeout:%ds)!",
 			sbus_addr, code, intr_str, data, sbus_int_timeout);
 		return -ETIME;
 	}
@@ -944,9 +943,8 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 			SBMS_INTERRUPT_DATA_OFFSET;
 	} else {
 		SBL_ERR(sbl->dev,
-			"SBM_INT: sbus_addr:0x%03x int:0x%x(%s) data:0x%x Failed with "
-			"status 0x%x!", sbus_addr, code, intr_str, data,
-			(intr_out & SBMS_INTERRUPT_STATUS_MASK));
+			"SBM_INT: sbus_addr:0x%03x int:0x%x(%s) data:0x%x Failed with status 0x%x!",
+			sbus_addr, code, intr_str, data, (intr_out & SBMS_INTERRUPT_STATUS_MASK));
 		return -EBADE;
 	}
 
@@ -1047,9 +1045,8 @@ int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 					   serdes_op_flags);
 	if (err) {
 		SBL_ERR(sbl->dev,
-				"SERDES_INT: p%ds%d sbl_serdes_op failed! (rc:%d) "
-				"int:0x%02x(%s) data:0x%04x", port_num, serdes, err,
-				code, intr_str, data);
+				"SERDES_INT: p%ds%d sbl_serdes_op failed! (rc:%d) int:0x%02x(%s) data:0x%04x",
+				port_num, serdes, err, code, intr_str, data);
 		return err;
 	}
 	SBL_TRACE1(sbl->dev,
@@ -1059,9 +1056,8 @@ int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 	if ((result_action == SPICO_INT_VALIDATE_RESULT) &&
 	    ((*p_result & SPICO_INT_RESULT_CODE_MASK) != code)) {
 		SBL_ERR(sbl->dev,
-			"SERDES_INT: p%ds%d int:0x%02x(%s) data:0x%04x -> 0x%04x "
-			"Unexpected result! Expected 0x%04x!", port_num, serdes, code,
-			intr_str, data, *p_result & SPICO_INT_RESULT_CODE_MASK, code);
+			"SERDES_INT: p%ds%d int:0x%02x(%s) data:0x%04x -> 0x%04x Unexpected result! Expected 0x%04x!",
+			port_num, serdes, code, intr_str, data, *p_result & SPICO_INT_RESULT_CODE_MASK, code);
 		return -EBADE;
 	}
 

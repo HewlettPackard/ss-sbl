@@ -6,10 +6,6 @@
 
 #include "sbl.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
  * Get SBM firmware version from the given SBUS ring.
  */
@@ -236,7 +232,4 @@ int sbl_reset_serdes_plls(struct sbl_inst *sbl, int port_num);
  */
 void sbl_log_port_eye_heights(struct sbl_inst *sbl, int port_num);
 
-#ifdef __cplusplus
-}
-#endif
 #endif // SBL_SERDES_FN_H

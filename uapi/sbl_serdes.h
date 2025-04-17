@@ -1,22 +1,11 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-/**
- * @file uapi/sbl_serdes.h
- *
- * Copyright 2019, 2022, 2024-2025 Hewlett Packard Enterprise Development LP
- *
- * @brief Base-link SerDes configuration
- *
- *  Some paranoia here to make sure we don't use old format structures
- */
+/* Copyright 2019, 2022, 2024-2025 Hewlett Packard Enterprise Development LP */
 
 
 #ifndef _SBL_UAPI_BASE_LINK_SERDES_H_
 #define _SBL_UAPI_BASE_LINK_SERDES_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define SBL_TUNING_PARAM_MAGIC           0x74736d70  /* stpm */
 #define SBL_TUNING_PARAM_VERSION                  2
@@ -446,9 +435,5 @@ static inline __u64 sbl_create_tp_hash1(__u64 media_len_mask)
 
 	return hash;
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif  /* _SBL_UAPI_BASE_LINK_SERDES_H_ */

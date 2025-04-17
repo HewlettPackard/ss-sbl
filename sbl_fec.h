@@ -1,11 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-/*
- *
- * Copyright 2024 Hewlett Packard Enterprise Development LP
- *
- *	Fec related functionality
- */
+/* Copyright 2024 Hewlett Packard Enterprise Development LP */
 
 /* FEC up check */
 #define SBL_FEC_UP_SETTLE_PERIOD	 250	   /* ms */

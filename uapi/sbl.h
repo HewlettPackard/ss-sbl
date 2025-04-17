@@ -1,22 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-/**
- * @file uapi/sbl.h
- *
- * Copyright 2019-2024 Hewlett Packard Enterprise Development LP
- *
- * @brief Base-link configuration
- *
- */
+/* Copyright 2019-2024 Hewlett Packard Enterprise Development LP */
 
 #ifndef _SBL_UAPI_BASE_LINK_H_
 #define _SBL_UAPI_BASE_LINK_H_
 
 #include "linux/types.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define SBL_INSTANCE_ATTR_MAGIC           0x69736d61  /* siam */
 #define SBL_MEDIA_ATTR_MAGIC              0x6d736d61  /* smam */
@@ -681,9 +671,5 @@ enum sbl_debug_options {
 	SBL_DEBUG_TEST                    = (1<<31),     /**< for testing the debug system  */
 };
 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif  /* _SBL_UAPI_BASE_LINK_H_ */

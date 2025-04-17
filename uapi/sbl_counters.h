@@ -1,13 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-/**
- * @file uapi/sbl_counters.h
- *
- * Copyright 2019, 2022 Hewlett Packard Enterprise Development LP
- *
- * @brief SBL software counter support
- *
- */
+/* Copyright 2019, 2022 Hewlett Packard Enterprise Development LP */
 
 #ifndef _SBL_UAPI_COUNTERS_H_
 #define _SBL_UAPI_COUNTERS_H_

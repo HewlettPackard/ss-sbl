@@ -4,10 +4,6 @@
 #ifndef _CASSINI_SBL_UAPI_H_
 #define _CASSINI_SBL_UAPI_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Cassini platform options provided by the microcontroller
  *
@@ -22,9 +18,5 @@ enum cass_uc_platform
 	SBL_UC_PLATFORM_KENNEBEC,
 	SBL_UC_PLATFORM_PANGANI,
 };
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif  /* _CASSINI_SBL_UAPI_H_ */

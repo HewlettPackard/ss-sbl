@@ -5,9 +5,6 @@
 #define SBL_SERDES_MAP_H
 
 #include "sbl_kconfig.h"
-#ifndef __KERNEL__
-#include <stdbool.h>
-#endif /*  __KERNEL__ */
 #include "uapi/sbl_sbm_constants.h"
 
 

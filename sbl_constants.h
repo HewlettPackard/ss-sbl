@@ -5,10 +5,6 @@
 #ifndef _SBL_CONSTANTS_H_
 #define _SBL_CONSTANTS_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef TRACE2
 #define dev_trace2 dev_dbg
 #endif /* TRACE2 */
@@ -351,7 +347,4 @@ extern "C" {
 
 #define SERDES_POST_FLASH_READY_CNT     50
 
-#ifdef __cplusplus
-}
-#endif
 #endif /* _SBL_CONSTANTS_H_ */
