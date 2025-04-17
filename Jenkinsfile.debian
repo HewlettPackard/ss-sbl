@@ -9,6 +9,7 @@ class SBLProject extends SCImageProject {
     String project_name
     String build_steps
     String ct_build_steps = ""
+    String ct_target_arch = "all"
     String tools_branch = "main"
     String tools_url = "ssh://git@github.hpe.com/hpe/hpc-hms_ec-hms-scimage.git"
     String repo_base = "https://arti.hpc.amslabs.hpecorp.net/artifactory"
@@ -45,7 +46,8 @@ def scimageProject = new SBLProject(
         script:            this,         // necessary for scripts within library
         project_name:      'slingshot_base_link',
         build_steps:       'build_rosetta_drivers,build_hms_sbl_iface',
-        ct_build_steps:    'build_rosetta_drivers,build_hms_sbl_iface'
+        ct_build_steps:    'build_rosetta_drivers,build_hms_sbl_iface',
+        ct_target_arch:    'ss200'
     )
 
 script {
