@@ -491,7 +491,7 @@ int sbl_base_link_cancel_start(struct sbl_inst *sbl, int port_num)
 	spin_lock(&link->lock);
 	link->start_cancelled = true;
 	spin_unlock(&link->lock);
-	rtn = del_timer_sync(&fec_data->fec_timer);
+	rtn = timer_delete_sync(&fec_data->fec_timer);
 
 	if (rtn < 0)
 		sbl_dev_warn(sbl->dev, "bl %d: del_timer_sync failed [%d]", port_num, rtn);
@@ -581,7 +581,7 @@ int sbl_base_link_stop(struct sbl_inst *sbl, int port_num)
 		goto out;
 	}
 
-	rtn = del_timer_sync(&fec_data->fec_timer);
+	rtn = timer_delete_sync(&fec_data->fec_timer);
 
 	if (rtn < 0)
 		sbl_dev_warn(sbl->dev, "bl %d: del_timer_sync failed [%d]", port_num, rtn);
@@ -648,7 +648,7 @@ int sbl_base_link_reset(struct sbl_inst *sbl, int port_num)
 	if (err)
 		sbl_dev_warn(sbl->dev, "bl %d: reset: pcs_link_down failed [%d]", port_num, err);
 
-	rtn = del_timer_sync(&fec_data->fec_timer);
+	rtn = timer_delete_sync(&fec_data->fec_timer);
 
 	if (rtn < 0)
 		sbl_dev_warn(sbl->dev, "bl %d: del_timer_sync failed [%d]", port_num, rtn);

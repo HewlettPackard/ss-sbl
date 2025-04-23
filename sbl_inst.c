@@ -241,7 +241,7 @@ int sbl_delete_instance(struct sbl_inst *sbl)
 		link = sbl->link + i;
 
 		cancel_work_sync(&link->fec_data->fec_timer_work);
-		del_timer_sync(&link->fec_data->fec_timer);
+		timer_delete_sync(&link->fec_data->fec_timer);
 		kfree(link->fec_data->fec_prmts->fec_rates);
 		link->fec_data->fec_prmts->fec_rates = NULL;
 		kfree(link->fec_data->fec_prmts);

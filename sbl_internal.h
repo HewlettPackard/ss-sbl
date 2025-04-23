@@ -5,6 +5,8 @@
 #ifndef _SBL_INTERNAL_H_
 #define _SBL_INTERNAL_H_
 
+#include <linux/version.h>
+
 #include "linux/completion.h"
 #include "uapi/sbl_serdes.h"
 
@@ -52,6 +54,14 @@
 
 #define SBL_PML_REC_POLL_INTERVAL                       4  /* ms */
 #define SBL_PML_REC_LLR_TIMEOUT_OFFSET                  8  /* ms */
+
+#if (KERNEL_VERSION(6, 1, 0) > LINUX_VERSION_CODE) && \
+	!(defined(RHEL_MAJOR) && (RHEL_MAJOR >= 9) && defined(RHEL_MINOR) && (RHEL_MINOR >= 4))
+#define timer_delete_sync(timer) ({		\
+	int ret = del_timer_sync(timer);	\
+	ret;					\
+})
+#endif
 
 struct sbl_pml_recovery {
 	struct sbl_inst *sbl;

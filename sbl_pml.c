@@ -550,7 +550,7 @@ void sbl_pml_recovery_cancel(struct sbl_inst *sbl, int port_num)
 	u32 elapsed = jiffies_to_msecs(jiffies - link->pml_recovery.init_jiffies);
 	unsigned long irq_flags;
 
-	del_timer_sync(&link->pml_recovery.timer);
+	timer_delete_sync(&link->pml_recovery.timer);
 	spin_lock_irqsave(&link->fec_discard_lock, irq_flags);
 	link->fec_discard_time = jiffies;
 	link->fec_discard_type = SBL_FEC_DISCARD_TYPE_PML_REC_END;
