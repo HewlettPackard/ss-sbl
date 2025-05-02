@@ -23,18 +23,47 @@
 #include "sbl_pml.h"
 #include "sbl_test.h"
 
-static u64 sbl_get_tp_hash0(struct sbl_inst *sbl, int port_num);
-static u64 sbl_get_tp_hash1(struct sbl_inst *sbl, int port_num);
-static int sbl_get_serdes_config_values(struct sbl_inst *sbl, int port_num,
-					int serdes, struct sbl_sc_values *vals);
-static bool sbl_is_retune(struct sbl_inst *sbl, int port_num);
-static int sbl_parse_version_string(struct sbl_inst *sbl, char *fw_fname,
-				    int *fw_rev, int *fw_build);
-static void sbl_send_serdes_fw_corruption_alert(struct sbl_inst *sbl, int port,
-						int serdes);
-static u8 get_serdes_tx_mask(struct sbl_inst *sbl, int port_num);
-static u8 get_serdes_rx_mask(struct sbl_inst *sbl, int port_num);
-static bool get_serdes_precoding(struct sbl_inst *sbl, int port_num);
+static void sbl_send_serdes_fw_corruption_alert(struct sbl_inst *sbl, int port, int serdes)
+{
+	u32 alert_data;
+	struct serdes_info *serdes_info;
+
+	serdes_info = &sbl->switch_info->ports[port].serdes[serdes];
+	alert_data = ((serdes_info->sbus_ring & 0xffff) << 16) |
+		(serdes_info->rx_addr & 0xffff);
+
+	sbl_async_alert(sbl, port,
+			SBL_ASYNC_ALERT_SERDES_FW_CORRUPTION,
+			(void *)(uintptr_t)alert_data, 0);
+
+	/* Delay to allow userspace to get a serdes state dump */
+	msleep(SBL_SERDES_STATE_DUMP_DELAY);
+}
+
+static bool get_serdes_precoding(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+
+	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_FORCE_PRECODING_ON))
+		return true;
+
+	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_FORCE_PRECODING_OFF))
+		return false;
+
+	switch (link->blattr.precoding) {
+	case SBL_PRECODING_ON:
+		return true;
+	case SBL_PRECODING_OFF:
+		return false;
+	case SBL_PRECODING_DEFAULT:
+		return (link->blattr.options & SBL_OPT_FABRIC_LINK) ? true : false;
+	default:
+		sbl_dev_err(sbl->dev, "%d: invalid precoding (%d) - switching off",
+			port_num, link->blattr.precoding);
+		/* switch off anyway */
+		return false;
+	}
+}
 
 /*
  * Dummy function used when DEV_TRACE2 or DEV_TRACE3 are not defined
@@ -81,6 +110,7 @@ static u64 sbl_get_tp_hash0(struct sbl_inst *sbl, int port_num)
 			media,
 			sbl->link[port_num].mattr.vendor);
 }
+
 static u64 sbl_get_tp_hash1(struct sbl_inst *sbl, int port_num)
 {
 	return sbl_create_tp_hash1(sbl->link[port_num].mattr.len);
@@ -869,23 +899,6 @@ int sbl_validate_sbm_fw_vers(struct sbl_inst *sbl, u32 sbus_ring,
 			"r%d: Expected rev: 0x%x_%x Current SBM rev: 0x%x_%x",
 			sbus_ring, fw_rev, fw_build, curr_fw_rev, curr_fw_build);
 	return -1;
-}
-
-static void sbl_send_serdes_fw_corruption_alert(struct sbl_inst *sbl, int port, int serdes)
-{
-	u32 alert_data;
-	struct serdes_info *serdes_info;
-
-	serdes_info = &sbl->switch_info->ports[port].serdes[serdes];
-	alert_data = ((serdes_info->sbus_ring & 0xffff) << 16) |
-		(serdes_info->rx_addr & 0xffff);
-
-	sbl_async_alert(sbl, port,
-			SBL_ASYNC_ALERT_SERDES_FW_CORRUPTION,
-			(void *)(uintptr_t)alert_data, 0);
-
-	/* Delay to allow userspace to get a serdes state dump */
-	msleep(SBL_SERDES_STATE_DUMP_DELAY);
 }
 
 int sbl_validate_serdes_fw_crc(struct sbl_inst *sbl, int port, int serdes)
@@ -2506,31 +2519,6 @@ int sbl_serdes_polarity_ctrl(struct sbl_inst *sbl, int port_num, int serdes,
 		return err;
 
 	return 0;
-}
-
-static bool get_serdes_precoding(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-
-	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_FORCE_PRECODING_ON))
-		return true;
-
-	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_FORCE_PRECODING_OFF))
-		return false;
-
-	switch (link->blattr.precoding) {
-	case SBL_PRECODING_ON:
-		return true;
-	case SBL_PRECODING_OFF:
-		return false;
-	case SBL_PRECODING_DEFAULT:
-		return (link->blattr.options & SBL_OPT_FABRIC_LINK) ? true : false;
-	default:
-		sbl_dev_err(sbl->dev, "%d: invalid precoding (%d) - switching off",
-			port_num, link->blattr.precoding);
-		/* switch off anyway */
-		return false;
-	}
 }
 
 int sbl_set_tx_rx_enable(struct sbl_inst *sbl, int port_num, int serdes,

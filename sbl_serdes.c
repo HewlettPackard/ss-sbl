@@ -18,8 +18,86 @@
 
 static atomic_t sbl_next_serdes_config_tag = ATOMIC_INIT(-1);
 
-static int sbl_serdes_stop_internal(struct sbl_inst *sbl, int port_num);
-static int sbl_serdes_optical_lock_delay(struct sbl_inst *sbl, int port_num);
+static int sbl_serdes_stop_internal(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	int err = 0;
+	int serdes;
+
+	sbl_dev_dbg(sbl->dev, "p%d: SerDes stop", port_num);
+
+	err = sbl_port_stop_pcal(sbl, port_num);
+	if (err) {
+		sbl_dev_err(sbl->dev, "p%d: SerDes stop: port_pcal_stop failed [%d]",
+				port_num, err);
+		goto out;
+	}
+
+	for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
+		err = sbl_set_tx_rx_enable(sbl, port_num, serdes,
+						false, false, false);
+		if (err) {
+			sbl_dev_err(sbl->dev,
+				"p%d: SerDes stop: disable failed [%d]",
+				port_num, err);
+			goto out;
+		}
+	}
+
+	err = sbl_spico_reset(sbl, port_num);
+	if (err) {
+		sbl_dev_err(sbl->dev, "p%d: SerDes stop: spico_reset failed [%d]",
+			 port_num, err);
+		goto out;
+	}
+
+out:
+	if (err) {
+		link->sstate = SBL_SERDES_STATUS_ERROR;
+		/* Try and recover from errors with FW reload */
+		link->reload_serdes_fw = true;
+	} else {
+		sbl_dev_dbg(sbl->dev, "p%d: SerDes stop: done", port_num);
+		link->sstate = SBL_SERDES_STATUS_DOWN;
+	}
+	link->serr = err;
+
+	return err;
+}
+
+/*
+ * This delay is to give time for the optical transceivers to lock
+ */
+static int sbl_serdes_optical_lock_delay(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	unsigned long last_jiffy;
+	int err = 0;
+
+	sbl_dev_dbg(sbl->dev, "p%d: optical lock delay", port_num);
+
+	if (link->blattr.config_target != SBL_BASE_LINK_CONFIG_AOC) {
+		sbl_dev_err(sbl->dev, "p%d: optical lock delay - config not optical", port_num);
+		return -EINVAL;
+	}
+
+	link->optical_delay_active = true;
+	last_jiffy = jiffies + msecs_to_jiffies(link->blattr.aoc.optical_lock_delay);
+	while (time_is_after_jiffies(last_jiffy)) {
+		if (sbl_base_link_start_cancelled(sbl, port_num)) {
+			err = -ECANCELED;
+			goto out;
+		}
+		if (sbl_start_timeout(sbl, port_num)) {
+			err = -ETIMEDOUT;
+			goto out;
+		}
+		msleep(link->blattr.aoc.optical_lock_interval);
+	}
+out:
+	link->optical_delay_active = false;
+	return err;
+}
 
 int sbl_serdes_load(struct sbl_inst *sbl, int port_num, bool force)
 {
@@ -296,55 +374,6 @@ int sbl_serdes_stop(struct sbl_inst *sbl, int port_num)
 	return sbl_serdes_stop_internal(sbl, port_num);
 }
 
-
-static int sbl_serdes_stop_internal(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	int err = 0;
-	int serdes;
-
-	sbl_dev_dbg(sbl->dev, "p%d: SerDes stop", port_num);
-
-	err = sbl_port_stop_pcal(sbl, port_num);
-	if (err) {
-		sbl_dev_err(sbl->dev, "p%d: SerDes stop: port_pcal_stop failed [%d]",
-				port_num, err);
-		goto out;
-	}
-
-	for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
-		err = sbl_set_tx_rx_enable(sbl, port_num, serdes,
-						false, false, false);
-		if (err) {
-			sbl_dev_err(sbl->dev,
-				"p%d: SerDes stop: disable failed [%d]",
-				port_num, err);
-			goto out;
-		}
-	}
-
-	err = sbl_spico_reset(sbl, port_num);
-	if (err) {
-		sbl_dev_err(sbl->dev, "p%d: SerDes stop: spico_reset failed [%d]",
-			 port_num, err);
-		goto out;
-	}
-
-out:
-	if (err) {
-		link->sstate = SBL_SERDES_STATUS_ERROR;
-		/* Try and recover from errors with FW reload */
-		link->reload_serdes_fw = true;
-	} else {
-		sbl_dev_dbg(sbl->dev, "p%d: SerDes stop: done", port_num);
-		link->sstate = SBL_SERDES_STATUS_DOWN;
-	}
-	link->serr = err;
-
-	return err;
-}
-
-
 int sbl_serdes_reset(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link;
@@ -553,42 +582,6 @@ int sbl_an_serdes_stop(struct sbl_inst *sbl, int port_num)
 	link->serr = err;
 	return err;
 }
-
-
-/*
- * This delay is to give time for the optical transceivers to lock
- */
-static int sbl_serdes_optical_lock_delay(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	unsigned long last_jiffy;
-	int err = 0;
-
-	sbl_dev_dbg(sbl->dev, "p%d: optical lock delay", port_num);
-
-	if (link->blattr.config_target != SBL_BASE_LINK_CONFIG_AOC) {
-		sbl_dev_err(sbl->dev, "p%d: optical lock delay - config not optical", port_num);
-		return -EINVAL;
-	}
-
-	link->optical_delay_active = true;
-	last_jiffy = jiffies + msecs_to_jiffies(link->blattr.aoc.optical_lock_delay);
-	while (time_is_after_jiffies(last_jiffy)) {
-		if (sbl_base_link_start_cancelled(sbl, port_num)) {
-			err = -ECANCELED;
-			goto out;
-		}
-		if (sbl_start_timeout(sbl, port_num)) {
-			err = -ETIMEDOUT;
-			goto out;
-		}
-		msleep(link->blattr.aoc.optical_lock_interval);
-	}
-out:
-	link->optical_delay_active = false;
-	return err;
-}
-
 
 /*
  * Saved tuning params

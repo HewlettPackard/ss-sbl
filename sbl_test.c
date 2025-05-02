@@ -19,7 +19,6 @@
 
 static bool sbl_test_crc_failure;
 
-
 /*
  * test core intr access to the serdes
  */

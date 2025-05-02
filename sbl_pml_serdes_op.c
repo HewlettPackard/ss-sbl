@@ -16,7 +16,14 @@
 #include "sbl_internal.h"
 
 
-static inline bool sbl_pml_serdes_op_busy(struct sbl_inst *sbl, int port_num);
+static inline bool sbl_pml_serdes_op_busy(struct sbl_inst *sbl, int port_num)
+{
+	u64 val64;
+
+	val64 = sbl_read64(sbl, SBL_PML_BASE(port_num)|
+			SBL_PML_SERDES_CORE_INTERRUPT_OFFSET);
+	return SBL_PML_SERDES_CORE_INTERRUPT_DO_CORE_INTERRUPT_GET(val64);
+}
 
 /*
  * Perform a serdes "operation"
@@ -102,17 +109,6 @@ int sbl_pml_serdes_op(struct sbl_inst *sbl, int port_num, u64 serdes_sel,
 	return 0;
 }
 EXPORT_SYMBOL(sbl_pml_serdes_op);
-
-
-static inline bool sbl_pml_serdes_op_busy(struct sbl_inst *sbl, int port_num)
-{
-	u64 val64;
-
-	val64 = sbl_read64(sbl, SBL_PML_BASE(port_num)|
-			SBL_PML_SERDES_CORE_INTERRUPT_OFFSET);
-	return SBL_PML_SERDES_CORE_INTERRUPT_DO_CORE_INTERRUPT_GET(val64);
-}
-
 
 /*
  * serdes core interrupt access timings

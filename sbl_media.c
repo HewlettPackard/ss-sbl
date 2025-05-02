@@ -13,9 +13,6 @@
 #include "sbl_internal.h"
 
 
-static bool sbl_media_check_len_supported(struct sbl_inst *sbl, int port_num, u64 len);
-
-
 int sbl_media_config(struct sbl_inst *sbl, int port_num,
 		struct sbl_media_attr *mattr)
 {

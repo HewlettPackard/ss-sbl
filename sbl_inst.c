@@ -19,10 +19,187 @@
 #include "sbl_fec.h"
 
 static atomic_t sbl_inst_id = ATOMIC_INIT(-1);
-static struct sbl_link *sbl_create_link_db(struct sbl_switch_info *switch_info);
-static int sbl_setup_ops(struct sbl_inst *sbl, const struct sbl_ops *ops);
-static int sbl_setup_serdes_configs(struct sbl_inst *sbl);
-static int sbl_fec_init(struct sbl_inst *sbl);
+
+static struct sbl_link *sbl_create_link_db(struct sbl_switch_info *switch_info)
+{
+	int i;
+	int j;
+	int err;
+	struct sbl_link *link;
+
+	link = kcalloc(switch_info->num_ports, sizeof(struct sbl_link), GFP_KERNEL);
+	if (!link)
+		return ERR_PTR(-ENOMEM);
+
+	for (i = 0; i < switch_info->num_ports; ++i) {
+		err = sbl_link_counters_init(link + i);
+		if (err)
+			goto out_free_sbl_link_counters;
+
+		link[i].num = i;
+		link[i].mconfigured = false;
+		link[i].blconfigured = false;
+		atomic_set(&link[i].debug_config, 0);
+		/* TODO: change blattr items to INVALID */
+		link[i].blattr.pec.an_mode   = SBL_AN_MODE_OFF;
+		link[i].blattr.link_mode     = SBL_LINK_MODE_BS_200G;
+		link[i].blattr.loopback_mode = SBL_LOOPBACK_MODE_OFF;
+		link[i].blattr.llr_mode      = SBL_LLR_MODE_OFF;
+		link[i].blattr.ifg_config    = SBL_IFG_CONFIG_HPC;
+		link[i].sstate = SBL_SERDES_STATUS_DOWN;
+		link[i].serr = 0;
+		link[i].blstate = SBL_BASE_LINK_STATUS_UNCONFIGURED;
+		link[i].blerr = 0;
+		link[i].link_info = 0;
+		link[i].link_mode     = SBL_LINK_MODE_INVALID;
+		link[i].ifg_config    = SBL_IFG_CONFIG_INVALID;
+		link[i].loopback_mode = SBL_LOOPBACK_MODE_INVALID;
+		link[i].llr_mode      = SBL_LLR_MODE_INVALID;
+		link[i].llr_loop_time = 0;
+		link[i].pcs_config = false;
+		link[i].intr_err_flgs = 0ULL;
+		link[i].an_rx_count = 0;
+		link[i].an_tx_count = 0;
+		link[i].an_timeout_active = false;
+		link[i].lp_subtype = SBL_LP_SUBTYPE_INVALID;
+		link[i].tuning_params.tp_state_hash0 = 0;
+		link[i].tuning_params.tp_state_hash1 = 0;
+		link[i].last_start_jiffy = jiffies;
+		link[i].start_cancelled = false;
+		link[i].dfe_tune_count = 0;
+		link[i].optical_delay_active = false;
+		link[i].dfe_predelay_active = false;
+		link[i].pcal_running = false;
+		link[i].tune_param_oob_count = 0;
+		link[i].reload_serdes_fw = false;
+		link[i].pcs_recovery_flag = false;
+		link[i].pml_recovery.started = false;
+		link[i].pml_recovery.rl_window_start = 0;
+		link[i].fec_discard_time = 0;
+		link[i].fec_discard_type = SBL_FEC_DISCARD_TYPE_INVALID;
+
+		spin_lock_init(&link[i].lock);
+		spin_lock_init(&link[i].timeout_lock);
+		spin_lock_init(&link[i].pcs_recovery_lock);
+		spin_lock_init(&link[i].is_degraded_lock);
+		spin_lock_init(&link[i].fec_discard_lock);
+		mutex_init(&link[i].busy_mtx);
+		mutex_init(&link[i].serdes_mtx);
+		mutex_init(&link[i].tuning_params_mtx);
+	}
+
+	return link;
+
+out_free_sbl_link_counters:
+	for (j = 0; j < i; ++j)
+		sbl_link_counters_term(link + j);
+	kfree(link);
+	return ERR_PTR(-ENOMEM);
+}
+
+/*
+ * All operations must be supplied or SBL cannot function
+ */
+#define SBL_SETUP_OP_TBL_ENTRY(e)  \
+	if (ops->e) \
+		sbl->ops.e = ops->e; \
+	else { \
+		sbl_dev_err(sbl->dev, "missing ops tbl entry " #e); \
+		error = true; \
+	}
+
+static int sbl_setup_ops(struct sbl_inst *sbl, const struct sbl_ops *ops)
+{
+	bool error = false;
+
+	if (!ops) {
+		sbl_dev_err(sbl->dev, "missing ops table\n");
+		return -EINVAL;
+	}
+
+	SBL_SETUP_OP_TBL_ENTRY(sbl_read32);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_read64);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_write32);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_write64);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_sbus_op);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_sbus_op_reset);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_is_fabric_link);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_get_max_frame_size);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_pml_install_intr_handler);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_pml_enable_intr_handler);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_pml_disable_intr_handler);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_pml_remove_intr_handler);
+	SBL_SETUP_OP_TBL_ENTRY(sbl_async_alert);
+
+	if (error)
+		return -ENOENT;
+	else
+		return 0;
+}
+
+static int sbl_setup_serdes_configs(struct sbl_inst *sbl)
+{
+	struct sbl_serdes_config default_config;
+
+	spin_lock_init(&sbl->serdes_config_lock);
+	INIT_LIST_HEAD(&sbl->serdes_config_list);
+
+	default_config = (struct sbl_serdes_config)SBL_SERDES_CONFIG_INITIALIZER;
+
+	return sbl_serdes_add_config(sbl, default_config.tp_state_mask0,
+					default_config.tp_state_mask1,
+					default_config.tp_state_match0,
+					default_config.tp_state_match1,
+					default_config.port_mask,
+					default_config.serdes_mask,
+					&default_config.vals, true);
+}
+
+static int sbl_fec_init(struct sbl_inst *sbl)
+{
+	int i;
+	struct sbl_link *link;
+
+	for (i = 0; i < CONFIG_SBL_NUM_PORTS; ++i) {
+		link = sbl->link + i;
+
+		link->fec_data = kzalloc(sizeof(struct fec_data), GFP_KERNEL);
+
+		if (!link->fec_data)
+			return -ENOMEM;
+
+		link->fec_data->fec_prmts = kzalloc(sizeof(struct sbl_fec), GFP_KERNEL);
+
+		if (!link->fec_data->fec_prmts)
+			return -ENOMEM;
+
+		link->fec_data->fec_prmts->fec_curr_cnts = &link->fec_data->fec_prmts->fec_cntrs[0];
+		link->fec_data->fec_prmts->fec_prev_cnts = &link->fec_data->fec_prmts->fec_cntrs[1];
+		link->fec_data->fec_prmts->fec_rates = kzalloc(sizeof(struct sbl_pcs_fec_cntrs), GFP_KERNEL);
+		spin_lock_init(&link->fec_data->fec_prmts->fec_cnt_lock);
+
+		link->fec_data->fec_prmts->fec_ucw_thresh = 0;
+		link->fec_data->fec_prmts->fec_ucw_up_thresh_adj = 100;
+		link->fec_data->fec_prmts->fec_ucw_down_thresh_adj = 100;
+		link->fec_data->fec_prmts->fec_ucw_hwm = 0;
+		link->fec_data->fec_prmts->fec_ccw_thresh = 0;
+		link->fec_data->fec_prmts->fec_ccw_up_thresh_adj = 100;
+		link->fec_data->fec_prmts->fec_ccw_down_thresh_adj = 100;
+		link->fec_data->fec_prmts->fec_stp_ccw_thresh = 0;
+		link->fec_data->fec_prmts->fec_stp_ccw_up_thresh_adj = 100;
+		link->fec_data->fec_prmts->fec_ccw_hwm = 0;
+		link->fec_data->fec_prmts->fecl_warn = 0;
+
+		spin_lock_init(&link->fec_data->fec_prmts->fec_cw_lock);
+		timer_setup(&link->fec_data->fec_timer, sbl_fec_timer, 0);
+		link->fec_data->sbl		= sbl;
+		link->fec_data->port_num = i;
+
+		INIT_WORK(&link->fec_data->fec_timer_work, sbl_fec_timer_work);
+	}
+
+	return 0;
+}
 
 void sbl_get_version(int *major, int *minor, int *inc)
 {
@@ -175,52 +352,6 @@ out:
 }
 EXPORT_SYMBOL(sbl_new_instance);
 
-static int sbl_fec_init(struct sbl_inst *sbl)
-{
-	int i;
-	struct sbl_link *link;
-
-	for (i = 0; i < CONFIG_SBL_NUM_PORTS; ++i) {
-		link = sbl->link + i;
-
-		link->fec_data = kzalloc(sizeof(struct fec_data), GFP_KERNEL);
-
-		if (!link->fec_data)
-			return -ENOMEM;
-
-		link->fec_data->fec_prmts = kzalloc(sizeof(struct sbl_fec), GFP_KERNEL);
-
-		if (!link->fec_data->fec_prmts)
-			return -ENOMEM;
-
-		link->fec_data->fec_prmts->fec_curr_cnts = &link->fec_data->fec_prmts->fec_cntrs[0];
-		link->fec_data->fec_prmts->fec_prev_cnts = &link->fec_data->fec_prmts->fec_cntrs[1];
-		link->fec_data->fec_prmts->fec_rates = kzalloc(sizeof(struct sbl_pcs_fec_cntrs), GFP_KERNEL);
-		spin_lock_init(&link->fec_data->fec_prmts->fec_cnt_lock);
-
-		link->fec_data->fec_prmts->fec_ucw_thresh = 0;
-		link->fec_data->fec_prmts->fec_ucw_up_thresh_adj = 100;
-		link->fec_data->fec_prmts->fec_ucw_down_thresh_adj = 100;
-		link->fec_data->fec_prmts->fec_ucw_hwm = 0;
-		link->fec_data->fec_prmts->fec_ccw_thresh = 0;
-		link->fec_data->fec_prmts->fec_ccw_up_thresh_adj = 100;
-		link->fec_data->fec_prmts->fec_ccw_down_thresh_adj = 100;
-		link->fec_data->fec_prmts->fec_stp_ccw_thresh = 0;
-		link->fec_data->fec_prmts->fec_stp_ccw_up_thresh_adj = 100;
-		link->fec_data->fec_prmts->fec_ccw_hwm = 0;
-		link->fec_data->fec_prmts->fecl_warn = 0;
-
-		spin_lock_init(&link->fec_data->fec_prmts->fec_cw_lock);
-		timer_setup(&link->fec_data->fec_timer, sbl_fec_timer, 0);
-		link->fec_data->sbl		= sbl;
-		link->fec_data->port_num = i;
-
-		INIT_WORK(&link->fec_data->fec_timer_work, sbl_fec_timer_work);
-	}
-
-	return 0;
-}
-
 int sbl_delete_instance(struct sbl_inst *sbl)
 {
 	struct sbl_link *link;
@@ -264,145 +395,6 @@ int sbl_delete_instance(struct sbl_inst *sbl)
 	return 0;
 }
 EXPORT_SYMBOL(sbl_delete_instance);
-
-
-/*
- * All operations must be supplied or SBL cannot function
- */
-#define SBL_SETUP_OP_TBL_ENTRY(e)  \
-	if (ops->e) \
-		sbl->ops.e = ops->e; \
-	else { \
-		sbl_dev_err(sbl->dev, "missing ops tbl entry " #e); \
-		error = true; \
-	}
-
-static int sbl_setup_ops(struct sbl_inst *sbl, const struct sbl_ops *ops)
-{
-	bool error = false;
-
-	if (!ops) {
-		sbl_dev_err(sbl->dev, "missing ops table\n");
-		return -EINVAL;
-	}
-
-	SBL_SETUP_OP_TBL_ENTRY(sbl_read32);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_read64);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_write32);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_write64);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_sbus_op);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_sbus_op_reset);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_is_fabric_link);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_get_max_frame_size);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_pml_install_intr_handler);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_pml_enable_intr_handler);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_pml_disable_intr_handler);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_pml_remove_intr_handler);
-	SBL_SETUP_OP_TBL_ENTRY(sbl_async_alert);
-
-	if (error)
-		return -ENOENT;
-	else
-		return 0;
-}
-
-
-static struct sbl_link *sbl_create_link_db(struct sbl_switch_info *switch_info)
-{
-	int i;
-	int j;
-	int err;
-	struct sbl_link *link;
-
-	link = kcalloc(switch_info->num_ports, sizeof(struct sbl_link), GFP_KERNEL);
-	if (!link)
-		return ERR_PTR(-ENOMEM);
-
-	for (i = 0; i < switch_info->num_ports; ++i) {
-		err = sbl_link_counters_init(link + i);
-		if (err)
-			goto out_free_sbl_link_counters;
-
-		link[i].num = i;
-		link[i].mconfigured = false;
-		link[i].blconfigured = false;
-		atomic_set(&link[i].debug_config, 0);
-		/* TODO: change blattr items to INVALID */
-		link[i].blattr.pec.an_mode   = SBL_AN_MODE_OFF;
-		link[i].blattr.link_mode     = SBL_LINK_MODE_BS_200G;
-		link[i].blattr.loopback_mode = SBL_LOOPBACK_MODE_OFF;
-		link[i].blattr.llr_mode      = SBL_LLR_MODE_OFF;
-		link[i].blattr.ifg_config    = SBL_IFG_CONFIG_HPC;
-		link[i].sstate = SBL_SERDES_STATUS_DOWN;
-		link[i].serr = 0;
-		link[i].blstate = SBL_BASE_LINK_STATUS_UNCONFIGURED;
-		link[i].blerr = 0;
-		link[i].link_info = 0;
-		link[i].link_mode     = SBL_LINK_MODE_INVALID;
-		link[i].ifg_config    = SBL_IFG_CONFIG_INVALID;
-		link[i].loopback_mode = SBL_LOOPBACK_MODE_INVALID;
-		link[i].llr_mode      = SBL_LLR_MODE_INVALID;
-		link[i].llr_loop_time = 0;
-		link[i].pcs_config = false;
-		link[i].intr_err_flgs = 0ULL;
-		link[i].an_rx_count = 0;
-		link[i].an_tx_count = 0;
-		link[i].an_timeout_active = false;
-		link[i].lp_subtype = SBL_LP_SUBTYPE_INVALID;
-		link[i].tuning_params.tp_state_hash0 = 0;
-		link[i].tuning_params.tp_state_hash1 = 0;
-		link[i].last_start_jiffy = jiffies;
-		link[i].start_cancelled = false;
-		link[i].dfe_tune_count = 0;
-		link[i].optical_delay_active = false;
-		link[i].dfe_predelay_active = false;
-		link[i].pcal_running = false;
-		link[i].tune_param_oob_count = 0;
-		link[i].reload_serdes_fw = false;
-		link[i].pcs_recovery_flag = false;
-		link[i].pml_recovery.started = false;
-		link[i].pml_recovery.rl_window_start = 0;
-		link[i].fec_discard_time = 0;
-		link[i].fec_discard_type = SBL_FEC_DISCARD_TYPE_INVALID;
-
-		spin_lock_init(&link[i].lock);
-		spin_lock_init(&link[i].timeout_lock);
-		spin_lock_init(&link[i].pcs_recovery_lock);
-		spin_lock_init(&link[i].is_degraded_lock);
-		spin_lock_init(&link[i].fec_discard_lock);
-		mutex_init(&link[i].busy_mtx);
-		mutex_init(&link[i].serdes_mtx);
-		mutex_init(&link[i].tuning_params_mtx);
-	}
-
-	return link;
-
-out_free_sbl_link_counters:
-	for (j = 0; j < i; ++j)
-		sbl_link_counters_term(link + j);
-	kfree(link);
-	return ERR_PTR(-ENOMEM);
-}
-
-
-static int sbl_setup_serdes_configs(struct sbl_inst *sbl)
-{
-	struct sbl_serdes_config default_config;
-
-	spin_lock_init(&sbl->serdes_config_lock);
-	INIT_LIST_HEAD(&sbl->serdes_config_list);
-
-	default_config = (struct sbl_serdes_config)SBL_SERDES_CONFIG_INITIALIZER;
-
-	return sbl_serdes_add_config(sbl, default_config.tp_state_mask0,
-					default_config.tp_state_mask1,
-					default_config.tp_state_match0,
-					default_config.tp_state_match1,
-					default_config.port_mask,
-					default_config.serdes_mask,
-					&default_config.vals, true);
-}
-
 
 /*
  * initialise the instance

@@ -17,8 +17,67 @@
 #include "sbl_internal.h"
 
 
-static void sbl_pml_mac_get_mode(struct sbl_inst *sbl, int port_num, u64 *ifg_mode, u64 *ifg_adjustment);
+/*
+ *  get mode
+ */
+static void sbl_pml_mac_get_mode(struct sbl_inst *sbl, int port_num, u64 *ifg_mode, u64 *ifg_adjustment)
+{
+	struct sbl_link *link = sbl->link + port_num;
 
+	sbl_dev_dbg(sbl->dev, "%d: MAC get mode", port_num);
+
+	/* start with what was requested */
+	link->ifg_config = link->blattr.ifg_config;
+
+	/* check BL options */
+	if (link->blattr.options & SBL_OPT_ENABLE_IFG_CONFIG) {
+		/* set using IFG config */
+		switch (link->ifg_config) {
+		case SBL_IFG_CONFIG_HPC:
+			*ifg_mode       = 0;
+			*ifg_adjustment = 3;
+			break;
+		case SBL_IFG_CONFIG_IEEE_200G:
+			*ifg_mode       = 1;
+			*ifg_adjustment = 0;
+			break;
+		case SBL_IFG_CONFIG_IEEE_100G:
+			*ifg_mode       = 1;
+			*ifg_adjustment = 1;
+			break;
+		case SBL_IFG_CONFIG_IEEE_50G:
+		default:
+			*ifg_mode       = 1;
+			*ifg_adjustment = 2;
+			break;
+		}
+	} else if (link->blattr.options & SBL_OPT_FABRIC_LINK) {
+		/* set fabric link */
+		*ifg_mode       = 0;
+		*ifg_adjustment = 3;
+	} else {
+		/* set ether link */
+		switch (link->link_mode) {
+		case SBL_LINK_MODE_BS_200G:
+			*ifg_mode       = 1;
+			*ifg_adjustment = 0;
+			break;
+		case SBL_LINK_MODE_BJ_100G:
+			*ifg_mode       = 1;
+			*ifg_adjustment = 1;
+			break;
+		case SBL_LINK_MODE_CD_100G:
+			*ifg_mode       = 1;
+			*ifg_adjustment = 1;
+			break;
+		case SBL_LINK_MODE_CD_50G:
+		default:
+			*ifg_mode       = 1;
+			*ifg_adjustment = 2;
+			break;
+		}
+	}
+}
 
 /*
  *  configure
@@ -161,65 +220,3 @@ void sbl_pml_mac_hpc_set(struct sbl_inst *sbl, int port_num)
 	sbl_read64(sbl, (base | SBL_PML_CFG_TX_MAC_OFFSET));  /* flush */
 }
 
-
-/*
- *  get mode
- */
-static void sbl_pml_mac_get_mode(struct sbl_inst *sbl, int port_num, u64 *ifg_mode, u64 *ifg_adjustment)
-{
-	struct sbl_link *link = sbl->link + port_num;
-
-	sbl_dev_dbg(sbl->dev, "%d: MAC get mode", port_num);
-
-	/* start with what was requested */
-	link->ifg_config = link->blattr.ifg_config;
-
-	/* check BL options */
-	if (link->blattr.options & SBL_OPT_ENABLE_IFG_CONFIG) {
-		/* set using IFG config */
-		switch (link->ifg_config) {
-		case SBL_IFG_CONFIG_HPC:
-			*ifg_mode       = 0;
-			*ifg_adjustment = 3;
-			break;
-		case SBL_IFG_CONFIG_IEEE_200G:
-			*ifg_mode       = 1;
-			*ifg_adjustment = 0;
-			break;
-		case SBL_IFG_CONFIG_IEEE_100G:
-			*ifg_mode       = 1;
-			*ifg_adjustment = 1;
-			break;
-		case SBL_IFG_CONFIG_IEEE_50G:
-		default:
-			*ifg_mode       = 1;
-			*ifg_adjustment = 2;
-			break;
-		}
-	} else if (link->blattr.options & SBL_OPT_FABRIC_LINK) {
-		/* set fabric link */
-		*ifg_mode       = 0;
-		*ifg_adjustment = 3;
-	} else {
-		/* set ether link */
-		switch (link->link_mode) {
-		case SBL_LINK_MODE_BS_200G:
-			*ifg_mode       = 1;
-			*ifg_adjustment = 0;
-			break;
-		case SBL_LINK_MODE_BJ_100G:
-			*ifg_mode       = 1;
-			*ifg_adjustment = 1;
-			break;
-		case SBL_LINK_MODE_CD_100G:
-			*ifg_mode       = 1;
-			*ifg_adjustment = 1;
-			break;
-		case SBL_LINK_MODE_CD_50G:
-		default:
-			*ifg_mode       = 1;
-			*ifg_adjustment = 2;
-			break;
-		}
-	}
-}

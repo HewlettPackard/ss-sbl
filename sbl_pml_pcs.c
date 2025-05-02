@@ -18,13 +18,342 @@
 #include "sbl_internal.h"
 #include "sbl_serdes_fn.h"
 
-static int  sbl_pml_pcs_determine_active_lanes(struct sbl_inst *sbl, int port_num);
-static int  sbl_pml_pcs_alignment_wait(struct sbl_inst *sbl, int port_num);
-static int  sbl_pml_pcs_fault_clear_wait(struct sbl_inst *sbl, int port_num);
-static bool sbl_pml_pcs_locked(struct sbl_inst *sbl, int port_num);
-static bool sbl_pml_pcs_no_faults(struct sbl_inst *sbl, int port_num);
-static void sbl_pml_pcs_start_lock(struct sbl_inst *sbl, int port_num);
-static void sbl_pml_pcs_stop_lock(struct sbl_inst *sbl, int port_num);
+/*
+ * Function to find the lanes that data will be arriving on and
+ * setup the correct active lanes to align and active fec lanes.
+ */
+static int sbl_pml_pcs_determine_active_lanes(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	struct serdes_info *serdes =  sbl->switch_info->ports[port_num].serdes;
+	int i;
+
+	sbl_dev_dbg(sbl->dev, "%d: pcs config lanes", port_num);
+
+	switch (link->link_mode) {
+	case SBL_LINK_MODE_BS_200G:
+		/*
+		 * 4 lanes of 50Gbps - 8 internal 25Gbps fec lanes
+		 * setup directly
+		 */
+		link->active_rx_lanes  = 0xf;    /* all */
+		link->active_fec_lanes = 0xff;   /* all */
+		break;
+	case SBL_LINK_MODE_BJ_100G:
+		/*
+		 * 4 lanes of 25Gbps - 4 internal 25Gbps lanes
+		 * setup directly
+		 */
+		link->active_rx_lanes  = 0xf;    /* all */
+		link->active_fec_lanes = 0xf;    /* special case */
+		break;
+	case SBL_LINK_MODE_CD_100G:
+		/*
+		 * 2 lanes of 50Gbps - 4 internal 25Gbps lanes
+		 * locate incoming lanes 0 and 1
+		 */
+		link->active_rx_lanes  = 0;
+		link->active_fec_lanes = 0;
+		if (link->loopback_mode == SBL_LOOPBACK_MODE_LOCAL) {
+			/* we will receive on the tx lanes we went out on */
+			for (i = 0; i < SBL_SERDES_LANES_PER_PORT; ++i) {
+				if (serdes[i].tx_lane_source < 2) {
+					link->active_rx_lanes  |= 0x1 << i;
+					link->active_fec_lanes |= 0x3 << 2*i;
+				}
+			}
+		} else {
+			/* we will receive on the rx lanes */
+			for (i = 0; i < SBL_SERDES_LANES_PER_PORT; ++i) {
+				if (serdes[i].rx_lane_source < 2) {
+					link->active_rx_lanes  |= 0x1 << i;
+					link->active_fec_lanes |= 0x3 << 2*i;
+				}
+			}
+		}
+		break;
+	case SBL_LINK_MODE_CD_50G:
+		/*
+		 * 1 lanes of 50Gbps - 2 internal 25Gbps lanes
+		 * locate incoming lane 0
+		 */
+		if (link->loopback_mode == SBL_LOOPBACK_MODE_LOCAL) {
+			/* we will receive on the lane 0 we went out on */
+			for (i = 0; i < SBL_SERDES_LANES_PER_PORT; ++i) {
+				if (serdes[i].tx_lane_source == 0) {
+					link->active_rx_lanes  = 0x1 << i;
+					link->active_fec_lanes = 0x3 << 2*i;
+					break;
+				}
+			}
+		} else {
+			/* we will receive on the rx lane */
+			for (i = 0; i < SBL_SERDES_LANES_PER_PORT; ++i) {
+				if (serdes[i].rx_lane_source == 0) {
+					link->active_rx_lanes  = 0x1 << i;
+					link->active_fec_lanes = 0x3 << 2*i;
+				}
+			}
+		}
+		break;
+	default:
+		sbl_dev_err(sbl->dev, "%d: pcs bad link_mode (%d)", port_num, link->link_mode);
+		return -EBADRQC;
+	}
+
+	return 0;
+}
+
+/*
+ * helper state functions
+ */
+static bool sbl_pml_pcs_locked(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	struct sbl_link *link = sbl->link + port_num;
+	u64 locked_lanes;
+	u64 val64;
+
+	val64 = sbl_read64(sbl, base|SBL_PML_STS_RX_PCS_OFFSET);
+	locked_lanes = SBL_PML_STS_RX_PCS_AM_LOCK_GET(val64);
+
+	return (locked_lanes == link->active_fec_lanes);
+}
+
+static void sbl_pml_pcs_start_lock(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	u32 base = SBL_PML_BASE(port_num);
+	u64 val64;
+
+	sbl_dev_dbg(sbl->dev, "%d: pml bring-up start am lock\n", port_num);
+
+	val64 = sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
+	val64 = SBL_PML_CFG_RX_PCS_ENABLE_LOCK_UPDATE(val64, 1ULL);
+	val64 = SBL_PML_CFG_RX_PCS_ACTIVE_LANES_UPDATE(val64, link->active_rx_lanes);
+	sbl_write64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET, val64);
+	sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
+}
+
+
+static void sbl_pml_pcs_stop_lock(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	u64 val64;
+
+	sbl_dev_dbg(sbl->dev, "%d: pml bring-up stop am lock\n", port_num);
+
+	val64 = sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
+	val64 = SBL_PML_CFG_RX_PCS_ENABLE_LOCK_UPDATE(val64, 0ULL);
+	val64 = SBL_PML_CFG_RX_PCS_ACTIVE_LANES_UPDATE(val64, 0ULL);
+	sbl_write64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET, val64);
+	sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
+}
+
+/*
+ * wait for the pcs to become aligned
+ */
+static int sbl_pml_pcs_alignment_wait(struct sbl_inst *sbl, int port_num)
+{
+	unsigned long start_jiffy;
+	int elapsed;
+	int err = 0;
+
+	sbl_dev_dbg(sbl->dev, "%d: pml pcs alignment wait\n", port_num);
+
+	sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_PCS_A_WAIT);
+
+	 /*
+	  * poll for all lanes to get bitlock
+	  *
+	  *   This might be a very long time as the other end obviously needs to
+	  *   be coming up at the same time. So start eagerly checking and then back off.
+	  *
+	  *   If we are getting a high serdes error rate or bad eyes then we can never
+	  *   meaningfully lock so bail with an error and the serdes will be retuned.
+	  *
+	  *   Occasionally the pcs seems to get stuck and some lanes never come up.
+	  *   Restarting locking seems to clear this.
+	  */
+restart:
+	start_jiffy = jiffies;
+	while (!sbl_pml_pcs_locked(sbl, port_num)) {
+
+		if (sbl_start_timeout(sbl, port_num)) {
+			sbl_dev_dbg(sbl->dev, "%d: pcs lock wait timeout\n",
+					port_num);
+			err = -ETIMEDOUT;
+			goto out;
+		}
+
+		if (sbl_base_link_start_cancelled(sbl, port_num)) {
+			sbl_dev_dbg(sbl->dev, "%d: pcs lock wait cancelled\n",
+					port_num);
+			err = -ECANCELED;
+			goto out;
+		}
+
+		elapsed = jiffies_to_msecs(jiffies - start_jiffy);
+		if (elapsed > 1000) {
+
+			/* if we have a high serdes error, we will never align  */
+			if (sbl_pml_pcs_high_serdes_error(sbl, port_num)) {
+				sbl_dev_warn(sbl->dev, "%d: pcs lock high serdes error detected\n", port_num);
+				err = -EADV;
+				goto out;
+			}
+
+			/* Ensure the serdes is still good (eyes stay open)  */
+			err = sbl_port_check_eyes(sbl, port_num);
+			if (err) {
+				sbl_dev_warn(sbl->dev, "%d: pcs lock some eyes have gone bad", port_num);
+				goto out;
+			}
+
+			/* restart locking in case it's locked up */
+			sbl_pml_pcs_stop_lock(sbl, port_num);
+			sbl_pml_pcs_start_lock(sbl, port_num);
+
+			msleep(SBL_PML_PCS_ALIGN_SLOW_POLL_DELAY);
+		} else if (elapsed > 50)
+			msleep(100);
+		else
+			usleep_range(10000, 11000);
+	}
+
+	/*
+	 * poll for lane alignment
+	 */
+	start_jiffy = jiffies;
+	while (!sbl_pml_pcs_aligned(sbl, port_num)) {
+
+		if (sbl_start_timeout(sbl, port_num)) {
+			sbl_dev_dbg(sbl->dev, "%d: pcs align wait timeout\n",
+					port_num);
+			err = -ETIMEDOUT;
+			goto out;
+		}
+
+		if (sbl_base_link_start_cancelled(sbl, port_num)) {
+			sbl_dev_dbg(sbl->dev, "%d: pcs align wait cancelled\n",
+					port_num);
+			err = -ECANCELED;
+			goto out;
+		}
+
+		/* if we lose lock restart trying to lock again  */
+		if (!sbl_pml_pcs_locked(sbl, port_num)) {
+			sbl_dev_warn(sbl->dev, "%d: pcs align - lost lock\n", port_num);
+			goto restart;
+		}
+
+		elapsed = jiffies_to_msecs(jiffies - start_jiffy);
+		if (elapsed > SBL_PML_PCS_ALIGN_TIMEOUT) {
+
+			/*
+			 * we should have got alignment by now
+			 * give up, restart locking and try again
+			 */
+			sbl_pml_pcs_stop_lock(sbl, port_num);
+			sbl_pml_pcs_start_lock(sbl, port_num);
+			goto restart;
+		} else if (elapsed > 50)
+			msleep(100);
+		else
+			usleep_range(10000, 11000);
+	}
+
+out:
+	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_PCS_A_WAIT);
+
+	return err;
+}
+
+static bool sbl_pml_pcs_no_faults(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	u64 faults;
+	u64 val64;
+
+	val64 = sbl_read64(sbl, base|SBL_PML_STS_RX_PCS_OFFSET);
+	faults = SBL_PML_STS_RX_PCS_FAULT_GET(val64) | SBL_PML_STS_RX_PCS_LOCAL_FAULT_GET(val64);
+
+	return (faults == 0ULL);
+}
+
+/*
+ * wait for pcs faults to clear
+ *
+ * we wait for fault to stay clear as it is momentarily set sometimes
+ */
+static int sbl_pml_pcs_fault_clear_wait(struct sbl_inst *sbl, int port_num)
+{
+	unsigned long start_jiffy = jiffies;
+	int no_fault_count = 0;
+	int elapsed;
+	int err;
+
+	sbl_dev_dbg(sbl->dev, "%d: pml pcs fault clear wait\n", port_num);
+
+	sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_PCS_F_WAIT);
+
+	while (true) {
+
+		/* check for timeout */
+		if (sbl_start_timeout(sbl, port_num)) {
+			sbl_dev_dbg(sbl->dev, "%d: pml fault clear wait timeout\n",
+					port_num);
+			err = -ETIMEDOUT;
+			goto out;
+		}
+
+		if (sbl_base_link_start_cancelled(sbl, port_num)) {
+			sbl_dev_dbg(sbl->dev, "%d: pml fault clear wait cancelled\n",
+					port_num);
+			err = -ECANCELED;
+			goto out;
+		}
+
+		/* check we are still aligned */
+		if (!sbl_pml_pcs_aligned(sbl, port_num)) {
+			sbl_dev_dbg(sbl->dev, "%d: pml fault clear wait lost alignment\n",
+					port_num);
+			err = -ENOLCK;
+			goto out;
+		}
+
+		/*
+		 * check for no fault
+		 * we need multiple good tests to be sure it is up
+		 */
+		if (sbl_pml_pcs_no_faults(sbl, port_num)) {
+			++no_fault_count;
+			if (no_fault_count == SBL_PML_REQUIRED_NO_FAULT_COUNT) {
+				/* done */
+				err = 0;
+				goto out;
+			} else {
+				/* poll fast and check again */
+				start_jiffy = jiffies;
+			}
+		} else
+			no_fault_count = 0;
+
+		/* wait with backoff */
+		elapsed = jiffies_to_msecs(jiffies - start_jiffy);
+		if (elapsed > 5000)
+			msleep(1000);
+		else if (elapsed > 100)
+			msleep(100);
+		else
+			usleep_range(10000, 11000);
+	}
+
+out:
+	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_PCS_F_WAIT);
+
+	return err;
+}
 
 /*
  * PCS configuration
@@ -238,94 +567,6 @@ bool sbl_pml_lp_pls_available(struct sbl_inst *sbl, int port_num)
 
 	return (val64 == MAX_PLS_AVAILABLE);
 }
-
-
-/*
- * Function to find the lanes that data will be arriving on and
- * setup the correct active lanes to align and active fec lanes.
- */
-static int sbl_pml_pcs_determine_active_lanes(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	struct serdes_info *serdes =  sbl->switch_info->ports[port_num].serdes;
-	int i;
-
-	sbl_dev_dbg(sbl->dev, "%d: pcs config lanes", port_num);
-
-	switch (link->link_mode) {
-	case SBL_LINK_MODE_BS_200G:
-		/*
-		 * 4 lanes of 50Gbps - 8 internal 25Gbps fec lanes
-		 * setup directly
-		 */
-		link->active_rx_lanes  = 0xf;    /* all */
-		link->active_fec_lanes = 0xff;   /* all */
-		break;
-	case SBL_LINK_MODE_BJ_100G:
-		/*
-		 * 4 lanes of 25Gbps - 4 internal 25Gbps lanes
-		 * setup directly
-		 */
-		link->active_rx_lanes  = 0xf;    /* all */
-		link->active_fec_lanes = 0xf;    /* special case */
-		break;
-	case SBL_LINK_MODE_CD_100G:
-		/*
-		 * 2 lanes of 50Gbps - 4 internal 25Gbps lanes
-		 * locate incoming lanes 0 and 1
-		 */
-		link->active_rx_lanes  = 0;
-		link->active_fec_lanes = 0;
-		if (link->loopback_mode == SBL_LOOPBACK_MODE_LOCAL) {
-			/* we will receive on the tx lanes we went out on */
-			for (i = 0; i < SBL_SERDES_LANES_PER_PORT; ++i) {
-				if (serdes[i].tx_lane_source < 2) {
-					link->active_rx_lanes  |= 0x1 << i;
-					link->active_fec_lanes |= 0x3 << 2*i;
-				}
-			}
-		} else {
-			/* we will receive on the rx lanes */
-			for (i = 0; i < SBL_SERDES_LANES_PER_PORT; ++i) {
-				if (serdes[i].rx_lane_source < 2) {
-					link->active_rx_lanes  |= 0x1 << i;
-					link->active_fec_lanes |= 0x3 << 2*i;
-				}
-			}
-		}
-		break;
-	case SBL_LINK_MODE_CD_50G:
-		/*
-		 * 1 lanes of 50Gbps - 2 internal 25Gbps lanes
-		 * locate incoming lane 0
-		 */
-		if (link->loopback_mode == SBL_LOOPBACK_MODE_LOCAL) {
-			/* we will receive on the lane 0 we went out on */
-			for (i = 0; i < SBL_SERDES_LANES_PER_PORT; ++i) {
-				if (serdes[i].tx_lane_source == 0) {
-					link->active_rx_lanes  = 0x1 << i;
-					link->active_fec_lanes = 0x3 << 2*i;
-					break;
-				}
-			}
-		} else {
-			/* we will receive on the rx lane */
-			for (i = 0; i < SBL_SERDES_LANES_PER_PORT; ++i) {
-				if (serdes[i].rx_lane_source == 0) {
-					link->active_rx_lanes  = 0x1 << i;
-					link->active_fec_lanes = 0x3 << 2*i;
-				}
-			}
-		}
-		break;
-	default:
-		sbl_dev_err(sbl->dev, "%d: pcs bad link_mode (%d)", port_num, link->link_mode);
-		return -EBADRQC;
-	}
-
-	return 0;
-}
-
 
 /*
  * PCS start-up
@@ -565,127 +806,6 @@ char *sbl_pml_pcs_state_str(struct sbl_inst *sbl, int port_num, char *buf, int l
 	return buf;
 }
 
-
-/*
- * wait for the pcs to become aligned
- */
-static int sbl_pml_pcs_alignment_wait(struct sbl_inst *sbl, int port_num)
-{
-	unsigned long start_jiffy;
-	int elapsed;
-	int err = 0;
-
-	sbl_dev_dbg(sbl->dev, "%d: pml pcs alignment wait\n", port_num);
-
-	sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_PCS_A_WAIT);
-
-	 /*
-	  * poll for all lanes to get bitlock
-	  *
-	  *   This might be a very long time as the other end obviously needs to
-	  *   be coming up at the same time. So start eagerly checking and then back off.
-	  *
-	  *   If we are getting a high serdes error rate or bad eyes then we can never
-	  *   meaningfully lock so bail with an error and the serdes will be retuned.
-	  *
-	  *   Occasionally the pcs seems to get stuck and some lanes never come up.
-	  *   Restarting locking seems to clear this.
-	  */
-restart:
-	start_jiffy = jiffies;
-	while (!sbl_pml_pcs_locked(sbl, port_num)) {
-
-		if (sbl_start_timeout(sbl, port_num)) {
-			sbl_dev_dbg(sbl->dev, "%d: pcs lock wait timeout\n",
-					port_num);
-			err = -ETIMEDOUT;
-			goto out;
-		}
-
-		if (sbl_base_link_start_cancelled(sbl, port_num)) {
-			sbl_dev_dbg(sbl->dev, "%d: pcs lock wait cancelled\n",
-					port_num);
-			err = -ECANCELED;
-			goto out;
-		}
-
-		elapsed = jiffies_to_msecs(jiffies - start_jiffy);
-		if (elapsed > 1000) {
-
-			/* if we have a high serdes error, we will never align  */
-			if (sbl_pml_pcs_high_serdes_error(sbl, port_num)) {
-				sbl_dev_warn(sbl->dev, "%d: pcs lock high serdes error detected\n", port_num);
-				err = -EADV;
-				goto out;
-			}
-
-			/* Ensure the serdes is still good (eyes stay open)  */
-			err = sbl_port_check_eyes(sbl, port_num);
-			if (err) {
-				sbl_dev_warn(sbl->dev, "%d: pcs lock some eyes have gone bad", port_num);
-				goto out;
-			}
-
-			/* restart locking in case it's locked up */
-			sbl_pml_pcs_stop_lock(sbl, port_num);
-			sbl_pml_pcs_start_lock(sbl, port_num);
-
-			msleep(SBL_PML_PCS_ALIGN_SLOW_POLL_DELAY);
-		} else if (elapsed > 50)
-			msleep(100);
-		else
-			usleep_range(10000, 11000);
-	}
-
-	/*
-	 * poll for lane alignment
-	 */
-	start_jiffy = jiffies;
-	while (!sbl_pml_pcs_aligned(sbl, port_num)) {
-
-		if (sbl_start_timeout(sbl, port_num)) {
-			sbl_dev_dbg(sbl->dev, "%d: pcs align wait timeout\n",
-					port_num);
-			err = -ETIMEDOUT;
-			goto out;
-		}
-
-		if (sbl_base_link_start_cancelled(sbl, port_num)) {
-			sbl_dev_dbg(sbl->dev, "%d: pcs align wait cancelled\n",
-					port_num);
-			err = -ECANCELED;
-			goto out;
-		}
-
-		/* if we lose lock restart trying to lock again  */
-		if (!sbl_pml_pcs_locked(sbl, port_num)) {
-			sbl_dev_warn(sbl->dev, "%d: pcs align - lost lock\n", port_num);
-			goto restart;
-		}
-
-		elapsed = jiffies_to_msecs(jiffies - start_jiffy);
-		if (elapsed > SBL_PML_PCS_ALIGN_TIMEOUT) {
-
-			/*
-			 * we should have got alignment by now
-			 * give up, restart locking and try again
-			 */
-			sbl_pml_pcs_stop_lock(sbl, port_num);
-			sbl_pml_pcs_start_lock(sbl, port_num);
-			goto restart;
-		} else if (elapsed > 50)
-			msleep(100);
-		else
-			usleep_range(10000, 11000);
-	}
-
-out:
-	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_PCS_A_WAIT);
-
-	return err;
-}
-
-
 /*
  * enable pcs recovery
  */
@@ -721,129 +841,6 @@ void sbl_pml_pcs_recovery_disable(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_pml_pcs_recovery_disable);
 
-
-static void sbl_pml_pcs_start_lock(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	u32 base = SBL_PML_BASE(port_num);
-	u64 val64;
-
-	sbl_dev_dbg(sbl->dev, "%d: pml bring-up start am lock\n", port_num);
-
-	val64 = sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
-	val64 = SBL_PML_CFG_RX_PCS_ENABLE_LOCK_UPDATE(val64, 1ULL);
-	val64 = SBL_PML_CFG_RX_PCS_ACTIVE_LANES_UPDATE(val64, link->active_rx_lanes);
-	sbl_write64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET, val64);
-	sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
-}
-
-
-static void sbl_pml_pcs_stop_lock(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 val64;
-
-	sbl_dev_dbg(sbl->dev, "%d: pml bring-up stop am lock\n", port_num);
-
-	val64 = sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
-	val64 = SBL_PML_CFG_RX_PCS_ENABLE_LOCK_UPDATE(val64, 0ULL);
-	val64 = SBL_PML_CFG_RX_PCS_ACTIVE_LANES_UPDATE(val64, 0ULL);
-	sbl_write64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET, val64);
-	sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
-}
-
-
-/*
- * wait for pcs faults to clear
- *
- * we wait for fault to stay clear as it is momentarily set sometimes
- */
-static int sbl_pml_pcs_fault_clear_wait(struct sbl_inst *sbl, int port_num)
-{
-	unsigned long start_jiffy = jiffies;
-	int no_fault_count = 0;
-	int elapsed;
-	int err;
-
-	sbl_dev_dbg(sbl->dev, "%d: pml pcs fault clear wait\n", port_num);
-
-	sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_PCS_F_WAIT);
-
-	while (true) {
-
-		/* check for timeout */
-		if (sbl_start_timeout(sbl, port_num)) {
-			sbl_dev_dbg(sbl->dev, "%d: pml fault clear wait timeout\n",
-					port_num);
-			err = -ETIMEDOUT;
-			goto out;
-		}
-
-		if (sbl_base_link_start_cancelled(sbl, port_num)) {
-			sbl_dev_dbg(sbl->dev, "%d: pml fault clear wait cancelled\n",
-					port_num);
-			err = -ECANCELED;
-			goto out;
-		}
-
-		/* check we are still aligned */
-		if (!sbl_pml_pcs_aligned(sbl, port_num)) {
-			sbl_dev_dbg(sbl->dev, "%d: pml fault clear wait lost alignment\n",
-					port_num);
-			err = -ENOLCK;
-			goto out;
-		}
-
-		/*
-		 * check for no fault
-		 * we need multiple good tests to be sure it is up
-		 */
-		if (sbl_pml_pcs_no_faults(sbl, port_num)) {
-			++no_fault_count;
-			if (no_fault_count == SBL_PML_REQUIRED_NO_FAULT_COUNT) {
-				/* done */
-				err = 0;
-				goto out;
-			} else {
-				/* poll fast and check again */
-				start_jiffy = jiffies;
-			}
-		} else
-			no_fault_count = 0;
-
-		/* wait with backoff */
-		elapsed = jiffies_to_msecs(jiffies - start_jiffy);
-		if (elapsed > 5000)
-			msleep(1000);
-		else if (elapsed > 100)
-			msleep(100);
-		else
-			usleep_range(10000, 11000);
-	}
-
-out:
-	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_PCS_F_WAIT);
-
-	return err;
-}
-
-
-/*
- * helper state functions
- */
-static bool sbl_pml_pcs_locked(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	struct sbl_link *link = sbl->link + port_num;
-	u64 locked_lanes;
-	u64 val64;
-
-	val64 = sbl_read64(sbl, base|SBL_PML_STS_RX_PCS_OFFSET);
-	locked_lanes = SBL_PML_STS_RX_PCS_AM_LOCK_GET(val64);
-
-	return (locked_lanes == link->active_fec_lanes);
-}
-
 bool sbl_pml_pcs_aligned(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -854,20 +851,6 @@ bool sbl_pml_pcs_aligned(struct sbl_inst *sbl, int port_num)
 	return (SBL_PML_STS_RX_PCS_ALIGN_STATUS_GET(val64) == 1);
 }
 EXPORT_SYMBOL(sbl_pml_pcs_aligned);
-
-
-static bool sbl_pml_pcs_no_faults(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 faults;
-	u64 val64;
-
-	val64 = sbl_read64(sbl, base|SBL_PML_STS_RX_PCS_OFFSET);
-	faults = SBL_PML_STS_RX_PCS_FAULT_GET(val64) | SBL_PML_STS_RX_PCS_LOCAL_FAULT_GET(val64);
-
-	return (faults == 0ULL);
-}
-
 
 bool sbl_pml_pcs_high_serdes_error(struct sbl_inst *sbl, int port_num)
 {

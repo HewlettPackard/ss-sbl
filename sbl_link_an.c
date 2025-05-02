@@ -24,197 +24,265 @@
  */
 #define SBL_SEND_EXTRA_FABRIC_NULL_PAGE                 0
 
-static int  sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num);
-static int  sbl_an_pml_setup(struct sbl_inst *sbl, int port_num);
-static int  sbl_an_exchange(struct sbl_inst *sbl, int port_num);
-static void sbl_an_send_base_page(struct sbl_inst *sbl, int port_num) __maybe_unused;
-static u32  sbl_an_get_nonce(void) __maybe_unused;
-static void sbl_an_pml_an_reset(struct sbl_inst *sbl, int port_num, u64 reset_state);
-static int  sbl_an_ability_match(struct sbl_inst *sbl, int port_num);
-static void sbl_an_update_timeout(struct sbl_inst *sbl, int port_num);
-static bool sbl_an_base_is_complete(struct sbl_inst *sbl, int port_num) __maybe_unused;
-static bool sbl_an_base_is_page_recv(struct sbl_inst *sbl, int port_num) __maybe_unused;
-static bool sbl_an_is_base_page(struct sbl_inst *sbl, int port_num) __maybe_unused;
-static bool sbl_an_100cr4_fixup(struct sbl_inst *sbl, int port_num);
-
-int sbl_link_autoneg(struct sbl_inst *sbl, int port_num)
+/*
+ * set the reset state
+ */
+static void sbl_an_pml_an_reset(struct sbl_inst *sbl, int port_num, u64 reset_state)
 {
-	struct sbl_link *link;
 	u32 base = SBL_PML_BASE(port_num);
-	u32 random;
-	u64 cfg_pcs_reg;
-	int err;
+	u64 cfg_pcs_autoneg_reg;
 
-	err = sbl_validate_instance(sbl);
-	if (err)
-		return err;
-
-	err = sbl_validate_port_num(sbl, port_num);
-	if (err)
-		return err;
-
-	/* set starting point */
-	link = sbl->link + port_num;
-	link->an_options = 0;
-	link->link_mode  = link->blattr.link_mode;
-
-	switch (link->blattr.pec.an_mode) {
-
-	case SBL_AN_MODE_OFF:
-		sbl_dev_dbg(sbl->dev, "an %d: AN off", port_num);
-		/* nothing more to do here */
-		return 0;
-
-	case SBL_AN_MODE_ON:
-	case SBL_AN_MODE_FIXED:
-		/* ok */
-		break;
-
-	default:
-		sbl_dev_err(sbl->dev, "an %d: invalid AN mode (%s)", port_num,
-				sbl_an_mode_str(link->blattr.pec.an_mode));
-		return -EINVAL;
-	}
-
-	/*
-	 * we can never be in loopback mode as the nonce will be the same!
-	 */
-	if (link->blattr.loopback_mode != SBL_LOOPBACK_MODE_OFF) {
-		sbl_dev_err(sbl->dev, "an %d: cannot autoneg in loopback mode", port_num);
-		return -ENOTUNIQ;
-	}
-
-	/*
-	 * pcs must not be enabled and autoneg must be off
-	 */
-	cfg_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
-	if (SBL_PML_CFG_PCS_PCS_ENABLE_GET(cfg_pcs_reg)) {
-		sbl_dev_err(sbl->dev, "an %d: pcs is enabled", port_num);
-		err = -EBUSY;
-		goto out;
-	}
-	if (SBL_PML_CFG_PCS_ENABLE_AUTO_NEG_GET(cfg_pcs_reg)) {
-		sbl_dev_err(sbl->dev, "an %d: autoneg already enabled", port_num);
-		err = -EBUSY;
-		goto out;
-	}
-
-	/*
-	 * sort out the data to send/receive
-	 */
-	err = sbl_an_setup_tx_pages(sbl, port_num);
-	if (err) {
-		sbl_dev_err(sbl->dev, "an %d, page setup failed [%d]", port_num, err);
-		goto out;
-	}
-
-	/*
-	 * setup
-	 */
-	err = sbl_pml_install_intr_handler(sbl, port_num, SBL_AUTONEG_ERR_FLGS);
-	if (err)
-		goto out;
-	link->an_100cr4_fixup_applied = false;
-
-	/*
-	 * try to negotiate
-	 */
-	link->an_try_count = 0;
-	while (1) {
-
-		link->an_try_count++;
-
-		/* keep trying until up timeout expires or cancelled */
-		if (sbl_start_timeout(sbl, port_num)) {
-			err = -ETIMEDOUT;
-			break;
-		}
-		if (sbl_base_link_start_cancelled(sbl, port_num)) {
-			err = -ECANCELED;
-			break;
-		}
-
-		/* setup the serdes and pml */
-		err = sbl_an_serdes_start(sbl, port_num);
-		if (err)
-			break;
-		usleep_range(1000, 2000);
-
-		err = sbl_an_pml_setup(sbl, port_num);
-		if (err)
-			break;
-
-		/* try to exchange pages */
-		err = sbl_an_exchange(sbl, port_num);
-		if (err == -EPROTO) {
-			/*
-			 * we have received an unexpected base page
-			 * The lp must have restarted autoneg and we should too
-			 *
-			 * However we know that some Mellanox cards will do this if there is no
-			 * ability match - particularly only supporting 100KR4 not 100CR4
-			 * See if we can try to fix this up
-			 */
-			if (link->blattr.options & SBL_OPT_AUTONEG_100CR4_FIXUP) {
-				if (sbl_an_100cr4_fixup(sbl, port_num)) {
-					/* fixup applied */
-					link->an_100cr4_fixup_applied = true;
-					/* carry on to ability match */
-				} else {
-					/* fixup failed - retry exchange */
-					sbl_an_serdes_stop(sbl, port_num);
-					continue;
-				}
-			}
-		} else if (err == -ETIME) {
-			/* we have timed out */
-			if (link->an_try_count < link->blattr.pec.an_max_retry) {
-				/* retry */
-				sbl_an_serdes_stop(sbl, port_num);
-				/* Random delay of 1-5 before retry */
-				get_random_bytes(&random, sizeof(random));
-				random = 1u + (random % 5u);
-				msleep(random);
-				continue;
-			} else {
-				/* give up */
-				break;
-			}
-		} else if (err) {
-			/* other error */
-			sbl_dev_dbg(sbl->dev, "an %d: exchange failed [%d] (sm_state %s)",
-					port_num, err, sbl_an_get_sm_state(sbl, port_num));
-			break;
-		}
-
-		/* pages have been exchanged - try to resolve the mode etc */
-		err = sbl_an_ability_match(sbl, port_num);
-		if (err) {
-			/* no match - try again (in case they change) */
-			continue;
-		}
-
-		/* see if we need to update the start timeout */
-		sbl_an_update_timeout(sbl, port_num);
-
-		/* we know the lp is there */
-		link->lp_detected = true;
-		break;
-	}
-
-	/* cleanup */
-	if (link->sstate == SBL_SERDES_STATUS_AUTONEG)
-		sbl_an_serdes_stop(sbl, port_num);
-	sbl_pml_disable_intr_handler(sbl, port_num, SBL_AUTONEG_ERR_FLGS);
-	sbl_pml_remove_intr_handler(sbl, port_num);
-
-out:
-	sbl_pml_err_flgs_clear_all(sbl, port_num);
-	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_PCS_ANEG);
-
-	return err;
+	/* reset */
+	cfg_pcs_autoneg_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET);
+	cfg_pcs_autoneg_reg = SBL_PML_CFG_PCS_AUTONEG_RESET_UPDATE(cfg_pcs_autoneg_reg, reset_state);
+	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET,
+			cfg_pcs_autoneg_reg);
+	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET);
 }
 
+static void sbl_an_send_base_page(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	u32 base = SBL_PML_BASE(port_num);
+
+	/* first page is the base page (whole reg) */
+	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_BASE_PAGE_OFFSET, link->an_tx_page[0]);
+	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_BASE_PAGE_OFFSET);
+
+	sbl_dev_dbg(sbl->dev, "an %d: tx base page: 0x%llx", port_num, link->an_tx_page[0]);
+
+	/* start autoneg by taking an sm out of reset*/
+	sbl_an_pml_an_reset(sbl, port_num, 0);
+}
+
+static u32 sbl_an_get_nonce(void)
+{
+	u16 buf;
+
+	while (1) {
+		get_random_bytes(&buf, 2);
+		buf &= 0x1f;
+		if (buf)
+			return buf;
+	}
+}
+
+static bool sbl_an_base_is_complete(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	u64 sts_autoneg_base_reg;
+
+	sts_autoneg_base_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_OFFSET);
+
+	return SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_COMPLETE_GET(sts_autoneg_base_reg);
+}
+
+static bool sbl_an_base_is_page_recv(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	u64 sts_autoneg_base_reg;
+	bool val;
+
+	sts_autoneg_base_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_OFFSET);
+
+	val = (SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_LP_ABILITY_GET(sts_autoneg_base_reg)) &&
+	      (SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_PAGE_RECEIVED_GET(sts_autoneg_base_reg));
+
+	return val;
+}
+
+static bool sbl_an_is_base_page(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	u64 sts_autoneg_base_reg;
+	u64 state;
+	bool val;
+
+	sts_autoneg_base_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_OFFSET);
+
+	state = SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_STATE_GET(sts_autoneg_base_reg);
+
+	val = (state == SBL_PML_AUTONEG_STATE_COMPLETE_ACK) ||
+	      (state == SBL_PML_AUTONEG_STATE_AN_GOOD_CHECK);
+
+	val = val && (SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_PAGE_RECEIVED_GET(sts_autoneg_base_reg)) &&
+	      (SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_BASE_PAGE_GET(sts_autoneg_base_reg)) &&
+	      (SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_LP_ABILITY_GET(sts_autoneg_base_reg));
+
+	return val;
+}
+
+/*
+ * Setup the pages
+ */
+static int sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+
+	sbl_dev_dbg(sbl->dev, "an %d: run setup tx pages", port_num);
+
+	/* init to known non-zero value so it's easy to tell used pages from init pages */
+	memset(link->an_tx_page, 0xAA, sizeof(link->an_tx_page));
+
+	/*
+	 * build the base page
+	 */
+
+	link->an_tx_page[0] = 0;
+	link->an_tx_page[0] |= AN_CW_S_802_3;
+
+	if (link->blattr.pec.an_mode == SBL_AN_MODE_FIXED) {
+
+		switch (link->blattr.link_mode) {
+
+		case SBL_LINK_MODE_BS_200G:
+			link->an_tx_page[0] |= (AN_CW_A_200GBASE_CR4) << AN_CW_A_BASE_BIT;
+			break;
+
+		case SBL_LINK_MODE_BJ_100G:
+			link->an_tx_page[0] |= (AN_CW_A_100GBASE_CR4) << AN_CW_A_BASE_BIT;
+			break;
+
+		case SBL_LINK_MODE_CD_100G:
+			link->an_tx_page[0] |= (AN_CW_A_100GBASE_CR2) << AN_CW_A_BASE_BIT;
+			break;
+
+		case SBL_LINK_MODE_CD_50G:
+			link->an_tx_page[0] |= (AN_CW_A_50GBASE_CR) << AN_CW_A_BASE_BIT;
+			break;
+
+		default:
+			sbl_dev_err(sbl->dev, "an %d: bad an blattr mode", port_num);
+			return -EINVAL;
+		}
+	} else {
+		/* all modes we support */
+		link->an_tx_page[0] |= (AN_CW_A_200GBASE_CR4) << AN_CW_A_BASE_BIT;
+		link->an_tx_page[0] |= (AN_CW_A_100GBASE_CR4) << AN_CW_A_BASE_BIT;
+		link->an_tx_page[0] |= (AN_CW_A_100GBASE_CR2) << AN_CW_A_BASE_BIT;
+		link->an_tx_page[0] |= (AN_CW_A_50GBASE_CR)   << AN_CW_A_BASE_BIT;
+	}
+
+	/*
+	 * Not sure what to set here - both Arista and Mellanox say zero so for
+	 * now we will do the same and set nothing
+	 */
+
+	/* TODO: Add PAUSE */
+	link->an_tx_page[0] |= (AN_CW_C_SYMMETRIC) << AN_CW_C_BASE_BIT;
+
+	sbl_dev_dbg(sbl->dev, "an %d: bp = 0x%llx", port_num, link->an_tx_page[0]);
+
+	/* check for disabled next pages */
+	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_DISABLE_AN_NEXT_PAGES)) {
+		sbl_dev_dbg(sbl->dev, "an %d: next pages disabled", port_num);
+		link->an_tx_count = 1;
+		return 0;
+	}
+
+	/*
+	 * build HPE OUI next pages
+	 */
+
+	/* have next page (set in previous page) */
+	link->an_tx_page[0] |= AN_CW_NP_MASK;
+
+	/* OUI message page */
+	link->an_tx_page[1] = 0ULL;
+	link->an_tx_page[1] |= AN_NP_MP_MASK;
+	link->an_tx_page[1] |= AN_NP_CODE_OUI_EXTENDED_MSG;
+	link->an_tx_page[1] |= AN_NP_OUI_HPE;
+
+	sbl_dev_dbg(sbl->dev, "an %d: np mp = 0x%llx", port_num, link->an_tx_page[1]);
+
+	/* have next page (set in previous page) */
+	link->an_tx_page[1] |= AN_CW_NP_MASK;
+
+	/* unformatted page with OUI message page */
+	link->an_tx_page[2] = 0ULL;
+	link->an_tx_page[2] |= AN_NP_OUI_VER_0_1;
+	/* LLR options here */
+	if (link->blattr.llr_mode == SBL_LLR_MODE_AUTO) {
+		if (!(link->blattr.options & SBL_OPT_DISABLE_AN_LLR)) {
+			link->an_tx_page[2] |= (AN_OPT_LLR << AN_OPT_BASE_BIT);
+			if (link->blattr.options & SBL_OPT_ENABLE_ETHER_LLR)
+				link->an_tx_page[2] |= (AN_OPT_ETHER_LLR << AN_OPT_BASE_BIT);
+
+			if (link->blattr.options & SBL_OPT_ENABLE_IFG_HPC_WITH_LLR)
+				link->an_tx_page[2] |= (AN_OPT_HPC_WITH_LLR << AN_OPT_BASE_BIT);
+			/* TODO: add IPV4 option */
+		}
+	}
+	sbl_an_version_read(sbl, port_num);
+
+	sbl_dev_dbg(sbl->dev, "an %d: np ufp = 0x%llx", port_num, link->an_tx_page[2]);
+
+	link->an_tx_count = SBL_AN_MAX_TX_PAGES;
+
+	return 0;
+}
+
+static int sbl_an_pml_setup(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	u64 cfg_pcs_autoneg_reg;
+	u64 cfg_pcs_reg;
+	u64 cfg_rx_pcs_reg;
+	u64 val64;
+
+	/*
+	 * disable pcs autoneg
+	 *   as pcs is also disabled this will reset the pcs-serdes CDC logic
+	 */
+	cfg_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
+	cfg_pcs_reg = SBL_PML_CFG_PCS_ENABLE_AUTO_NEG_UPDATE(cfg_pcs_reg, 0ULL);
+	sbl_write64(sbl, base|SBL_PML_CFG_PCS_OFFSET, cfg_pcs_reg);
+	sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
+
+	/* configure an */
+	cfg_pcs_autoneg_reg = SBL_PML_CFG_PCS_AUTONEG_RX_LANE_SET(sbl->switch_info->ports[port_num].rx_an_swizzle) |
+			      SBL_PML_CFG_PCS_AUTONEG_TX_LANE_SET(sbl->switch_info->ports[port_num].tx_an_swizzle) |
+			      SBL_PML_CFG_PCS_AUTONEG_RESET_SET(1ULL) |       /* start held in reset */
+			      SBL_PML_CFG_PCS_AUTONEG_RESTART_SET(0ULL) |     /* not used - always zero */
+			      SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_LOADED_SET(0ULL);
+	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET,
+			cfg_pcs_autoneg_reg);
+	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET);
+
+	/* reset alignment locking */
+	cfg_rx_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
+	cfg_rx_pcs_reg = SBL_PML_CFG_RX_PCS_ACTIVE_LANES_UPDATE(cfg_rx_pcs_reg, 0ULL);
+	cfg_rx_pcs_reg = SBL_PML_CFG_RX_PCS_ENABLE_LOCK_UPDATE(cfg_rx_pcs_reg, 0ULL);
+	sbl_write64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET, cfg_rx_pcs_reg);
+	sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
+
+	/* config an timers */
+	val64 = SBL_PML_CFG_PCS_AUTONEG_TIMERS_DFLT;
+	/* disable fault timeout by setting it to its max value  */
+	val64 = SBL_PML_CFG_PCS_AUTONEG_TIMERS_LINK_FAIL_INHIBIT_TIMER_MAX_UPDATE(val64, 0xffffffffULL);
+#ifdef CONFIG_SBL_FAST_AUTONEG
+	/* for emulator reduce waiting time before start */
+	val64 = SBL_PML_CFG_PCS_AUTONEG_TIMERS_BREAK_LINK_TIMER_MAX_UPDATE(val64, 100000ULL);
+#endif
+	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_TIMERS_OFFSET, val64);
+
+	/* clear err flags */
+	sbl_pml_err_flgs_clear_all(sbl, port_num);
+
+	/*
+	 * enable autoneg
+	 *   this will take CDC logic out of reset
+	 */
+	cfg_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
+	cfg_pcs_reg = SBL_PML_CFG_PCS_ENABLE_AUTO_NEG_UPDATE(cfg_pcs_reg, 1ULL);
+	sbl_write64(sbl, base|SBL_PML_CFG_PCS_OFFSET, cfg_pcs_reg);
+
+	/* an reset is still asserted, it will be deasserted after base page is loaded */
+
+	sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_PCS_ANEG);
+
+	return 0;
+}
 
 /*
  * perform page exchange
@@ -338,409 +406,6 @@ out_success:
 	sbl_dev_dbg(sbl->dev, "an %d: exchange complete", port_num);
 
 	return 0;
-}
-
-static void sbl_an_send_base_page(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	u32 base = SBL_PML_BASE(port_num);
-
-	/* first page is the base page (whole reg) */
-	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_BASE_PAGE_OFFSET, link->an_tx_page[0]);
-	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_BASE_PAGE_OFFSET);
-
-	sbl_dev_dbg(sbl->dev, "an %d: tx base page: 0x%llx", port_num, link->an_tx_page[0]);
-
-	/* start autoneg by taking an sm out of reset*/
-	sbl_an_pml_an_reset(sbl, port_num, 0);
-}
-
-
-void sbl_an_send_next_page(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 cfg_pcs_autoneg_reg;
-
-	cfg_pcs_autoneg_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET);
-	cfg_pcs_autoneg_reg = SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_LOADED_UPDATE(cfg_pcs_autoneg_reg, 1ULL);
-	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET, cfg_pcs_autoneg_reg);
-}
-
-
-static bool sbl_an_base_is_complete(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 sts_autoneg_base_reg;
-
-	sts_autoneg_base_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_OFFSET);
-
-	return SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_COMPLETE_GET(sts_autoneg_base_reg);
-}
-
-
-static bool sbl_an_base_is_page_recv(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 sts_autoneg_base_reg;
-	bool val;
-
-	sts_autoneg_base_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_OFFSET);
-
-	val = (SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_LP_ABILITY_GET(sts_autoneg_base_reg)) &&
-	      (SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_PAGE_RECEIVED_GET(sts_autoneg_base_reg));
-
-	return val;
-}
-
-static bool sbl_an_is_base_page(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 sts_autoneg_base_reg;
-	u64 state;
-	bool val;
-
-	sts_autoneg_base_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_OFFSET);
-
-	state = SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_STATE_GET(sts_autoneg_base_reg);
-
-	val = (state == SBL_PML_AUTONEG_STATE_COMPLETE_ACK) ||
-	      (state == SBL_PML_AUTONEG_STATE_AN_GOOD_CHECK);
-
-	val = val && (SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_PAGE_RECEIVED_GET(sts_autoneg_base_reg)) &&
-	      (SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_BASE_PAGE_GET(sts_autoneg_base_reg)) &&
-	      (SBL_PML_STS_PCS_AUTONEG_BASE_PAGE_LP_ABILITY_GET(sts_autoneg_base_reg));
-
-	return val;
-}
-
-
-bool sbl_an_next_is_complete(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 sts_autoneg_next_reg;
-
-	sts_autoneg_next_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_OFFSET);
-
-	return SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_COMPLETE_GET(sts_autoneg_next_reg);
-}
-
-bool sbl_an_is_next_page(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 sts_autoneg_next_reg;
-	u64 state;
-	bool value;
-
-	sts_autoneg_next_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_OFFSET);
-
-	state = SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_STATE_GET(sts_autoneg_next_reg);
-
-	value =	 (state == SBL_PML_AUTONEG_STATE_COMPLETE_ACK) ||
-		(state == SBL_PML_AUTONEG_STATE_AN_GOOD_CHECK);
-
-	value = value && (SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_LP_ABILITY_GET(sts_autoneg_next_reg)) &&
-		(!SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_BASE_PAGE_GET(sts_autoneg_next_reg));
-
-	return value;
-}
-
-/*
- * Setup the pages
- */
-static int sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-
-	sbl_dev_dbg(sbl->dev, "an %d: run setup tx pages", port_num);
-
-	/* init to known non-zero value so it's easy to tell used pages from init pages */
-	memset(link->an_tx_page, 0xAA, sizeof(link->an_tx_page));
-
-	/*
-	 * build the base page
-	 */
-
-	link->an_tx_page[0] = 0;
-	link->an_tx_page[0] |= AN_CW_S_802_3;
-
-	if (link->blattr.pec.an_mode == SBL_AN_MODE_FIXED) {
-
-		switch (link->blattr.link_mode) {
-
-		case SBL_LINK_MODE_BS_200G:
-			link->an_tx_page[0] |= (AN_CW_A_200GBASE_CR4) << AN_CW_A_BASE_BIT;
-			break;
-
-		case SBL_LINK_MODE_BJ_100G:
-			link->an_tx_page[0] |= (AN_CW_A_100GBASE_CR4) << AN_CW_A_BASE_BIT;
-			break;
-
-		case SBL_LINK_MODE_CD_100G:
-			link->an_tx_page[0] |= (AN_CW_A_100GBASE_CR2) << AN_CW_A_BASE_BIT;
-			break;
-
-		case SBL_LINK_MODE_CD_50G:
-			link->an_tx_page[0] |= (AN_CW_A_50GBASE_CR) << AN_CW_A_BASE_BIT;
-			break;
-
-		default:
-			sbl_dev_err(sbl->dev, "an %d: bad an blattr mode", port_num);
-			return -EINVAL;
-		}
-	} else {
-		/* all modes we support */
-		link->an_tx_page[0] |= (AN_CW_A_200GBASE_CR4) << AN_CW_A_BASE_BIT;
-		link->an_tx_page[0] |= (AN_CW_A_100GBASE_CR4) << AN_CW_A_BASE_BIT;
-		link->an_tx_page[0] |= (AN_CW_A_100GBASE_CR2) << AN_CW_A_BASE_BIT;
-		link->an_tx_page[0] |= (AN_CW_A_50GBASE_CR)   << AN_CW_A_BASE_BIT;
-	}
-
-	/*
-	 * Not sure what to set here - both Arista and Mellanox say zero so for
-	 * now we will do the same and set nothing
-	 */
-
-	/* TODO: Add PAUSE */
-	link->an_tx_page[0] |= (AN_CW_C_SYMMETRIC) << AN_CW_C_BASE_BIT;
-
-	sbl_dev_dbg(sbl->dev, "an %d: bp = 0x%llx", port_num, link->an_tx_page[0]);
-
-	/* check for disabled next pages */
-	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_DISABLE_AN_NEXT_PAGES)) {
-		sbl_dev_dbg(sbl->dev, "an %d: next pages disabled", port_num);
-		link->an_tx_count = 1;
-		return 0;
-	}
-
-	/*
-	 * build HPE OUI next pages
-	 */
-
-	/* have next page (set in previous page) */
-	link->an_tx_page[0] |= AN_CW_NP_MASK;
-
-	/* OUI message page */
-	link->an_tx_page[1] = 0ULL;
-	link->an_tx_page[1] |= AN_NP_MP_MASK;
-	link->an_tx_page[1] |= AN_NP_CODE_OUI_EXTENDED_MSG;
-	link->an_tx_page[1] |= AN_NP_OUI_HPE;
-
-	sbl_dev_dbg(sbl->dev, "an %d: np mp = 0x%llx", port_num, link->an_tx_page[1]);
-
-	/* have next page (set in previous page) */
-	link->an_tx_page[1] |= AN_CW_NP_MASK;
-
-	/* unformatted page with OUI message page */
-	link->an_tx_page[2] = 0ULL;
-	link->an_tx_page[2] |= AN_NP_OUI_VER_0_1;
-	/* LLR options here */
-	if (link->blattr.llr_mode == SBL_LLR_MODE_AUTO) {
-		if (!(link->blattr.options & SBL_OPT_DISABLE_AN_LLR)) {
-			link->an_tx_page[2] |= (AN_OPT_LLR << AN_OPT_BASE_BIT);
-			if (link->blattr.options & SBL_OPT_ENABLE_ETHER_LLR)
-				link->an_tx_page[2] |= (AN_OPT_ETHER_LLR << AN_OPT_BASE_BIT);
-
-			if (link->blattr.options & SBL_OPT_ENABLE_IFG_HPC_WITH_LLR)
-				link->an_tx_page[2] |= (AN_OPT_HPC_WITH_LLR << AN_OPT_BASE_BIT);
-			/* TODO: add IPV4 option */
-		}
-	}
-	sbl_an_version_read(sbl, port_num);
-
-	sbl_dev_dbg(sbl->dev, "an %d: np ufp = 0x%llx", port_num, link->an_tx_page[2]);
-
-	link->an_tx_count = SBL_AN_MAX_TX_PAGES;
-
-	return 0;
-}
-
-
-void sbl_an_setup_next_page(struct sbl_inst *sbl, int port_num, int page_idx)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	u32 base = SBL_PML_BASE(port_num);
-
-	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET,
-		    link->an_tx_page[page_idx]);
-	sbl_dev_dbg(sbl->dev, "an %d: tx next page: 0x%llx", port_num,
-		link->an_tx_page[page_idx]);
-	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET);
-}
-
-
-void sbl_an_setup_null_page(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 null_page;
-
-	/*
-	 * Construct a null message page as in 802.3-2015: 28.2.3.4.1 & annex 28C
-	 */
-	null_page  = sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET);
-	null_page ^= AN_NP_T_MASK;          /* toggle bit 11 */
-	null_page &= ~AN_NP_NP_MASK;        /* clear next page bit */
-	null_page |= AN_NP_MP_MASK;         /* set this is msg page */
-	null_page &= ~AN_NP_MSG_MASK;       /* clear msg code */
-	null_page |= AN_NP_CODE_NULL_MSG;   /* set null msg code */
-	null_page &= ~AN_NP_UCF_MASK;       /* clear unformatted code field code */
-	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET, null_page);
-	sbl_dev_dbg(sbl->dev, "an %d: tx null next page: 0x%llx", port_num,
-		null_page);
-	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET);
-}
-
-
-static int sbl_an_pml_setup(struct sbl_inst *sbl, int port_num)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 cfg_pcs_autoneg_reg;
-	u64 cfg_pcs_reg;
-	u64 cfg_rx_pcs_reg;
-	u64 val64;
-
-	/*
-	 * disable pcs autoneg
-	 *   as pcs is also disabled this will reset the pcs-serdes CDC logic
-	 */
-	cfg_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
-	cfg_pcs_reg = SBL_PML_CFG_PCS_ENABLE_AUTO_NEG_UPDATE(cfg_pcs_reg, 0ULL);
-	sbl_write64(sbl, base|SBL_PML_CFG_PCS_OFFSET, cfg_pcs_reg);
-	sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
-
-	/* configure an */
-	cfg_pcs_autoneg_reg = SBL_PML_CFG_PCS_AUTONEG_RX_LANE_SET(sbl->switch_info->ports[port_num].rx_an_swizzle) |
-			      SBL_PML_CFG_PCS_AUTONEG_TX_LANE_SET(sbl->switch_info->ports[port_num].tx_an_swizzle) |
-			      SBL_PML_CFG_PCS_AUTONEG_RESET_SET(1ULL) |       /* start held in reset */
-			      SBL_PML_CFG_PCS_AUTONEG_RESTART_SET(0ULL) |     /* not used - always zero */
-			      SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_LOADED_SET(0ULL);
-	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET,
-			cfg_pcs_autoneg_reg);
-	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET);
-
-	/* reset alignment locking */
-	cfg_rx_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
-	cfg_rx_pcs_reg = SBL_PML_CFG_RX_PCS_ACTIVE_LANES_UPDATE(cfg_rx_pcs_reg, 0ULL);
-	cfg_rx_pcs_reg = SBL_PML_CFG_RX_PCS_ENABLE_LOCK_UPDATE(cfg_rx_pcs_reg, 0ULL);
-	sbl_write64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET, cfg_rx_pcs_reg);
-	sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
-
-	/* config an timers */
-	val64 = SBL_PML_CFG_PCS_AUTONEG_TIMERS_DFLT;
-	/* disable fault timeout by setting it to its max value  */
-	val64 = SBL_PML_CFG_PCS_AUTONEG_TIMERS_LINK_FAIL_INHIBIT_TIMER_MAX_UPDATE(val64, 0xffffffffULL);
-#ifdef CONFIG_SBL_FAST_AUTONEG
-	/* for emulator reduce waiting time before start */
-	val64 = SBL_PML_CFG_PCS_AUTONEG_TIMERS_BREAK_LINK_TIMER_MAX_UPDATE(val64, 100000ULL);
-#endif
-	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_TIMERS_OFFSET, val64);
-
-	/* clear err flags */
-	sbl_pml_err_flgs_clear_all(sbl, port_num);
-
-	/*
-	 * enable autoneg
-	 *   this will take CDC logic out of reset
-	 */
-	cfg_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
-	cfg_pcs_reg = SBL_PML_CFG_PCS_ENABLE_AUTO_NEG_UPDATE(cfg_pcs_reg, 1ULL);
-	sbl_write64(sbl, base|SBL_PML_CFG_PCS_OFFSET, cfg_pcs_reg);
-
-	/* an reset is still asserted, it will be deasserted after base page is loaded */
-
-	sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_PCS_ANEG);
-
-	return 0;
-}
-
-
-/*
- * set the reset state
- */
-static void sbl_an_pml_an_reset(struct sbl_inst *sbl, int port_num, u64 reset_state)
-{
-	u32 base = SBL_PML_BASE(port_num);
-	u64 cfg_pcs_autoneg_reg;
-
-	/* reset */
-	cfg_pcs_autoneg_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET);
-	cfg_pcs_autoneg_reg = SBL_PML_CFG_PCS_AUTONEG_RESET_UPDATE(cfg_pcs_autoneg_reg, reset_state);
-	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET,
-			cfg_pcs_autoneg_reg);
-	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET);
-}
-
-
-/*
- * setup to detect complete or page received error flags become set
- */
-int sbl_an_hw_wait_prepare(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	int err;
-
-	init_completion(&link->an_hw_change);
-
-	sbl_pml_err_flgs_clear(sbl, port_num, SBL_AUTONEG_ERR_FLGS);
-
-	err = sbl_pml_enable_intr_handler(sbl, port_num, SBL_AUTONEG_ERR_FLGS);
-	if (err) {
-		sbl_dev_err(sbl->dev, "an %d: intr enable failed [%d]", port_num, err);
-		return err;
-	}
-
-	return 0;
-}
-
-
-static u32 sbl_an_get_nonce(void)
-{
-	u16 buf;
-
-	while (1) {
-		get_random_bytes(&buf, 2);
-		buf &= 0x1f;
-		if (buf)
-			return buf;
-	}
-}
-
-
-/*
- * If there is no common mode between this port and our link partner
- * and if the lp advertises 100KR4 and we advertise 100CR4 then add 100CR4
- * to the lp's abilities.
- *
- * This is necessary because recent Mellanox software no longer advertises
- * 100CR even though it seems to be able to tune in this mode. Adding 100CR4
- * to the lp abilities means that we will resolve 100CR4 and start using this
- * mode.
- *
- */
-#define SBL_AN_KR4_BIT (1ULL << (AN_CW_A_BASE_BIT + AN_CW_A_100GBASE_KR4_BIT))
-#define SBL_AN_CR4_BIT (1ULL << (AN_CW_A_BASE_BIT + AN_CW_A_100GBASE_CR4_BIT))
-
-static bool sbl_an_100cr4_fixup(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-
-	/* check no match */
-	if (link->an_tx_page[0] & link->an_rx_page[0] & AN_CW_A_MASK)
-		return false;
-
-	/* check we want cr4 */
-	if (!(link->an_tx_page[0] & SBL_AN_CR4_BIT))
-		return false;
-
-	/* check lp wants kr4 */
-	if (!(link->an_rx_page[0] & SBL_AN_KR4_BIT))
-		return false;
-
-	/* add cr4 to lp abilities */
-	link->an_rx_page[0] |= SBL_AN_CR4_BIT;
-
-	/* fixup applied */
-	sbl_dev_info(sbl->dev, "an %d: 100cr4 fixup applied", port_num);
-	return true;
 }
 
 /* save away the LLR options here */
@@ -941,6 +606,317 @@ static void sbl_an_update_timeout(struct sbl_inst *sbl, int port_num)
 		link->an_timeout_active = true;
 		sbl_link_update_start_timeout(sbl, port_num, new_timeout);
 	}
+}
+
+/*
+ * If there is no common mode between this port and our link partner
+ * and if the lp advertises 100KR4 and we advertise 100CR4 then add 100CR4
+ * to the lp's abilities.
+ *
+ * This is necessary because recent Mellanox software no longer advertises
+ * 100CR even though it seems to be able to tune in this mode. Adding 100CR4
+ * to the lp abilities means that we will resolve 100CR4 and start using this
+ * mode.
+ *
+ */
+#define SBL_AN_KR4_BIT (1ULL << (AN_CW_A_BASE_BIT + AN_CW_A_100GBASE_KR4_BIT))
+#define SBL_AN_CR4_BIT (1ULL << (AN_CW_A_BASE_BIT + AN_CW_A_100GBASE_CR4_BIT))
+
+static bool sbl_an_100cr4_fixup(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+
+	/* check no match */
+	if (link->an_tx_page[0] & link->an_rx_page[0] & AN_CW_A_MASK)
+		return false;
+
+	/* check we want cr4 */
+	if (!(link->an_tx_page[0] & SBL_AN_CR4_BIT))
+		return false;
+
+	/* check lp wants kr4 */
+	if (!(link->an_rx_page[0] & SBL_AN_KR4_BIT))
+		return false;
+
+	/* add cr4 to lp abilities */
+	link->an_rx_page[0] |= SBL_AN_CR4_BIT;
+
+	/* fixup applied */
+	sbl_dev_info(sbl->dev, "an %d: 100cr4 fixup applied", port_num);
+	return true;
+}
+
+int sbl_link_autoneg(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link;
+	u32 base = SBL_PML_BASE(port_num);
+	u32 random;
+	u64 cfg_pcs_reg;
+	int err;
+
+	err = sbl_validate_instance(sbl);
+	if (err)
+		return err;
+
+	err = sbl_validate_port_num(sbl, port_num);
+	if (err)
+		return err;
+
+	/* set starting point */
+	link = sbl->link + port_num;
+	link->an_options = 0;
+	link->link_mode  = link->blattr.link_mode;
+
+	switch (link->blattr.pec.an_mode) {
+
+	case SBL_AN_MODE_OFF:
+		sbl_dev_dbg(sbl->dev, "an %d: AN off", port_num);
+		/* nothing more to do here */
+		return 0;
+
+	case SBL_AN_MODE_ON:
+	case SBL_AN_MODE_FIXED:
+		/* ok */
+		break;
+
+	default:
+		sbl_dev_err(sbl->dev, "an %d: invalid AN mode (%s)", port_num,
+				sbl_an_mode_str(link->blattr.pec.an_mode));
+		return -EINVAL;
+	}
+
+	/*
+	 * we can never be in loopback mode as the nonce will be the same!
+	 */
+	if (link->blattr.loopback_mode != SBL_LOOPBACK_MODE_OFF) {
+		sbl_dev_err(sbl->dev, "an %d: cannot autoneg in loopback mode", port_num);
+		return -ENOTUNIQ;
+	}
+
+	/*
+	 * pcs must not be enabled and autoneg must be off
+	 */
+	cfg_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
+	if (SBL_PML_CFG_PCS_PCS_ENABLE_GET(cfg_pcs_reg)) {
+		sbl_dev_err(sbl->dev, "an %d: pcs is enabled", port_num);
+		err = -EBUSY;
+		goto out;
+	}
+	if (SBL_PML_CFG_PCS_ENABLE_AUTO_NEG_GET(cfg_pcs_reg)) {
+		sbl_dev_err(sbl->dev, "an %d: autoneg already enabled", port_num);
+		err = -EBUSY;
+		goto out;
+	}
+
+	/*
+	 * sort out the data to send/receive
+	 */
+	err = sbl_an_setup_tx_pages(sbl, port_num);
+	if (err) {
+		sbl_dev_err(sbl->dev, "an %d, page setup failed [%d]", port_num, err);
+		goto out;
+	}
+
+	/*
+	 * setup
+	 */
+	err = sbl_pml_install_intr_handler(sbl, port_num, SBL_AUTONEG_ERR_FLGS);
+	if (err)
+		goto out;
+	link->an_100cr4_fixup_applied = false;
+
+	/*
+	 * try to negotiate
+	 */
+	link->an_try_count = 0;
+	while (1) {
+
+		link->an_try_count++;
+
+		/* keep trying until up timeout expires or cancelled */
+		if (sbl_start_timeout(sbl, port_num)) {
+			err = -ETIMEDOUT;
+			break;
+		}
+		if (sbl_base_link_start_cancelled(sbl, port_num)) {
+			err = -ECANCELED;
+			break;
+		}
+
+		/* setup the serdes and pml */
+		err = sbl_an_serdes_start(sbl, port_num);
+		if (err)
+			break;
+		usleep_range(1000, 2000);
+
+		err = sbl_an_pml_setup(sbl, port_num);
+		if (err)
+			break;
+
+		/* try to exchange pages */
+		err = sbl_an_exchange(sbl, port_num);
+		if (err == -EPROTO) {
+			/*
+			 * we have received an unexpected base page
+			 * The lp must have restarted autoneg and we should too
+			 *
+			 * However we know that some Mellanox cards will do this if there is no
+			 * ability match - particularly only supporting 100KR4 not 100CR4
+			 * See if we can try to fix this up
+			 */
+			if (link->blattr.options & SBL_OPT_AUTONEG_100CR4_FIXUP) {
+				if (sbl_an_100cr4_fixup(sbl, port_num)) {
+					/* fixup applied */
+					link->an_100cr4_fixup_applied = true;
+					/* carry on to ability match */
+				} else {
+					/* fixup failed - retry exchange */
+					sbl_an_serdes_stop(sbl, port_num);
+					continue;
+				}
+			}
+		} else if (err == -ETIME) {
+			/* we have timed out */
+			if (link->an_try_count < link->blattr.pec.an_max_retry) {
+				/* retry */
+				sbl_an_serdes_stop(sbl, port_num);
+				/* Random delay of 1-5 before retry */
+				get_random_bytes(&random, sizeof(random));
+				random = 1u + (random % 5u);
+				msleep(random);
+				continue;
+			} else {
+				/* give up */
+				break;
+			}
+		} else if (err) {
+			/* other error */
+			sbl_dev_dbg(sbl->dev, "an %d: exchange failed [%d] (sm_state %s)",
+					port_num, err, sbl_an_get_sm_state(sbl, port_num));
+			break;
+		}
+
+		/* pages have been exchanged - try to resolve the mode etc */
+		err = sbl_an_ability_match(sbl, port_num);
+		if (err) {
+			/* no match - try again (in case they change) */
+			continue;
+		}
+
+		/* see if we need to update the start timeout */
+		sbl_an_update_timeout(sbl, port_num);
+
+		/* we know the lp is there */
+		link->lp_detected = true;
+		break;
+	}
+
+	/* cleanup */
+	if (link->sstate == SBL_SERDES_STATUS_AUTONEG)
+		sbl_an_serdes_stop(sbl, port_num);
+	sbl_pml_disable_intr_handler(sbl, port_num, SBL_AUTONEG_ERR_FLGS);
+	sbl_pml_remove_intr_handler(sbl, port_num);
+
+out:
+	sbl_pml_err_flgs_clear_all(sbl, port_num);
+	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_PCS_ANEG);
+
+	return err;
+}
+
+void sbl_an_send_next_page(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	u64 cfg_pcs_autoneg_reg;
+
+	cfg_pcs_autoneg_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET);
+	cfg_pcs_autoneg_reg = SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_LOADED_UPDATE(cfg_pcs_autoneg_reg, 1ULL);
+	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_OFFSET, cfg_pcs_autoneg_reg);
+}
+
+bool sbl_an_next_is_complete(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	u64 sts_autoneg_next_reg;
+
+	sts_autoneg_next_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_OFFSET);
+
+	return SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_COMPLETE_GET(sts_autoneg_next_reg);
+}
+
+bool sbl_an_is_next_page(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	u64 sts_autoneg_next_reg;
+	u64 state;
+	bool value;
+
+	sts_autoneg_next_reg = sbl_read64(sbl, base|SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_OFFSET);
+
+	state = SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_STATE_GET(sts_autoneg_next_reg);
+
+	value =	 (state == SBL_PML_AUTONEG_STATE_COMPLETE_ACK) ||
+		(state == SBL_PML_AUTONEG_STATE_AN_GOOD_CHECK);
+
+	value = value && (SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_LP_ABILITY_GET(sts_autoneg_next_reg)) &&
+		(!SBL_PML_STS_PCS_AUTONEG_NEXT_PAGE_BASE_PAGE_GET(sts_autoneg_next_reg));
+
+	return value;
+}
+
+void sbl_an_setup_next_page(struct sbl_inst *sbl, int port_num, int page_idx)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	u32 base = SBL_PML_BASE(port_num);
+
+	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET,
+		    link->an_tx_page[page_idx]);
+	sbl_dev_dbg(sbl->dev, "an %d: tx next page: 0x%llx", port_num,
+		link->an_tx_page[page_idx]);
+	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET);
+}
+
+
+void sbl_an_setup_null_page(struct sbl_inst *sbl, int port_num)
+{
+	u32 base = SBL_PML_BASE(port_num);
+	u64 null_page;
+
+	/*
+	 * Construct a null message page as in 802.3-2015: 28.2.3.4.1 & annex 28C
+	 */
+	null_page  = sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET);
+	null_page ^= AN_NP_T_MASK;          /* toggle bit 11 */
+	null_page &= ~AN_NP_NP_MASK;        /* clear next page bit */
+	null_page |= AN_NP_MP_MASK;         /* set this is msg page */
+	null_page &= ~AN_NP_MSG_MASK;       /* clear msg code */
+	null_page |= AN_NP_CODE_NULL_MSG;   /* set null msg code */
+	null_page &= ~AN_NP_UCF_MASK;       /* clear unformatted code field code */
+	sbl_write64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET, null_page);
+	sbl_dev_dbg(sbl->dev, "an %d: tx null next page: 0x%llx", port_num,
+		null_page);
+	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET);
+}
+
+/*
+ * setup to detect complete or page received error flags become set
+ */
+int sbl_an_hw_wait_prepare(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	int err;
+
+	init_completion(&link->an_hw_change);
+
+	sbl_pml_err_flgs_clear(sbl, port_num, SBL_AUTONEG_ERR_FLGS);
+
+	err = sbl_pml_enable_intr_handler(sbl, port_num, SBL_AUTONEG_ERR_FLGS);
+	if (err) {
+		sbl_dev_err(sbl->dev, "an %d: intr enable failed [%d]", port_num, err);
+		return err;
+	}
+
+	return 0;
 }
 
 const char *sbl_an_get_sm_state(struct sbl_inst *sbl, int port_num)

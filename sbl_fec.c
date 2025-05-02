@@ -21,19 +21,323 @@
 #include "sbl_internal.h"
 #include "sbl_fec.h"
 
-static int sbl_fec_rates_update(struct sbl_inst *sbl, int port_num, u32 window);
-static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
-				u32 thresh_adj, bool use_stp_thresh);
-static bool sbl_fec_ucw_rate_bad(struct sbl_inst *sbl, int port_num,
-				u32 thresh_adj);
+
 static void sbl_fec_counts_zero(struct sbl_inst *sbl, int port_num,
-				struct sbl_pcs_fec_cntrs *cntrs);
+				struct sbl_pcs_fec_cntrs *cntrs)
+{
+	memset(cntrs, 0, sizeof(struct sbl_pcs_fec_cntrs));
+}
+
 static u64 sbl_fec_rate_calc(struct sbl_inst *sbl, int port_num,
-				u64 curr, u64 prev, unsigned long tdiff);
+		u64 curr, u64 prev, unsigned long tdiff)
+{
+	if (curr < prev) {
+		sbl_dev_err(sbl->dev, "%d: fec counter went backwards", port_num);
+
+		return 0;
+	} else
+		return (curr - prev) * HZ / tdiff;
+}
+
+static int sbl_fec_rates_update(struct sbl_inst *sbl, int port_num,
+				u32 window)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	struct fec_data *fec_data = link->fec_data;
+	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
+	struct sbl_pcs_fec_cntrs *temp;
+	unsigned long tdiff;
+	int i;
+	bool discard_rates;
+	int reason;
+	unsigned long irq_flags;
+
+	spin_lock(&fec_prmts->fec_cnt_lock);
+
+	/*
+	 * make sure the period is sufficient to update rates
+	 * otherwise zero rates so nothing fires
+	 */
+	if (time_is_after_jiffies(fec_prmts->fec_curr_cnts->time + msecs_to_jiffies(window))) {
+		sbl_fec_counts_zero(sbl, port_num, fec_prmts->fec_rates);
+		spin_unlock(&fec_prmts->fec_cnt_lock);
+
+		return -EINPROGRESS;
+	}
+
+	temp = fec_prmts->fec_prev_cnts;
+	fec_prmts->fec_prev_cnts = fec_prmts->fec_curr_cnts;
+	fec_prmts->fec_curr_cnts = temp;
+	sbl_fec_counts_get(sbl, port_num, fec_prmts->fec_curr_cnts);
+
+	spin_lock_irqsave(&link->fec_discard_lock, irq_flags);
+	discard_rates = (link->fec_discard_time >= fec_prmts->fec_prev_cnts->time) &&
+			(link->fec_discard_time < fec_prmts->fec_curr_cnts->time);
+	reason = link->fec_discard_type;
+	spin_unlock_irqrestore(&link->fec_discard_lock, irq_flags);
+
+	if (discard_rates) {
+		sbl_dev_dbg(sbl->dev, "%d: %s - ignoring FEC rates for the current window", port_num,
+			    sbl_fec_discard_str(reason));
+		sbl_fec_counts_zero(sbl, port_num, fec_prmts->fec_rates);
+		spin_unlock(&fec_prmts->fec_cnt_lock);
+		return -EINTR;
+	}
+
+	/*
+	 * calc time difference  (HZ)
+	 * (unsigned so rollover ok)
+	 */
+	tdiff = fec_prmts->fec_curr_cnts->time - fec_prmts->fec_prev_cnts->time;
+
+	/* calculate rates */
+	fec_prmts->fec_rates->ccw = sbl_fec_rate_calc(sbl, port_num,
+			fec_prmts->fec_curr_cnts->ccw, fec_prmts->fec_prev_cnts->ccw, tdiff);
+	fec_prmts->fec_rates->ucw = sbl_fec_rate_calc(sbl, port_num,
+			fec_prmts->fec_curr_cnts->ucw, fec_prmts->fec_prev_cnts->ucw, tdiff);
+	fec_prmts->fec_rates->llr_tx_replay = sbl_fec_rate_calc(sbl, port_num,
+			fec_prmts->fec_curr_cnts->llr_tx_replay, fec_prmts->fec_prev_cnts->llr_tx_replay, tdiff);
+
+	for (i = 0; i < SBL_PCS_NUM_FECL_CNTRS; ++i)
+		fec_prmts->fec_rates->fecl[i] = sbl_fec_rate_calc(sbl, port_num,
+				fec_prmts->fec_curr_cnts->fecl[i], fec_prmts->fec_prev_cnts->fecl[i], tdiff);
+
+	fec_prmts->fec_rates->time = jiffies_to_msecs(tdiff);
+
+	spin_unlock(&fec_prmts->fec_cnt_lock);
+
+	return 0;
+
+}
+
+/*
+ * returns true if the corrected code word rate is bad
+ */
+static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
+				u32 thresh_adj, bool use_stp_thresh)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	struct fec_data *fec_data = link->fec_data;
+	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
+
+	u64 ccw_bad;
+	bool ignore_err;
+	u64 ccw_hwm;
+
+	sbl_fec_ccw_bad_get(fec_prmts, use_stp_thresh, &ccw_bad, &ccw_hwm);
+
+	/*
+	 * update high water mark
+	 *
+	 *	 we record this even if no test is performed so we can use it for
+	 *	 debug/calibration
+	 */
+	if (fec_prmts->fec_rates->ccw > ccw_hwm) {
+		spin_lock(&fec_prmts->fec_cw_lock);
+		fec_prmts->fec_ccw_hwm = fec_prmts->fec_rates->ccw;
+		spin_unlock(&fec_prmts->fec_cw_lock);
+	}
+
+	/*
+	 * apply percentage adjustment
+	 */
+	ccw_bad = ccw_bad * thresh_adj / 100;
+
+	if (ccw_bad == 0) {
+		sbl_dev_dbg(sbl->dev, "%d: fec ccw test ignored, threshold is zero", port_num);
+
+		return false;
+	}
+
+	/*
+	 * check corrected code words
+	 */
+	if (fec_prmts->fec_rates->ccw > ccw_bad) {
+		sbl_link_counters_incr(sbl, port_num, fec_ccw_err);
+		ignore_err = sbl_debug_option(sbl, port_num, SBL_DEBUG_IGNORE_HIGH_FEC_CCW);
+
+		sbl_dev_err(sbl->dev, "%d: bad ccw, ccw %lld (>%lld), ucw %lld, (%lld %lld %lld %lld %lld %lld %lld %lld), window %ldms%s\n",
+				port_num, fec_prmts->fec_rates->ccw, ccw_bad,
+				fec_prmts->fec_rates->ucw,
+				fec_prmts->fec_rates->fecl[0], fec_prmts->fec_rates->fecl[1],
+				fec_prmts->fec_rates->fecl[2], fec_prmts->fec_rates->fecl[3],
+				fec_prmts->fec_rates->fecl[4], fec_prmts->fec_rates->fecl[5],
+				fec_prmts->fec_rates->fecl[6], fec_prmts->fec_rates->fecl[7],
+				fec_prmts->fec_rates->time,
+				ignore_err ? " -ignored" : "");
+		if (ignore_err)
+			return false;
+		else
+			return true;
+	}
+	return false;
+}
+
+/*
+ * returns true if the uncorrected code word rate is bad
+ *
+ *	 threshold adjustment is a percentage
+ */
+static bool sbl_fec_ucw_rate_bad(struct sbl_inst *sbl, int port_num,
+				u32 thresh_adj)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	struct fec_data *fec_data = link->fec_data;
+	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
+
+	bool ignore_err;
+	u64 ucw_bad;
+	u64 ucw_hwm;
+
+	sbl_fec_ucw_bad_get(fec_prmts, &ucw_bad, &ucw_hwm);
+
+	/*
+	 * update high water mark
+	 *
+	 *	 we record this even if no test is performed so we can use it for
+	 *	 debug/calibration
+	 */
+	if (fec_prmts->fec_rates->ucw > ucw_hwm) {
+		spin_lock(&fec_prmts->fec_cw_lock);
+		fec_prmts->fec_ucw_hwm = fec_prmts->fec_rates->ucw;
+		spin_unlock(&fec_prmts->fec_cw_lock);
+	}
+
+	/* apply percentage adjustment */
+	ucw_bad = ucw_bad * thresh_adj / 100;
+
+	if (ucw_bad == 0) {
+		sbl_dev_dbg(sbl->dev, "%d: fec ucw test ignored, threshold is zero", port_num);
+		return false;
+	}
+
+	/*
+	 * check uncorrected code words
+	 */
+	if (fec_prmts->fec_rates->ucw > ucw_bad) {
+		sbl_link_counters_incr(sbl, port_num, fec_ucw_err);
+		ignore_err = sbl_debug_option(sbl, port_num, SBL_DEBUG_IGNORE_HIGH_FEC_UCW);
+
+		sbl_dev_err(sbl->dev, "%d: bad ucw, ccw %lld, ucw %lld (>%lld), (%lld %lld %lld %lld %lld %lld %lld %lld), window %ldms%s\n",
+				    port_num, fec_prmts->fec_rates->ccw,
+				    fec_prmts->fec_rates->ucw, ucw_bad,
+				    fec_prmts->fec_rates->fecl[0], fec_prmts->fec_rates->fecl[1],
+				    fec_prmts->fec_rates->fecl[2], fec_prmts->fec_rates->fecl[3],
+				    fec_prmts->fec_rates->fecl[4], fec_prmts->fec_rates->fecl[5],
+				    fec_prmts->fec_rates->fecl[6], fec_prmts->fec_rates->fecl[7],
+				    fec_prmts->fec_rates->time,
+				    ignore_err ? " -ignored" : "");
+		if (ignore_err)
+			return false;
+		else
+			return true;
+	}
+	return false;
+
+}
+
 static bool sbl_fec_txr_rate_bad(struct sbl_inst *sbl, int port_num,
-				u32 thresh_adj);
+		u32 thresh_adj)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	struct fec_data *fec_data = link->fec_data;
+	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
+
+	u64 llr_tx_replay_bad;
+	u64 llr_tx_replay_hwm;
+	bool ignore_err;
+
+	spin_lock(&fec_prmts->fec_cw_lock);
+	llr_tx_replay_bad = fec_prmts->fec_llr_tx_replay_thresh;
+	llr_tx_replay_hwm = fec_prmts->fec_llr_tx_replay_hwm;
+	spin_unlock(&fec_prmts->fec_cw_lock);
+
+	/*
+	 * update high water mark
+	 *
+	 *	 we record this even if no test is performed so we can use it for
+	 *	 debug/calibration
+	 */
+	if (fec_prmts->fec_rates->llr_tx_replay > llr_tx_replay_hwm) {
+		spin_lock(&fec_prmts->fec_cw_lock);
+		fec_prmts->fec_llr_tx_replay_hwm = fec_prmts->fec_rates->llr_tx_replay;
+		spin_unlock(&fec_prmts->fec_cw_lock);
+	}
+	if (llr_tx_replay_bad == 0) {
+		sbl_dev_dbg(sbl->dev, "%d: fec llr_tx_replay test ignored, threshold is zero", port_num);
+		return false;
+	}
+
+	/*
+	 * check llr_tx_replay rate
+	 */
+	if (fec_prmts->fec_rates->llr_tx_replay > llr_tx_replay_bad) {
+		sbl_link_counters_incr(sbl, port_num, fec_txr_err);
+		ignore_err = sbl_debug_option(sbl, port_num, SBL_DEBUG_IGNORE_HIGH_FEC_TXR);
+
+		sbl_dev_err(sbl->dev, "%d: bad llr_tx_replay, llr_tx_replay %lld (>%lld), window %ldms%s\n",
+				port_num,
+				fec_prmts->fec_rates->llr_tx_replay, llr_tx_replay_bad,
+				fec_prmts->fec_rates->time,
+				ignore_err ? " -ignored" : "");
+
+		if (ignore_err)
+			return false;
+		else
+			return true;
+	}
+	return false;
+}
+
+/*
+ * print a few warnings (so we can see how things are changing) about high
+ * fec lane error rates
+ */
 static void sbl_fec_rates_warnings(struct sbl_inst *sbl, int port_num,
-				int *warning_count);
+		int *warning_count)
+{
+
+	struct sbl_link *link = sbl->link + port_num;
+	struct fec_data *fec_data = link->fec_data;
+	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
+	int fecl_warn;
+	int i;
+
+	spin_lock(&fec_prmts->fec_cw_lock);
+	fecl_warn = fec_prmts->fecl_warn;
+	spin_unlock(&fec_prmts->fec_cw_lock);
+
+	if (fecl_warn == 0) {
+		dev_dbg(sbl->dev, "%d: fec ccw warn ignored, threshold is zero", port_num);
+
+		return;
+	}
+
+	for (i = 0; i < SBL_PCS_NUM_FECL_CNTRS; ++i) {
+		if (fec_prmts->fec_rates->fecl[i] > fecl_warn) {
+			sbl_link_counters_incr(sbl, port_num, fec_warn);
+
+			if (*warning_count > 0) {
+				dev_warn(sbl->dev, "sbl %d: warning, ccw %lld, (%lld %lld %lld %lld %lld %lld %lld %lld)%s\n",
+						port_num, fec_prmts->fec_rates->ccw,
+						fec_prmts->fec_rates->fecl[0], fec_prmts->fec_rates->fecl[1],
+						fec_prmts->fec_rates->fecl[2], fec_prmts->fec_rates->fecl[3],
+						fec_prmts->fec_rates->fecl[4], fec_prmts->fec_rates->fecl[5],
+						fec_prmts->fec_rates->fecl[6], fec_prmts->fec_rates->fecl[7],
+						(*warning_count == 1) ? " - last" : "");
+				--*warning_count;
+			} else {
+				dev_dbg(sbl->dev, "sbl %d: warning, ccw %lld, (%lld %lld %lld %lld %lld %lld %lld %lld)\n",
+						port_num, fec_prmts->fec_rates->ccw,
+						fec_prmts->fec_rates->fecl[0], fec_prmts->fec_rates->fecl[1],
+						fec_prmts->fec_rates->fecl[2], fec_prmts->fec_rates->fecl[3],
+						fec_prmts->fec_rates->fecl[4], fec_prmts->fec_rates->fecl[5],
+						fec_prmts->fec_rates->fecl[6], fec_prmts->fec_rates->fecl[7]);
+			}
+			return;
+		}
+	}
+}
 
 void sbl_fec_thresholds_clear(struct sbl_inst *sbl, int port_num)
 {
@@ -288,220 +592,6 @@ void sbl_fec_counts_get(struct sbl_inst *sbl, int port_num,
 	cntrs->time = jiffies;
 }
 
-static int sbl_fec_rates_update(struct sbl_inst *sbl, int port_num,
-				u32 window)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	struct fec_data *fec_data = link->fec_data;
-	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
-	struct sbl_pcs_fec_cntrs *temp;
-	unsigned long tdiff;
-	int i;
-	bool discard_rates;
-	int reason;
-	unsigned long irq_flags;
-
-	spin_lock(&fec_prmts->fec_cnt_lock);
-
-	/*
-	 * make sure the period is sufficient to update rates
-	 * otherwise zero rates so nothing fires
-	 */
-	if (time_is_after_jiffies(fec_prmts->fec_curr_cnts->time + msecs_to_jiffies(window))) {
-		sbl_fec_counts_zero(sbl, port_num, fec_prmts->fec_rates);
-		spin_unlock(&fec_prmts->fec_cnt_lock);
-
-		return -EINPROGRESS;
-	}
-
-	temp = fec_prmts->fec_prev_cnts;
-	fec_prmts->fec_prev_cnts = fec_prmts->fec_curr_cnts;
-	fec_prmts->fec_curr_cnts = temp;
-	sbl_fec_counts_get(sbl, port_num, fec_prmts->fec_curr_cnts);
-
-	spin_lock_irqsave(&link->fec_discard_lock, irq_flags);
-	discard_rates = (link->fec_discard_time >= fec_prmts->fec_prev_cnts->time) &&
-			(link->fec_discard_time < fec_prmts->fec_curr_cnts->time);
-	reason = link->fec_discard_type;
-	spin_unlock_irqrestore(&link->fec_discard_lock, irq_flags);
-
-	if (discard_rates) {
-		sbl_dev_dbg(sbl->dev, "%d: %s - ignoring FEC rates for the current window", port_num,
-			    sbl_fec_discard_str(reason));
-		sbl_fec_counts_zero(sbl, port_num, fec_prmts->fec_rates);
-		spin_unlock(&fec_prmts->fec_cnt_lock);
-		return -EINTR;
-	}
-
-	/*
-	 * calc time difference  (HZ)
-	 * (unsigned so rollover ok)
-	 */
-	tdiff = fec_prmts->fec_curr_cnts->time - fec_prmts->fec_prev_cnts->time;
-
-	/* calculate rates */
-	fec_prmts->fec_rates->ccw = sbl_fec_rate_calc(sbl, port_num,
-			fec_prmts->fec_curr_cnts->ccw, fec_prmts->fec_prev_cnts->ccw, tdiff);
-	fec_prmts->fec_rates->ucw = sbl_fec_rate_calc(sbl, port_num,
-			fec_prmts->fec_curr_cnts->ucw, fec_prmts->fec_prev_cnts->ucw, tdiff);
-	fec_prmts->fec_rates->llr_tx_replay = sbl_fec_rate_calc(sbl, port_num,
-			fec_prmts->fec_curr_cnts->llr_tx_replay, fec_prmts->fec_prev_cnts->llr_tx_replay, tdiff);
-
-	for (i = 0; i < SBL_PCS_NUM_FECL_CNTRS; ++i)
-		fec_prmts->fec_rates->fecl[i] = sbl_fec_rate_calc(sbl, port_num,
-				fec_prmts->fec_curr_cnts->fecl[i], fec_prmts->fec_prev_cnts->fecl[i], tdiff);
-
-	fec_prmts->fec_rates->time = jiffies_to_msecs(tdiff);
-
-	spin_unlock(&fec_prmts->fec_cnt_lock);
-
-	return 0;
-
-}
-
-/*
- * returns true if the uncorrected code word rate is bad
- *
- *	 threshold adjustment is a percentage
- */
-static bool sbl_fec_ucw_rate_bad(struct sbl_inst *sbl, int port_num,
-				u32 thresh_adj)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	struct fec_data *fec_data = link->fec_data;
-	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
-
-	bool ignore_err;
-	u64 ucw_bad;
-	u64 ucw_hwm;
-
-	sbl_fec_ucw_bad_get(fec_prmts, &ucw_bad, &ucw_hwm);
-
-	/*
-	 * update high water mark
-	 *
-	 *	 we record this even if no test is performed so we can use it for
-	 *	 debug/calibration
-	 */
-	if (fec_prmts->fec_rates->ucw > ucw_hwm) {
-		spin_lock(&fec_prmts->fec_cw_lock);
-		fec_prmts->fec_ucw_hwm = fec_prmts->fec_rates->ucw;
-		spin_unlock(&fec_prmts->fec_cw_lock);
-	}
-
-	/* apply percentage adjustment */
-	ucw_bad = ucw_bad * thresh_adj / 100;
-
-	if (ucw_bad == 0) {
-		sbl_dev_dbg(sbl->dev, "%d: fec ucw test ignored, threshold is zero", port_num);
-		return false;
-	}
-
-	/*
-	 * check uncorrected code words
-	 */
-	if (fec_prmts->fec_rates->ucw > ucw_bad) {
-		sbl_link_counters_incr(sbl, port_num, fec_ucw_err);
-		ignore_err = sbl_debug_option(sbl, port_num, SBL_DEBUG_IGNORE_HIGH_FEC_UCW);
-
-		sbl_dev_err(sbl->dev, "%d: bad ucw, ccw %lld, ucw %lld (>%lld), (%lld %lld %lld %lld %lld %lld %lld %lld), window %ldms%s\n",
-				    port_num, fec_prmts->fec_rates->ccw,
-				    fec_prmts->fec_rates->ucw, ucw_bad,
-				    fec_prmts->fec_rates->fecl[0], fec_prmts->fec_rates->fecl[1],
-				    fec_prmts->fec_rates->fecl[2], fec_prmts->fec_rates->fecl[3],
-				    fec_prmts->fec_rates->fecl[4], fec_prmts->fec_rates->fecl[5],
-				    fec_prmts->fec_rates->fecl[6], fec_prmts->fec_rates->fecl[7],
-				    fec_prmts->fec_rates->time,
-				    ignore_err ? " -ignored" : "");
-		if (ignore_err)
-			return false;
-		else
-			return true;
-	}
-	return false;
-
-}
-
-/*
- * returns true if the corrected code word rate is bad
- */
-static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
-				u32 thresh_adj, bool use_stp_thresh)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	struct fec_data *fec_data = link->fec_data;
-	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
-
-	u64 ccw_bad;
-	bool ignore_err;
-	u64 ccw_hwm;
-
-	sbl_fec_ccw_bad_get(fec_prmts, use_stp_thresh, &ccw_bad, &ccw_hwm);
-
-	/*
-	 * update high water mark
-	 *
-	 *	 we record this even if no test is performed so we can use it for
-	 *	 debug/calibration
-	 */
-	if (fec_prmts->fec_rates->ccw > ccw_hwm) {
-		spin_lock(&fec_prmts->fec_cw_lock);
-		fec_prmts->fec_ccw_hwm = fec_prmts->fec_rates->ccw;
-		spin_unlock(&fec_prmts->fec_cw_lock);
-	}
-
-	/*
-	 * apply percentage adjustment
-	 */
-	ccw_bad = ccw_bad * thresh_adj / 100;
-
-	if (ccw_bad == 0) {
-		sbl_dev_dbg(sbl->dev, "%d: fec ccw test ignored, threshold is zero", port_num);
-
-		return false;
-	}
-
-	/*
-	 * check corrected code words
-	 */
-	if (fec_prmts->fec_rates->ccw > ccw_bad) {
-		sbl_link_counters_incr(sbl, port_num, fec_ccw_err);
-		ignore_err = sbl_debug_option(sbl, port_num, SBL_DEBUG_IGNORE_HIGH_FEC_CCW);
-
-		sbl_dev_err(sbl->dev, "%d: bad ccw, ccw %lld (>%lld), ucw %lld, (%lld %lld %lld %lld %lld %lld %lld %lld), window %ldms%s\n",
-				port_num, fec_prmts->fec_rates->ccw, ccw_bad,
-				fec_prmts->fec_rates->ucw,
-				fec_prmts->fec_rates->fecl[0], fec_prmts->fec_rates->fecl[1],
-				fec_prmts->fec_rates->fecl[2], fec_prmts->fec_rates->fecl[3],
-				fec_prmts->fec_rates->fecl[4], fec_prmts->fec_rates->fecl[5],
-				fec_prmts->fec_rates->fecl[6], fec_prmts->fec_rates->fecl[7],
-				fec_prmts->fec_rates->time,
-				ignore_err ? " -ignored" : "");
-		if (ignore_err)
-			return false;
-		else
-			return true;
-	}
-	return false;
-}
-
-static void sbl_fec_counts_zero(struct sbl_inst *sbl, int port_num,
-				struct sbl_pcs_fec_cntrs *cntrs)
-{
-	memset(cntrs, 0, sizeof(struct sbl_pcs_fec_cntrs));
-}
-
-static u64 sbl_fec_rate_calc(struct sbl_inst *sbl, int port_num,
-		u64 curr, u64 prev, unsigned long tdiff)
-{
-	if (curr < prev) {
-		sbl_dev_err(sbl->dev, "%d: fec counter went backwards", port_num);
-
-		return 0;
-	} else
-		return (curr - prev) * HZ / tdiff;
-}
-
 void sbl_fec_timer_work(struct work_struct *work)
 {
 	u32 ucw_thresh_adj;
@@ -555,109 +645,6 @@ void sbl_fec_timer_work(struct work_struct *work)
 
 	}
 	mod_timer(&fec_data->fec_timer, jiffies + msecs_to_jiffies(SBL_FEC_MON_PERIOD));
-}
-
-static bool sbl_fec_txr_rate_bad(struct sbl_inst *sbl, int port_num,
-		u32 thresh_adj)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	struct fec_data *fec_data = link->fec_data;
-	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
-
-	u64 llr_tx_replay_bad;
-	u64 llr_tx_replay_hwm;
-	bool ignore_err;
-
-	spin_lock(&fec_prmts->fec_cw_lock);
-	llr_tx_replay_bad = fec_prmts->fec_llr_tx_replay_thresh;
-	llr_tx_replay_hwm = fec_prmts->fec_llr_tx_replay_hwm;
-	spin_unlock(&fec_prmts->fec_cw_lock);
-
-	/*
-	 * update high water mark
-	 *
-	 *	 we record this even if no test is performed so we can use it for
-	 *	 debug/calibration
-	 */
-	if (fec_prmts->fec_rates->llr_tx_replay > llr_tx_replay_hwm) {
-		spin_lock(&fec_prmts->fec_cw_lock);
-		fec_prmts->fec_llr_tx_replay_hwm = fec_prmts->fec_rates->llr_tx_replay;
-		spin_unlock(&fec_prmts->fec_cw_lock);
-	}
-	if (llr_tx_replay_bad == 0) {
-		sbl_dev_dbg(sbl->dev, "%d: fec llr_tx_replay test ignored, threshold is zero", port_num);
-		return false;
-	}
-
-	/*
-	 * check llr_tx_replay rate
-	 */
-	if (fec_prmts->fec_rates->llr_tx_replay > llr_tx_replay_bad) {
-		sbl_link_counters_incr(sbl, port_num, fec_txr_err);
-		ignore_err = sbl_debug_option(sbl, port_num, SBL_DEBUG_IGNORE_HIGH_FEC_TXR);
-
-		sbl_dev_err(sbl->dev, "%d: bad llr_tx_replay, llr_tx_replay %lld (>%lld), window %ldms%s\n",
-				port_num,
-				fec_prmts->fec_rates->llr_tx_replay, llr_tx_replay_bad,
-				fec_prmts->fec_rates->time,
-				ignore_err ? " -ignored" : "");
-
-		if (ignore_err)
-			return false;
-		else
-			return true;
-	}
-	return false;
-}
-
-/*
- * print a few warnings (so we can see how things are changing) about high
- * fec lane error rates
- */
-static void sbl_fec_rates_warnings(struct sbl_inst *sbl, int port_num,
-		int *warning_count)
-{
-
-	struct sbl_link *link = sbl->link + port_num;
-	struct fec_data *fec_data = link->fec_data;
-	struct sbl_fec *fec_prmts = fec_data->fec_prmts;
-	int fecl_warn;
-	int i;
-
-	spin_lock(&fec_prmts->fec_cw_lock);
-	fecl_warn = fec_prmts->fecl_warn;
-	spin_unlock(&fec_prmts->fec_cw_lock);
-
-	if (fecl_warn == 0) {
-		dev_dbg(sbl->dev, "%d: fec ccw warn ignored, threshold is zero", port_num);
-
-		return;
-	}
-
-	for (i = 0; i < SBL_PCS_NUM_FECL_CNTRS; ++i) {
-		if (fec_prmts->fec_rates->fecl[i] > fecl_warn) {
-			sbl_link_counters_incr(sbl, port_num, fec_warn);
-
-			if (*warning_count > 0) {
-				dev_warn(sbl->dev, "sbl %d: warning, ccw %lld, (%lld %lld %lld %lld %lld %lld %lld %lld)%s\n",
-						port_num, fec_prmts->fec_rates->ccw,
-						fec_prmts->fec_rates->fecl[0], fec_prmts->fec_rates->fecl[1],
-						fec_prmts->fec_rates->fecl[2], fec_prmts->fec_rates->fecl[3],
-						fec_prmts->fec_rates->fecl[4], fec_prmts->fec_rates->fecl[5],
-						fec_prmts->fec_rates->fecl[6], fec_prmts->fec_rates->fecl[7],
-						(*warning_count == 1) ? " - last" : "");
-				--*warning_count;
-			} else {
-				dev_dbg(sbl->dev, "sbl %d: warning, ccw %lld, (%lld %lld %lld %lld %lld %lld %lld %lld)\n",
-						port_num, fec_prmts->fec_rates->ccw,
-						fec_prmts->fec_rates->fecl[0], fec_prmts->fec_rates->fecl[1],
-						fec_prmts->fec_rates->fecl[2], fec_prmts->fec_rates->fecl[3],
-						fec_prmts->fec_rates->fecl[4], fec_prmts->fec_rates->fecl[5],
-						fec_prmts->fec_rates->fecl[6], fec_prmts->fec_rates->fecl[7]);
-			}
-			return;
-		}
-	}
 }
 
 void sbl_zero_all_fec_counts(struct sbl_inst *sbl, int port_num)

@@ -20,17 +20,244 @@
 #include "sbl_internal.h"
 #include "sbl_fec.h"
 
-static int  sbl_base_link_lp_detect(struct sbl_inst *sbl, int port_num);
-static int  sbl_base_link_check_fix_fw(struct sbl_inst *sbl, int port_num);
-static int  sbl_base_link_get_mode(struct sbl_inst *sbl, int port_num);
-static bool sbl_base_link_an_timed_out(struct sbl_inst *sbl, int port_num, int err);
-static int  sbl_link_get_mode_electrical(struct sbl_inst *sbl, int port_num);
-static int  sbl_link_get_mode_optical(struct sbl_inst *sbl, int port_num);
-static int  sbl_link_fault_monitor_start(struct sbl_inst *sbl, int port_num);
-static int  sbl_link_fault_monitor_stop(struct sbl_inst *sbl, int port_num);
-static void sbl_base_link_report_err(struct sbl_inst *sbl, char *txt,
-		int port_num, int err);
+/*
+ * detect the presence of our link partner
+ */
+static int sbl_base_link_lp_detect(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	int err = 0;
 
+	/* already detected - probably from autoneg */
+	if (link->lp_detected)
+		return 0;
+
+	sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_LP_DET);
+
+	/* currently we have only one way to do this */
+	if (link->blattr.options & SBL_OPT_SERDES_LPD) {
+		err =  sbl_serdes_lp_detect(sbl, port_num);
+		if (!err)
+			link->lp_detected = true;
+	}
+
+	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_LP_DET);
+
+	return err;
+}
+
+/*
+ * Check/recover SBL FW
+ *
+ */
+static int sbl_base_link_check_fix_fw(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	int serdes;
+	int err;
+
+	for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
+		err = sbl_validate_serdes_fw_crc(sbl, port_num, serdes);
+		if (err) {
+			/* Any lane with corrputed FW will cause all lanes for
+			 * the port to be reloaded.
+			 */
+			goto reload_fw;
+		}
+	}
+	return 0;
+
+ reload_fw:
+	err = sbl_serdes_firmware_flash_safe(sbl, port_num, false);
+	if (err) {
+		/* All we can do is report failure here */
+		sbl_dev_err(sbl->dev, "%d: check/fix: fw flash failed [%d]\n",
+			port_num, err);
+		link->sstate = SBL_SERDES_STATUS_ERROR;
+	}
+	return err;
+}
+
+static int sbl_link_get_mode_electrical(struct sbl_inst *sbl, int port_num)
+{
+	sbl_dev_dbg(sbl->dev, "bl %d: elec get mode", port_num);
+
+	return sbl_link_autoneg(sbl, port_num);
+}
+
+/*
+ * For now we will just use the configured speed
+ *
+ */
+static int sbl_link_get_mode_optical(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+
+	sbl_dev_dbg(sbl->dev, "bl %d: optical link - fixing speed to config value (%s)\n",
+			port_num, sbl_link_mode_str(link->blattr.link_mode));
+	link->link_mode = link->blattr.link_mode;
+
+	return 0;
+}
+
+/*
+ * determine the link mode (speed)
+ *
+ */
+static int sbl_base_link_get_mode(struct sbl_inst *sbl, int port_num)
+{
+	struct sbl_link *link = sbl->link + port_num;
+	int err = 0;
+
+	/* determine required mode */
+	if (link->loopback_mode == SBL_LOOPBACK_MODE_LOCAL) {
+		/* directly use the mode specified - no media check */
+		link->link_mode = link->blattr.link_mode;
+		return 0;
+	}
+
+	switch (link->mattr.media) {
+
+	case SBL_LINK_MEDIA_ELECTRICAL:
+		err = sbl_link_get_mode_electrical(sbl, port_num);
+		break;
+
+	case SBL_LINK_MEDIA_OPTICAL:
+		err = sbl_link_get_mode_optical(sbl, port_num);
+		break;
+
+	default:
+		sbl_dev_err(sbl->dev, "bl %d: bad media to determine mode", port_num);
+		err = -ENOMEDIUM;
+		break;
+	}
+	if (err)
+		return err;
+
+	/* ensure the media supports the required mode */
+	if (!sbl_media_check_mode_supported(sbl, port_num, link->link_mode)) {
+		sbl_dev_err(sbl->dev, "bl %d: config mode (%s) not supported by media",
+			port_num, sbl_link_mode_str(link->blattr.link_mode));
+		return -EMEDIUMTYPE;
+	} else
+		return 0;
+}
+
+/*
+ * return true if get_mode failed because autoneg timed out
+ */
+static bool sbl_base_link_an_timed_out(struct sbl_inst *sbl, int port_num, int err)
+{
+	struct sbl_link *link = sbl->link + port_num;
+
+	if (err != -ETIME)
+		return false;
+
+	if (link->mattr.media != SBL_LINK_MEDIA_ELECTRICAL)
+		return false;
+
+	if (link->blattr.pec.an_mode == SBL_AN_MODE_OFF)
+		return false;
+
+	return true;
+}
+
+static int sbl_link_fault_monitor_start(struct sbl_inst *sbl, int port_num)
+{
+	int err;
+	u32 base = SBL_PML_BASE(port_num);
+	u64 val64;
+	u64 err_flags;
+
+	val64 = sbl_read64(sbl, base|SBL_PML_CFG_LLR_SM_OFFSET);
+	if (SBL_PML_CFG_LLR_SM_REPLAY_CT_MAX_GET(val64) < SBL_LLR_REPLAY_CT_MAX_UNLIMITED)
+		err_flags = SBL_PML_FAULT_ERR_FLAGS;
+	else
+		err_flags = SBL_PML_REC_FAULT_ERR_FLAGS;
+
+	/* make sure we have not already had an error */
+	if (sbl_pml_err_flgs_test(sbl, port_num, err_flags)) {
+		sbl_dev_err(sbl->dev, "fm %d: start - errors already present\n",
+				port_num);
+		err = -ENETDOWN;
+		goto out;
+	}
+
+	err = sbl_pml_install_intr_handler(sbl, port_num, err_flags);
+	if (err) {
+		sbl_dev_err(sbl->dev, "fm %d: intr install failed [%d]\n", port_num, err);
+		goto out;
+	}
+
+	err = sbl_pml_enable_intr_handler(sbl, port_num, err_flags);
+	if (err) {
+		sbl_dev_err(sbl->dev, "fm %d: intr enable failed [%d]\n", port_num, err);
+		goto out_uninstall;
+		return err;
+	}
+
+	if (sbl_pml_err_flgs_test(sbl, port_num, err_flags)) {
+		sbl_dev_err(sbl->dev, "fm %d: link down during start\n", port_num);
+		err = -ENETDOWN;
+		goto out_disable;
+	} else {
+		/* all up and running */
+		sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_FAULT_MON);
+	}
+	return 0;
+
+out_disable:
+	sbl_pml_disable_intr_handler(sbl, port_num, err_flags);
+out_uninstall:
+	sbl_pml_remove_intr_handler(sbl, port_num);
+out:
+	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_FAULT_MON);
+
+	return err;
+}
+
+static int sbl_link_fault_monitor_stop(struct sbl_inst *sbl, int port_num)
+{
+	int err;
+	u32 base = SBL_PML_BASE(port_num);
+	u64 val64;
+	u64 err_flags;
+
+	val64 = sbl_read64(sbl, base|SBL_PML_CFG_LLR_SM_OFFSET);
+	if (SBL_PML_CFG_LLR_SM_REPLAY_CT_MAX_GET(val64) < SBL_LLR_REPLAY_CT_MAX_UNLIMITED)
+		err_flags = SBL_PML_FAULT_ERR_FLAGS;
+	else
+		err_flags = SBL_PML_REC_FAULT_ERR_FLAGS;
+
+	err = sbl_pml_disable_intr_handler(sbl, port_num, err_flags);
+	if (err) {
+		sbl_dev_err(sbl->dev, "fm %d: intr disable failed [%d]\n", port_num, err);
+		return err;
+	}
+
+	err = sbl_pml_remove_intr_handler(sbl, port_num);
+	if (err) {
+		sbl_dev_err(sbl->dev, "fm %d: intr remove failed [%d]\n", port_num, err);
+		return err;
+	}
+
+	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_FAULT_MON);
+	return 0;
+}
+
+static void sbl_base_link_report_err(struct sbl_inst *sbl, char *txt, int port_num, int err)
+{
+	switch (err) {
+	case -ECANCELED:
+		sbl_dev_dbg(sbl->dev, "bl %d: %s cancelled\n", port_num, txt);
+		break;
+	case -ETIMEDOUT:
+		sbl_dev_dbg(sbl->dev, "bl %d: %s timed out\n", port_num, txt);
+		break;
+	default:
+		sbl_dev_err(sbl->dev, "bl %d: %s failed [%d]\n", port_num, txt, err);
+	}
+}
 
 int sbl_get_lp_subtype(struct sbl_inst *sbl, int port_num, enum sbl_lp_subtype *lp_subtype)
 {
@@ -378,21 +605,6 @@ out:
 	return err;
 }
 EXPORT_SYMBOL(sbl_base_link_start);
-
-
-static void sbl_base_link_report_err(struct sbl_inst *sbl, char *txt, int port_num, int err)
-{
-	switch (err) {
-	case -ECANCELED:
-		sbl_dev_dbg(sbl->dev, "bl %d: %s cancelled\n", port_num, txt);
-		break;
-	case -ETIMEDOUT:
-		sbl_dev_dbg(sbl->dev, "bl %d: %s timed out\n", port_num, txt);
-		break;
-	default:
-		sbl_dev_err(sbl->dev, "bl %d: %s failed [%d]\n", port_num, txt, err);
-	}
-}
 
 void sbl_ignore_save_tuning_param(struct sbl_inst *sbl, int port_num, bool ignore)
 {
@@ -777,92 +989,6 @@ void sbl_base_link_try_start_fail_cleanup(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_base_link_try_start_fail_cleanup);
 
-
-static int sbl_link_fault_monitor_start(struct sbl_inst *sbl, int port_num)
-{
-	int err;
-	u32 base = SBL_PML_BASE(port_num);
-	u64 val64;
-	u64 err_flags;
-
-	val64 = sbl_read64(sbl, base|SBL_PML_CFG_LLR_SM_OFFSET);
-	if (SBL_PML_CFG_LLR_SM_REPLAY_CT_MAX_GET(val64) < SBL_LLR_REPLAY_CT_MAX_UNLIMITED)
-		err_flags = SBL_PML_FAULT_ERR_FLAGS;
-	else
-		err_flags = SBL_PML_REC_FAULT_ERR_FLAGS;
-
-	/* make sure we have not already had an error */
-	if (sbl_pml_err_flgs_test(sbl, port_num, err_flags)) {
-		sbl_dev_err(sbl->dev, "fm %d: start - errors already present\n",
-				port_num);
-		err = -ENETDOWN;
-		goto out;
-	}
-
-	err = sbl_pml_install_intr_handler(sbl, port_num, err_flags);
-	if (err) {
-		sbl_dev_err(sbl->dev, "fm %d: intr install failed [%d]\n", port_num, err);
-		goto out;
-	}
-
-	err = sbl_pml_enable_intr_handler(sbl, port_num, err_flags);
-	if (err) {
-		sbl_dev_err(sbl->dev, "fm %d: intr enable failed [%d]\n", port_num, err);
-		goto out_uninstall;
-		return err;
-	}
-
-	if (sbl_pml_err_flgs_test(sbl, port_num, err_flags)) {
-		sbl_dev_err(sbl->dev, "fm %d: link down during start\n", port_num);
-		err = -ENETDOWN;
-		goto out_disable;
-	} else {
-		/* all up and running */
-		sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_FAULT_MON);
-	}
-	return 0;
-
-out_disable:
-	sbl_pml_disable_intr_handler(sbl, port_num, err_flags);
-out_uninstall:
-	sbl_pml_remove_intr_handler(sbl, port_num);
-out:
-	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_FAULT_MON);
-
-	return err;
-}
-
-
-static int sbl_link_fault_monitor_stop(struct sbl_inst *sbl, int port_num)
-{
-	int err;
-	u32 base = SBL_PML_BASE(port_num);
-	u64 val64;
-	u64 err_flags;
-
-	val64 = sbl_read64(sbl, base|SBL_PML_CFG_LLR_SM_OFFSET);
-	if (SBL_PML_CFG_LLR_SM_REPLAY_CT_MAX_GET(val64) < SBL_LLR_REPLAY_CT_MAX_UNLIMITED)
-		err_flags = SBL_PML_FAULT_ERR_FLAGS;
-	else
-		err_flags = SBL_PML_REC_FAULT_ERR_FLAGS;
-
-	err = sbl_pml_disable_intr_handler(sbl, port_num, err_flags);
-	if (err) {
-		sbl_dev_err(sbl->dev, "fm %d: intr disable failed [%d]\n", port_num, err);
-		return err;
-	}
-
-	err = sbl_pml_remove_intr_handler(sbl, port_num);
-	if (err) {
-		sbl_dev_err(sbl->dev, "fm %d: intr remove failed [%d]\n", port_num, err);
-		return err;
-	}
-
-	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_FAULT_MON);
-	return 0;
-}
-
-
 int sbl_base_link_get_status(struct sbl_inst *sbl, int port_num,
 		int *blstate, int *blerr, int *sstate, int *serr,
 		int *media_type, int *link_mode)
@@ -929,152 +1055,6 @@ char *sbl_base_link_state_str(struct sbl_inst *sbl, int port_num, char *buf, int
 	return buf;
 }
 EXPORT_SYMBOL(sbl_base_link_state_str);
-
-
-/*
- * detect the presence of our link partner
- */
-static int sbl_base_link_lp_detect(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	int err = 0;
-
-	/* already detected - probably from autoneg */
-	if (link->lp_detected)
-		return 0;
-
-	sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_LP_DET);
-
-	/* currently we have only one way to do this */
-	if (link->blattr.options & SBL_OPT_SERDES_LPD) {
-		err =  sbl_serdes_lp_detect(sbl, port_num);
-		if (!err)
-			link->lp_detected = true;
-	}
-
-	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_LP_DET);
-
-	return err;
-}
-
-/*
- * Check/recover SBL FW
- *
- */
-static int sbl_base_link_check_fix_fw(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	int serdes;
-	int err;
-
-	for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
-		err = sbl_validate_serdes_fw_crc(sbl, port_num, serdes);
-		if (err) {
-			/* Any lane with corrputed FW will cause all lanes for
-			 * the port to be reloaded.
-			 */
-			goto reload_fw;
-		}
-	}
-	return 0;
-
- reload_fw:
-	err = sbl_serdes_firmware_flash_safe(sbl, port_num, false);
-	if (err) {
-		/* All we can do is report failure here */
-		sbl_dev_err(sbl->dev, "%d: check/fix: fw flash failed [%d]\n",
-			port_num, err);
-		link->sstate = SBL_SERDES_STATUS_ERROR;
-	}
-	return err;
-}
-
-/*
- * determine the link mode (speed)
- *
- */
-static int sbl_base_link_get_mode(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-	int err = 0;
-
-	/* determine required mode */
-	if (link->loopback_mode == SBL_LOOPBACK_MODE_LOCAL) {
-		/* directly use the mode specified - no media check */
-		link->link_mode = link->blattr.link_mode;
-		return 0;
-	}
-
-	switch (link->mattr.media) {
-
-	case SBL_LINK_MEDIA_ELECTRICAL:
-		err = sbl_link_get_mode_electrical(sbl, port_num);
-		break;
-
-	case SBL_LINK_MEDIA_OPTICAL:
-		err = sbl_link_get_mode_optical(sbl, port_num);
-		break;
-
-	default:
-		sbl_dev_err(sbl->dev, "bl %d: bad media to determine mode", port_num);
-		err = -ENOMEDIUM;
-		break;
-	}
-	if (err)
-		return err;
-
-	/* ensure the media supports the required mode */
-	if (!sbl_media_check_mode_supported(sbl, port_num, link->link_mode)) {
-		sbl_dev_err(sbl->dev, "bl %d: config mode (%s) not supported by media",
-			port_num, sbl_link_mode_str(link->blattr.link_mode));
-		return -EMEDIUMTYPE;
-	} else
-		return 0;
-}
-
-
-static int sbl_link_get_mode_electrical(struct sbl_inst *sbl, int port_num)
-{
-	sbl_dev_dbg(sbl->dev, "bl %d: elec get mode", port_num);
-
-	return sbl_link_autoneg(sbl, port_num);
-}
-
-
-/*
- * For now we will just use the configured speed
- *
- */
-static int sbl_link_get_mode_optical(struct sbl_inst *sbl, int port_num)
-{
-	struct sbl_link *link = sbl->link + port_num;
-
-	sbl_dev_dbg(sbl->dev, "bl %d: optical link - fixing speed to config value (%s)\n",
-			port_num, sbl_link_mode_str(link->blattr.link_mode));
-	link->link_mode = link->blattr.link_mode;
-
-	return 0;
-}
-
-
-/*
- * return true if get_mode failed because autoneg timed out
- */
-static bool sbl_base_link_an_timed_out(struct sbl_inst *sbl, int port_num, int err)
-{
-	struct sbl_link *link = sbl->link + port_num;
-
-	if (err != -ETIME)
-		return false;
-
-	if (link->mattr.media != SBL_LINK_MEDIA_ELECTRICAL)
-		return false;
-
-	if (link->blattr.pec.an_mode == SBL_AN_MODE_OFF)
-		return false;
-
-	return true;
-}
 
 /*
  * uncorrected codeword thresholds
