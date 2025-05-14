@@ -1218,7 +1218,7 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 		*result = (intr_out & SBMS_INTERRUPT_DATA_MASK) >>
 			SBMS_INTERRUPT_DATA_OFFSET;
 	} else {
-		SBL_ERR(sbl->dev,
+		SBL_TRACE1(sbl->dev,
 			"SBM_INT: sbus_addr:0x%03x int:0x%x(%s) data:0x%x Failed with status 0x%x!",
 			sbus_addr, code, intr_str, data, (intr_out & SBMS_INTERRUPT_STATUS_MASK));
 		return -EBADE;
