@@ -287,6 +287,12 @@ struct device *sbl_get_device(void)
 	return sbl_dev;
 }
 
+/**
+ * sbl_get_switch_info() - get switch info
+ * @size: Valid size of switch info
+ *
+ * Return: switch info
+ */
 struct sbl_switch_info *sbl_get_switch_info(int *size)
 {
 	if (size != NULL) {

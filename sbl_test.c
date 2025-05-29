@@ -19,8 +19,15 @@
 
 static bool sbl_test_crc_failure;
 
-/*
- * test core intr access to the serdes
+/**
+ * sbl_test_core_intr() - test core interrupt access to the serdes
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * This function is used to test the serdes operations
+ * and check its results
+ *
+ * Return: 0 on success, error on failure
  */
 int sbl_test_core_intr(struct sbl_inst *sbl, int port_num)
 {
@@ -99,9 +106,13 @@ static void sbl_blattr_init(struct sbl_base_link_attr *blattr,
 	blattr->ifg_config           = SBL_IFG_CONFIG_HPC;
 }
 
-
-/*
- * test link up/down
+/**
+ * sbl_test_link_up() - test link up
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @loopback_mode: selected enum value of loopback mode
+ *
+ * Return: 0 on success, error on failure
  */
 int sbl_test_link_up(struct sbl_inst *sbl, int port_num, int loopback_mode)
 {
@@ -164,6 +175,17 @@ out:
 }
 EXPORT_SYMBOL(sbl_test_link_up);
 
+/**
+ * sbl_test_link_reup() - Test to link reup
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @loopback_mode: selected enum value of loopback mode
+ *
+ * This function is used to test base link
+ * operation of start/stop.
+ *
+ * Return: 0 on success, error on failure
+ */
 int sbl_test_link_reup(struct sbl_inst *sbl, int port_num, int loopback_mode)
 {
 	struct sbl_base_link_attr blattr;
@@ -201,7 +223,13 @@ int sbl_test_link_reup(struct sbl_inst *sbl, int port_num, int loopback_mode)
 }
 EXPORT_SYMBOL(sbl_test_link_reup);
 
-
+/**
+ * sbl_test_link_down() - Test to link down
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Return: 0 on success, error on failure
+ */
 int sbl_test_link_down(struct sbl_inst *sbl, int port_num)
 {
 	int blstate;
@@ -233,7 +261,13 @@ int sbl_test_link_down(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_test_link_down);
 
-
+/**
+ * sbl_test_link_reset() - Test to reset link
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Return: 0 on success, error on failure
+ */
 int sbl_test_link_reset(struct sbl_inst *sbl, int port_num)
 {
 	int err;
@@ -256,10 +290,15 @@ int sbl_test_link_reset(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_test_link_reset);
 
-
-/*
- * stopping the serdes provides a way to test link error pathways
+/**
+ * sbl_test_serdes_stop() - Test to stop serdes
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Stopping the serdes provides a way to test link error pathways
  * can be used to simulate link failure
+ *
+ * Return: 0 on success, error on failure
  */
 int sbl_test_serdes_stop(struct sbl_inst *sbl, int port_num)
 {
@@ -284,10 +323,12 @@ int sbl_test_serdes_stop(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_test_serdes_stop);
 
-
-
-/*
- * set pcs to transmit remote fault
+/**
+ * sbl_test_pcs_tx_rf() - set pcs to transmit remote fault
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Return: 0 on success, error on failure
  */
 int sbl_test_pcs_tx_rf(struct sbl_inst *sbl, int port_num)
 {
@@ -310,9 +351,12 @@ int sbl_test_pcs_tx_rf(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_test_pcs_tx_rf);
 
-
-/*
- * framework for transient tests/operations during development
+/**
+ * sbl_test_scratch() - Test to reload serdes firmware
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Return: 0 on success,  error on failure
  */
 int sbl_test_scratch(struct sbl_inst *sbl, int port_num)
 {
@@ -352,10 +396,9 @@ void sbl_test_manipulate_serdes_fw_crc_result(u16 *crc_result)
 		*crc_result = SPICO_RESULT_SERDES_CRC_FAIL;
 }
 
-
-/*
- * Intercepts return value of SerDes FW CRC check.
- * If set is 1, the check returns failure, otherwise untouched.
+/**
+ * sbl_test_inject_serdes_fw_crc_failure() - Test to inject crc failure for serdes fw
+ * @set: if set then inject crc
  */
 void sbl_test_inject_serdes_fw_crc_failure(bool set)
 {

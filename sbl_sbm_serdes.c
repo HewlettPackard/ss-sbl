@@ -629,6 +629,17 @@ static void sbus_msg(void *inst, u32 sbus_addr, u32 req_data,
 	sbus_msg_print(inst, severity, message);
 }
 
+/**
+ * sbl_sbus_wr() - Write to sbus
+ * @inst: Generic pointer used by various frameworks
+ * @sbus_addr: address describing a serdes ring and rxaddr
+ * @reg_addr: target sbus register address
+ * @sbus_data: target sbus data
+ *
+ * Convenience function to issue an SBus op and check the result_code
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_sbus_wr(void *inst, u32 sbus_addr, u8 reg_addr,
 		u32 sbus_data)
 {
@@ -640,7 +651,17 @@ int sbl_sbus_wr(void *inst, u32 sbus_addr, u8 reg_addr,
 }
 EXPORT_SYMBOL(sbl_sbus_wr);
 
-
+/**
+ * sbl_sbus_rd() - Read from sbus
+ * @inst: Generic pointer used by various frameworks
+ * @sbus_addr: address describing a serdes ring and rxaddr
+ * @reg_addr: target sbus register address
+ * @result: location to store result of command
+ *
+ * Convenience function to issue an SBus op and check the result_code
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_sbus_rd(void *inst, u32 sbus_addr, u8 reg_addr,
 		u32 *result)
 {
@@ -659,6 +680,7 @@ int sbl_serdes_mem_rd(void *inst, u32 port_num, u32 serdes,
 
 	SBL_TRACE2(sbl->dev, "p%ds%d: addr:0x%x", port_num, serdes, addr);
 	addr &= SPICO_INT_MEM_READ_ADDR_MASK;
+
 	err = sbl_serdes_spico_int(sbl, port_num, serdes,
 					SPICO_INT_CM4_MEM_READ | addr,
 					SPICO_INT_DATA_NONE, data,
@@ -858,7 +880,18 @@ int sbl_sbus_op_aux(void *inst, u32 sbus_addr, u8 reg_addr,
 
 	return 0;
 }
-
+/**
+ * sbl_sbm_spico_int() - spico intilization
+ * @inst: Generic pointer used by various framework
+ * @sbus_addr: address describing a serdes ring and rxaddr
+ * @code: interrupt command
+ * @data: interrupt data
+ * @result: location to store result of interrupt
+ *
+ * Write an interrupt request to a target SBM Spico
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 		      u32 *result)
 {
@@ -1008,6 +1041,21 @@ int sbl_serdes_spico_int2(void *inst, u32 sbus_addr,
 				    result_action);
 }
 
+/**
+ * sbl_serdes_spico_int() - serdes spico initilization
+ * @inst: Generic pointer used by various frameworks
+ * @port_num: port number
+ * @serdes: address list describing SerDes lanes
+ * @code: interrupt command
+ * @data: interrupt data
+ * @result: pointer to store result in
+ * @result_action: ignore the interrupt result, store it to the result
+ *                 pointer, or validate it matches code
+ *
+ * Write an interrupt request to a set of SerDes Spicos
+ *
+ * Return: 0 if all results are the same, else -1
+ */
 int sbl_serdes_spico_int(void *inst, u32 port_num, u32 serdes,
 			  int code, int data, u16 *result, u8 result_action)
 {

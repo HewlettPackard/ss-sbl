@@ -12,7 +12,13 @@
 #include "sbl.h"
 #include "sbl_internal.h"
 
-
+/**
+ * sbl_debug_clear_config() - Clear debug config
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Set debug_config to 0
+ */
 void sbl_debug_clear_config(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -21,7 +27,17 @@ void sbl_debug_clear_config(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_debug_clear_config);
 
-
+/**
+ * sbl_debug_update_config() - Update debug config
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @clear_flags: Flag which is used to clear a config
+ * @set_flags: Flag which is used to set a config
+ *
+ * A 'new' value is picked based on flags provided.
+ * debug_config will have 'new' value if debug_old
+ * and 'old' are the same.
+ */
 void sbl_debug_update_config(struct sbl_inst *sbl, int port_num, u32 clear_flags, u32 set_flags)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -35,7 +51,16 @@ void sbl_debug_update_config(struct sbl_inst *sbl, int port_num, u32 clear_flags
 }
 EXPORT_SYMBOL(sbl_debug_update_config);
 
-
+/**
+ * sbl_debug_get_config() - Get value of debug config
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @config: param used to get the value of the config
+ *
+ * 'config' will have debug_config value
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_debug_get_config(struct sbl_inst *sbl, int port_num, u32 *config)
 {
 	struct sbl_link *link = sbl->link + port_num;

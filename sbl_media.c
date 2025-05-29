@@ -12,7 +12,19 @@
 #include "sbl.h"
 #include "sbl_internal.h"
 
-
+/**
+ * sbl_media_config() - Config media
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @mattr: media attributes
+ *
+ * This function sets the media attributes for the link
+ * and sets the state as configured.
+ *
+ * Context: Process, Acquires locks and releases link->lock <spin_lock>
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_media_config(struct sbl_inst *sbl, int port_num,
 		struct sbl_media_attr *mattr)
 {
@@ -62,7 +74,17 @@ int sbl_media_config(struct sbl_inst *sbl, int port_num,
 }
 EXPORT_SYMBOL(sbl_media_config);
 
-
+/**
+ * sbl_media_unconfig() - Unconfig media
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Clear media attributes and set base link status to unconfigure.
+ *
+ * Context: Process, Acquires Lock and releases link->lock <spin_lock>
+ *
+ * Return: negative error code on failure
+ */
 int sbl_media_unconfig(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link;
@@ -151,6 +173,13 @@ bool sbl_media_check_mode_supported(struct sbl_inst *sbl, int port_num, u32 link
 	return false;
 }
 
+/**
+ * sbl_media_check_headshell_reset_supported() - Check headshell based on media info
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Return: True if reset is supported else false
+ */
 bool sbl_media_check_headshell_reset_supported(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -343,13 +372,17 @@ int sbl_media_calc_loop_time(struct sbl_inst *sbl, int port_num, u64 *calc_loop_
 	return 0;
 }
 
-
-/*
- * return loop time in ns or zero on failure
+/**
+ * sbl_media_get_loop_time_ns() - Get loop time in ns
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @measurement_only: set to false when reading
  *
- *   return measured time is available otherwise calculate
- *   an approximate value using the cable length.
- *   Return zero if no valid loop time can be returned
+ * This function returns available loop time. If not and
+ * 'measurement_only' is true, returns 0 with a warning.
+ * Otherwise attempts to calculate the loop time.
+ *
+ * Return: calculate loop time on success, 0 on failure
  */
 u64 sbl_media_get_loop_time_ns(struct sbl_inst *sbl, int port_num,
 		bool measurement_only)
@@ -401,6 +434,19 @@ int sbl_media_validate_config(struct sbl_inst *sbl, int port_num)
 
 
 #ifdef CONFIG_SYSFS
+/**
+ * sbl_media_sysfs_sprint() - Format media info into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * This function checks the state of media configuration and info.
+ * Based on that it will format the string and write into the
+ * provided buffer.
+ *
+ * Return: Number of characters written on success
+ */
 int sbl_media_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	struct sbl_link *link = sbl->link + port_num;

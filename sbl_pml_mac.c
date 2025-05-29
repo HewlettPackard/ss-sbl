@@ -116,9 +116,13 @@ int sbl_pml_mac_config(struct sbl_inst *sbl, int port_num)
 	return 0;
 }
 
-
-/*
- * start
+/**
+ * sbl_pml_mac_start() - Start mac
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Configure various MAC registers to start tx/rx mac
+ * and clear if any errors
  */
 void sbl_pml_mac_start(struct sbl_inst *sbl, int port_num)
 {
@@ -150,9 +154,12 @@ void sbl_pml_mac_start(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_pml_mac_start);
 
-
-/*
- * stop
+/**
+ * sbl_pml_mac_stop() - Stop mac
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Configure various MAC registers to off tx/rx mac
  */
 void sbl_pml_mac_stop(struct sbl_inst *sbl, int port_num)
 {

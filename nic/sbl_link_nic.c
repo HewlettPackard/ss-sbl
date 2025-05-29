@@ -18,7 +18,18 @@
 #include "sbl_internal.h"
 #include "sbl_fec.h"
 
-/*
+/**
+ * sbl_link_get_fec_thresholds() - Get fec thresholds
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @ucw_bad: Pointer to an int where output is stored(ucw threshold value)
+ * @ccw_bad: Pointer to an int where output is stored(ccw threshold value)
+ * @fecl_warn: Pointer to an int where output is stored(warn threshold value)
+ *
+ * Get threshold values based on link mode used.
+ * @ucw_bad, @ucw_bad and @fecl_warn holds the values and
+ * returns through provided pointers to the caller.
+ *
  * Return the failure and warning thresholds for fec metrics
  * monitoring
  *
@@ -66,6 +77,8 @@
  *    sbl_link_get_ucw_thresh_hpe()
  *    sbl_link_get_ccw_thresh_ieee()
  *    sbl_link_get_ccw_thresh_hpe()
+ *
+ * Return: 0 on success, negative error code on failure
  */
 int sbl_link_get_fec_thresholds(struct sbl_inst *sbl, int port_num,
 		int *ucw_bad, int *ccw_bad, int *fecl_warn)
@@ -115,12 +128,22 @@ int sbl_link_get_fec_thresholds(struct sbl_inst *sbl, int port_num,
 }
 EXPORT_SYMBOL(sbl_link_get_fec_thresholds);
 
-/*
- * Print out link state, info etc for sysfs diags
- *
- *   No locking here
- */
 #ifdef CONFIG_SYSFS
+/**
+ * sbl_base_link_llr_sysfs_sprint() - Report LLR on/off status into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * This function checks the state info flags of LLR.
+ * Based on this flag, it formats the string indicating
+ * whether LLR is on/off and writes it into provided buffer
+ *
+ * Context: Process context, Acquires lock and release link->lock <spin_lock>
+ *
+ * Return: Number of characters written on success
+ */
 int sbl_base_link_llr_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -139,6 +162,20 @@ int sbl_base_link_llr_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf
 }
 EXPORT_SYMBOL(sbl_base_link_llr_sysfs_sprint);
 
+/**
+ * sbl_base_link_loopback_sysfs_sprint() - Report loopback mode status into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * This function gets the loopback mode status and
+ * formats the string into the provided buffer
+ *
+ * Context: Process context, Acquires lock and release link->lock <spin_lock>
+ *
+ * Return: Number of characters written on success
+ */
 int sbl_base_link_loopback_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	struct sbl_link *link = sbl->link + port_num;

@@ -12,8 +12,14 @@
 #include "sbl_constants.h"
 #include "sbl_internal.h"
 
-/*
- * enum to string functions
+/**
+ * sbl_link_state_str() - Get link status as string
+ * @state: This Value used to find status
+ *
+ * Get link status as string based on value 'state'
+ * provided from caller.
+ *
+ * Return: link status as string
  */
 const char *sbl_link_state_str(enum sbl_base_link_status state)
 {
@@ -31,7 +37,15 @@ const char *sbl_link_state_str(enum sbl_base_link_status state)
 }
 EXPORT_SYMBOL(sbl_link_state_str);
 
-
+/**
+ * sbl_link_len_str() - Get cable length as string
+ * @len: Value used to find link length
+ *
+ * Get Cable length as string based on the 'len' provided
+ * from the caller.
+ *
+ * Return: Link length as string
+ */
 const char *sbl_link_len_str(enum sbl_link_len len)
 {
 	switch (len) {
@@ -89,7 +103,15 @@ const char *sbl_link_len_str(enum sbl_link_len len)
 }
 EXPORT_SYMBOL(sbl_link_len_str);
 
-
+/**
+ * sbl_link_vendor_str() - Get cable vendor as string
+ * @vendor: Value to find vendor
+ *
+ * Get cable vendor information as string
+ * based on 'vendor' value
+ *
+ * Return: Vendor name as string
+ */
 const char *sbl_link_vendor_str(enum sbl_link_vendor vendor)
 {
 	switch (vendor) {
@@ -112,7 +134,15 @@ const char *sbl_link_vendor_str(enum sbl_link_vendor vendor)
 }
 EXPORT_SYMBOL(sbl_link_vendor_str);
 
-
+/**
+ * sbl_link_media_str() - Get type of the link media as string
+ * @media: Value used to find media used
+ *
+ * Get physical type of the link media as string
+ *  based on 'media' value provided from caller.
+ *
+ * Return: Media used as string
+ */
 const char *sbl_link_media_str(enum sbl_link_media media)
 {
 	switch (media) {
@@ -125,7 +155,14 @@ const char *sbl_link_media_str(enum sbl_link_media media)
 }
 EXPORT_SYMBOL(sbl_link_media_str);
 
-
+/**
+ * sbl_an_mode_str() - Get AN modes for a link as a string
+ * @mode: Value used to find the auto negotiation mode
+ *
+ * Get auto negotiation mode as string based on value 'mode'
+ *
+ * Return: Auto negotiation status as string
+ */
 const char *sbl_an_mode_str(enum sbl_an_mode mode)
 {
 	switch (mode) {
@@ -139,7 +176,14 @@ const char *sbl_an_mode_str(enum sbl_an_mode mode)
 }
 EXPORT_SYMBOL(sbl_an_mode_str);
 
-
+/**
+ * sbl_link_mode_str() - Get IEEE mode for a link as string
+ * @mode: Value used to find the link mode
+ *
+ * Get Link mode as string based on value 'mode'
+ *
+ * Return: Link mode as string
+ */
 const char *sbl_link_mode_str(enum sbl_link_mode mode)
 {
 	switch (mode) {
@@ -153,7 +197,12 @@ const char *sbl_link_mode_str(enum sbl_link_mode mode)
 }
 EXPORT_SYMBOL(sbl_link_mode_str);
 
-
+/**
+ * sbl_rs_mode_str() - Get FEC (Reed-Solomon) mode
+ * @mode: Contains RS MODE selection value
+ *
+ * Return: RS MODE as string
+ */
 const char *sbl_rs_mode_str(enum sbl_rs_mode mode)
 {
 	switch (mode) {
@@ -170,7 +219,12 @@ const char *sbl_rs_mode_str(enum sbl_rs_mode mode)
 }
 EXPORT_SYMBOL(sbl_rs_mode_str);
 
-
+/**
+ * sbl_ifg_mode_str() - Get Inter-frame gap mode as string
+ * @mode: Value
+ *
+ * Return: IFG mode as string
+ */
 const char *sbl_ifg_mode_str(enum sbl_ifg_mode mode)
 {
 	switch (mode) {
@@ -183,7 +237,14 @@ const char *sbl_ifg_mode_str(enum sbl_ifg_mode mode)
 }
 EXPORT_SYMBOL(sbl_ifg_mode_str);
 
-
+/**
+ * sbl_ifg_config_str() - Get IFG config as string
+ * @config: Value
+ *
+ * Get IFG config as string based on 'config' value.
+ *
+ * Return: IFG Config as string
+ */
 const char *sbl_ifg_config_str(enum sbl_ifg_config config)
 {
 	switch (config) {
@@ -198,7 +259,14 @@ const char *sbl_ifg_config_str(enum sbl_ifg_config config)
 }
 EXPORT_SYMBOL(sbl_ifg_config_str);
 
-
+/**
+ * sbl_llr_mode_str() - Get link-level retry (LLR) mode as string
+ * @mode: Value
+ *
+ * Get llr mode as string based on value 'mode'
+ *
+ * Return: LLR mode as string
+ */
 const char *sbl_llr_mode_str(enum sbl_llr_mode mode)
 {
 	switch (mode) {
@@ -213,7 +281,15 @@ const char *sbl_llr_mode_str(enum sbl_llr_mode mode)
 }
 EXPORT_SYMBOL(sbl_llr_mode_str);
 
-
+/**
+ * sbl_llr_down_behaviour_str() - Get LLR link down behaviour
+ * @behaviour: Value used to find the link down behaviour
+ *
+ * Get LLR link down behaviour as string based on 'behaviour'
+ * value provided.
+ *
+ * Return: LLR Link down behaviour as string
+ */
 const char *sbl_llr_down_behaviour_str(
 		enum sbl_llr_down_behaviour behaviour)
 {
@@ -228,7 +304,14 @@ const char *sbl_llr_down_behaviour_str(
 }
 EXPORT_SYMBOL(sbl_llr_down_behaviour_str);
 
-
+/**
+ * sbl_loopback_mode_str() - Get loopback mode status
+ * @state: Value used to find loopback mode
+ *
+ * Get loopback mode as string based on 'state' provided.
+ *
+ * Return: Loopback mode as string
+ */
 const char *sbl_loopback_mode_str(enum sbl_loopback_mode state)
 {
 	switch (state) {
@@ -252,7 +335,14 @@ const char *sbl_serdes_effort_str(u32 effort)
 	}
 }
 
-
+/**
+ * sbl_serdes_state_str() - Get serdes state as string
+ * @state: Value used to find status
+ *
+ * Get serdes state as string based on 'state' value.
+ *
+ * Return: Serdes state as string
+ */
 const char *sbl_serdes_state_str(enum sbl_serdes_status state)
 {
 	switch (state) {
@@ -286,7 +376,14 @@ const char *sbl_an_state_str(int state)
 	}
 }
 
-
+/**
+ * sbl_async_alert_str() - Get Async alert type as string
+ * @alert_type: Value
+ *
+ * Get Async alert type as string based on 'alert_type' provided.
+ *
+ * Return: ASYNC ALERT as string
+ */
 const char *sbl_async_alert_str(enum sbl_async_alert_type alert_type)
 {
 	switch (alert_type) {
@@ -303,7 +400,14 @@ const char *sbl_async_alert_str(enum sbl_async_alert_type alert_type)
 }
 EXPORT_SYMBOL(sbl_async_alert_str);
 
-
+/**
+ * sbl_fec_discard_str() - Get discard fec type as string
+ * @discard_type: Value used to find discard type
+ *
+ * Get discard fec type as string based on 'discard_type' provided.
+ *
+ * Return: Discard type as string
+ */
 const char *sbl_fec_discard_str(enum sbl_fec_discard_type discard_type)
 {
 	switch (discard_type) {
@@ -316,7 +420,15 @@ const char *sbl_fec_discard_str(enum sbl_fec_discard_type discard_type)
 }
 EXPORT_SYMBOL(sbl_fec_discard_str);
 
-
+/**
+ * sbl_down_origin_str() - Get link down reason as string
+ * @down_origin: Value used to find link down origin
+ *
+ * Get the reason for taking link down asynchronously as string
+ * based on 'down_origin' provided.
+ *
+ * Return: Link down origin as string
+ */
 const char *sbl_down_origin_str(enum sbl_link_down_origin down_origin)
 {
 	switch (down_origin) {
@@ -333,10 +445,14 @@ const char *sbl_down_origin_str(enum sbl_link_down_origin down_origin)
 }
 EXPORT_SYMBOL(sbl_down_origin_str);
 
-/*
- * look at flags and get the polling interval
+/**
+ * sbl_flags_get_poll_interval_from_flags() - Get interval for sbus operations
+ * @flags: Value
  *
- *   return 0 if no flag is found
+ * This function get Interval value which is needed time to wait
+ * between sbus operations
+ *
+ * Return: Interval value on success, 0 if no flag is found
  */
 int sbl_flags_get_poll_interval_from_flags(unsigned int flags)
 {
@@ -353,11 +469,14 @@ int sbl_flags_get_poll_interval_from_flags(unsigned int flags)
 }
 EXPORT_SYMBOL(sbl_flags_get_poll_interval_from_flags);
 
-
-/*
- * look at flags and get the polling delay
+/**
+ * sbl_flags_get_delay_from_flags() - Get delay for sbus operations
+ * @flags: Value
  *
- *   return 0 if no flag is found
+ * This function get sbus delay. Delays are the time to pause
+ * before issuing first operation of sbus
+ *
+ * Return: Delay value on success, 0 if no flag is found
  */
 int sbl_flags_get_delay_from_flags(unsigned int flags)
 {

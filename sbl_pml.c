@@ -560,20 +560,23 @@ void sbl_pml_recovery_cancel(struct sbl_inst *sbl, int port_num)
 	sbl_dev_info(sbl->dev, "%d: PML recovery canceled (%ums)", port_num, elapsed);
 }
 
-/*
- * local intr handler called by surrounding framework
+/**
+ * sbl_pml_hdlr() - local interrupt handler called by surrounding framework
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @data: Value is NULL in all cases
  *
- *    We could support registering sub-handlers here etc but actually we
- *    only use intrs for autoneg or detecting link-down so, for now, we
- *    will directly code these here.
+ * This function does the following operations: Reads PML error-flag
+ * registers, extracts PCS-lane degradation information for both TX
+ * and RX paths and issues warning alerts when failure conditions are
+ * met. If auto negotiation error flags are raised, the function disables
+ * further PML interrupts. It also logs critical error when all lanes
+ * are reported down, link faults. It also checks possible case of
+ * down origin and alert the clients.
  *
- *    Some autoneg flags can't be cleared here because they will just get
- *    immediately raised again, so instead we will disable them (=mask
- *    then out as intr sources)
+ * Context: Interrupt
  *
- *    We will do the same with link down because, again for now, we don't support
- *    its spontaneous clearing (i.e. regaining lock)
- *
+ * Return: 0 on success
  */
 int sbl_pml_hdlr(struct sbl_inst *sbl, int port_num, void *data)
 {
@@ -728,6 +731,14 @@ int sbl_pml_hdlr(struct sbl_inst *sbl, int port_num, void *data)
 }
 EXPORT_SYMBOL(sbl_pml_hdlr);
 
+/**
+ * sbl_pml_recovery_log_link_down() - Print pcs status when link down
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Print PCS receive path status and eye heights signal when
+ * reporting link down reason
+ */
 void sbl_pml_recovery_log_link_down(struct sbl_inst *sbl, int port_num)
 {
 	if (!sbl_pml_recovery_no_faults(sbl, port_num)) {

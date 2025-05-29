@@ -19,6 +19,20 @@
 #include "sbl_serdes_fn.h"
 
 #ifdef CONFIG_SYSFS
+/**
+ * sbl_pml_pcs_speed_sysfs_sprint() - Report PCS mode into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * Based on PCS config, this function writes the link mode into
+ * the provided buffer
+ *
+ * Context: Process context, Acquires lock and release link->lock <spin_lock>
+ *
+ * Return: Number of characters written on success
+ */
 int sbl_pml_pcs_speed_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	struct sbl_link *link = sbl->link + port_num;

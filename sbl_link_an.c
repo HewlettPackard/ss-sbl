@@ -931,12 +931,17 @@ const char *sbl_an_get_sm_state(struct sbl_inst *sbl, int port_num)
 	return  sbl_an_state_str(sm_state);
 }
 
-/*
- * return an pages
+/**
+ * sbl_get_an_pages() - Get an pages
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @count: number of pages
+ * @pages: Pointer to max rx pages
  *
- *    on input count is the number of pages alocated for pages
- *    on out this is the number of pages received
- *    if there is sufficient space in pages, received pages will be copied
+ * Get number of an pages 'count' and rx pages 'pages'
+ * by reading 'an_rx_count' and 'an_rx_page'
+ *
+ * Return: 0 on success, negative error code on failure
  */
 int sbl_get_an_pages(struct sbl_inst *sbl, int port_num, int *count, u64 *pages)
 {

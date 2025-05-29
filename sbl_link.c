@@ -259,6 +259,18 @@ static void sbl_base_link_report_err(struct sbl_inst *sbl, char *txt, int port_n
 	}
 }
 
+/**
+ * sbl_get_lp_subtype() - Get link partner sub type
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @lp_subtype: Value to get Link partner subtype
+ *
+ * This function reads the versions used (cas(v1/v2))
+ * which refers to link partner sub type. Client driver
+ * uses this information for later process
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_get_lp_subtype(struct sbl_inst *sbl, int port_num, enum sbl_lp_subtype *lp_subtype)
 {
 	int              err;
@@ -285,12 +297,17 @@ int sbl_get_lp_subtype(struct sbl_inst *sbl, int port_num, enum sbl_lp_subtype *
 }
 EXPORT_SYMBOL(sbl_get_lp_subtype);
 
-
-/*
+/**
+ * sbl_base_link_config() - config base link
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @blattr: Pointer to struct sbl_base_link_attr
  *
- * principal base link control API
+ * Set base link config based on attributes provided
  *
+ * Context: Process context, Acquires lock and release link->lock <spin_lock>
  *
+ * Return: 0 on success, negative error code on failure
  */
 int sbl_base_link_config(struct sbl_inst *sbl, int port_num, struct sbl_base_link_attr *blattr)
 {
@@ -343,7 +360,21 @@ int sbl_base_link_config(struct sbl_inst *sbl, int port_num, struct sbl_base_lin
 }
 EXPORT_SYMBOL(sbl_base_link_config);
 
-
+/**
+ * sbl_base_link_start() - Initialize and bring up links
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * This function performs full sequence to bring up serdes link.
+ * It handles firmware validation, link mode detection, alignment,
+ * SerDes startup and link integrity checks. This process ensures
+ * link partner is detected and all lanes are properly initialized
+ * and active before reporting the link is up
+ *
+ * Context: Process, May sleep. Uses mutex_lock_interruptible
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 {
 	int err;
@@ -606,6 +637,15 @@ out:
 }
 EXPORT_SYMBOL(sbl_base_link_start);
 
+/**
+ * sbl_ignore_save_tuning_param() - Config ignore save tuning parameters
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @ignore: If set then ignore save tuning
+ *
+ * This function performs the Load saved tuning params before tuning
+ * when 'ignore' is set false from caller.
+ */
 void sbl_ignore_save_tuning_param(struct sbl_inst *sbl, int port_num, bool ignore)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -617,6 +657,15 @@ void sbl_ignore_save_tuning_param(struct sbl_inst *sbl, int port_num, bool ignor
 }
 EXPORT_SYMBOL(sbl_ignore_save_tuning_param);
 
+/**
+ * sbl_enable_opt_lane_degrade() - Enable opt lane degrade
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @enable: if set then enable OPT LANE DEGRADE
+ *
+ * This function performs enable auto lane degrade when
+ * 'enable' is set from the caller
+ */
 void sbl_enable_opt_lane_degrade(struct sbl_inst *sbl, int port_num, bool enable)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -628,7 +677,15 @@ void sbl_enable_opt_lane_degrade(struct sbl_inst *sbl, int port_num, bool enable
 }
 EXPORT_SYMBOL(sbl_enable_opt_lane_degrade);
 
-
+/**
+ * sbl_disable_pml_recovery() - Disable PML recovery
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @disable: if set, then disable PML recovery
+ *
+ * This function performs disable PML recovery
+ * when 'disable' is set from the caller
+ */
 void sbl_disable_pml_recovery(struct sbl_inst *sbl, int port_num, bool disable)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -640,7 +697,13 @@ void sbl_disable_pml_recovery(struct sbl_inst *sbl, int port_num, bool disable)
 }
 EXPORT_SYMBOL(sbl_disable_pml_recovery);
 
-
+/**
+ * sbl_set_degraded_flag() - Set degraded flag
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Context: Process context, Acquires lock and releases is_degraded_lock <spin_lock>
+ */
 void sbl_set_degraded_flag(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -651,7 +714,13 @@ void sbl_set_degraded_flag(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_set_degraded_flag);
 
-
+/**
+ * sbl_clear_degraded_flag() - Clear degraded flag
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Context: Process context, Acquires lock and releases is_degraded_lock <spin_lock>
+ */
 void sbl_clear_degraded_flag(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -662,7 +731,15 @@ void sbl_clear_degraded_flag(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_clear_degraded_flag);
 
-
+/**
+ * sbl_get_degraded_flag() - Get degraded flag
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Context: Process context, Acquires lock and releases is_degraded_lock <spin_lock>
+ *
+ * Return: status of degraded flag
+ */
 bool sbl_get_degraded_flag(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -676,7 +753,15 @@ bool sbl_get_degraded_flag(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_get_degraded_flag);
 
-
+/**
+ * sbl_base_link_enable_start() - Enable base link start
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Context: Process context, Acquires lock and releases link->lock <spin_lock>
+ *
+ * Return: 0
+ */
 int sbl_base_link_enable_start(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -691,7 +776,15 @@ int sbl_base_link_enable_start(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_base_link_enable_start);
 
-
+/**
+ * sbl_base_link_cancel_start() - Cancel base link start
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Context: Process context, Acquires lock and releases link->lock <spin_lock>
+ *
+ * Return: 0
+ */
 int sbl_base_link_cancel_start(struct sbl_inst *sbl, int port_num)
 {
 	int rtn;
@@ -725,7 +818,18 @@ bool sbl_base_link_start_cancelled(struct sbl_inst *sbl, int port_num)
 	return cancelled;
 }
 
-
+/**
+ * sbl_base_link_stop() - Stop base link
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * This function cleanly shuts down previously initialized
+ * SerDes link, link monitoring and stops the PML block.
+ *
+ * Context: Process, May sleep. Uses mutex_lock_interruptible
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_base_link_stop(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link;
@@ -815,7 +919,18 @@ out:
 }
 EXPORT_SYMBOL(sbl_base_link_stop);
 
-
+/**
+ * sbl_base_link_reset() - Reset base link
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * This function resets the base link by disabling
+ * pml interrupt handlers, resets serdes and PML block.
+ *
+ * Context: Process, May sleep. Uses mutex_lock_interruptible
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_base_link_reset(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link;
@@ -886,10 +1001,15 @@ int sbl_base_link_reset(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_base_link_reset);
 
-
-/*
- * try to clear any error states that are non-fatal so we can directly
+/**
+ * sbl_base_link_try_start_fail_cleanup() - Clean up resources
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Try to clear any error states that are non-fatal so we can directly
  * attempt another start up.
+ *
+ * Context: Process, May sleep. Uses mutex_lock_interruptible
  */
 void sbl_base_link_try_start_fail_cleanup(struct sbl_inst *sbl, int port_num)
 {
@@ -989,6 +1109,22 @@ void sbl_base_link_try_start_fail_cleanup(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_base_link_try_start_fail_cleanup);
 
+/**
+ * sbl_base_link_get_status() - Get link status
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @blstate: link state
+ * @blerr: link err
+ * @sstate: state
+ * @serr: err
+ * @media_type: media type
+ * @link_mode: link mode
+ *
+ * This function gets base link status from params
+ * used
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_base_link_get_status(struct sbl_inst *sbl, int port_num,
 		int *blstate, int *blerr, int *sstate, int *serr,
 		int *media_type, int *link_mode)
@@ -1028,9 +1164,17 @@ int sbl_base_link_get_status(struct sbl_inst *sbl, int port_num,
 }
 EXPORT_SYMBOL(sbl_base_link_get_status);
 
-
-/*
- * update a string with the state of the pcs and serdes
+/**
+ * sbl_base_link_state_str() - Read the state of the pcs and serdes
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @len: Length of data to write
+ *
+ * This function reads the state of pcs and serdes
+ * and return in the string format
+ *
+ * Return: Number of characters written on success
  */
 char *sbl_base_link_state_str(struct sbl_inst *sbl, int port_num, char *buf, int len)
 {
@@ -1056,8 +1200,14 @@ char *sbl_base_link_state_str(struct sbl_inst *sbl, int port_num, char *buf, int
 }
 EXPORT_SYMBOL(sbl_base_link_state_str);
 
-/*
- * uncorrected codeword thresholds
+/**
+ * sbl_link_get_ucw_thresh_hpe() - uncorrected codeword thresholds(hpe)
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * This function reads ucw(hpe) based on link mode
+ *
+ * Return: Threshold value on success, 0 on failure.
  */
 u64  sbl_link_get_ucw_thresh_hpe(struct sbl_inst *sbl, int port_num)
 {
@@ -1079,7 +1229,15 @@ u64  sbl_link_get_ucw_thresh_hpe(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_link_get_ucw_thresh_hpe);
 
-
+/**
+ * sbl_link_get_ucw_thresh_ieee() - uncorrected codeword thresholds(ieee)
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * This function reads ucw(ieee).
+ *
+ * Return: Threshold value on success, 0 on failure.
+ */
 u64  sbl_link_get_ucw_thresh_ieee(struct sbl_inst *sbl, int port_num)
 {
 	/* currently these are the same as the hpe values */
@@ -1087,9 +1245,14 @@ u64  sbl_link_get_ucw_thresh_ieee(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_link_get_ucw_thresh_ieee);
 
-
-/*
- * corrected code words
+/**
+ * sbl_link_get_ccw_thresh_hpe() - corrected codeword thresholds
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * This function reads ccw(hpe) based on link mode
+ *
+ * Return: Threshold value on success, 0 on failure.
  */
 u64  sbl_link_get_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num)
 {
@@ -1143,7 +1306,15 @@ u64  sbl_link_get_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_link_get_ccw_thresh_hpe);
 
-
+/**
+ * sbl_link_get_ccw_thresh_ieee() - Get correcred code words threshold
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * This function reads ccw(ieee) based on link mode
+ *
+ * Return: Threshold value on success, 0 on failure.
+ */
 u64  sbl_link_get_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -1167,9 +1338,14 @@ u64  sbl_link_get_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_link_get_ccw_thresh_ieee);
 
-/*
- * corrected code words when STP is used
- * It is meant to be aggressive and is of the order 1e-08
+/**
+ * sbl_link_get_stp_ccw_thresh_hpe() - Get Corrected code words(hpe) threshold
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Get Corrected code words(hpe) threshold when STP is used
+ *
+ * Return: Threshold value on success, 0 on failure.
  */
 u64  sbl_link_get_stp_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num)
 {
@@ -1223,7 +1399,15 @@ u64  sbl_link_get_stp_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_link_get_stp_ccw_thresh_hpe);
 
-
+/**
+ * sbl_link_get_stp_ccw_thresh_ieee() - Get corrected code word(ieee) threshold
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Get Corrected code words(ieee) threshold when STP is used
+ *
+ * Return: Threshold value on success, 0 on failure.
+ */
 u64  sbl_link_get_stp_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -1316,13 +1500,18 @@ void sbl_link_info_clear(struct sbl_inst *sbl, int port_num, u32 flag)
 	}
 }
 
-
-/*
- * Print out link state, info etc for sysfs diags
- *
- *   No locking here
- */
 #ifdef CONFIG_SYSFS
+/**
+ * sbl_base_link_sysfs_sprint() - Format link info into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * Context: Process, Acquires lock and release link->lock <spin_lock>
+ *
+ * Return: Number of characters written on success
+ */
 int sbl_base_link_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -1473,6 +1662,15 @@ int sbl_base_link_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, si
 EXPORT_SYMBOL(sbl_base_link_sysfs_sprint);
 #endif
 
+/**
+ * sbl_base_link_dump_attr() - Format all link attributes into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * Return: Number of characters written on success
+ */
 int sbl_base_link_dump_attr(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -1571,6 +1769,3 @@ int sbl_base_link_dump_attr(struct sbl_inst *sbl, int port_num, char *buf, size_
 	return s;
 }
 EXPORT_SYMBOL(sbl_base_link_dump_attr);
-
-
-

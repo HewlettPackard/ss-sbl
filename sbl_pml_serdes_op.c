@@ -25,17 +25,25 @@ static inline bool sbl_pml_serdes_op_busy(struct sbl_inst *sbl, int port_num)
 	return SBL_PML_SERDES_CORE_INTERRUPT_DO_CORE_INTERRUPT_GET(val64);
 }
 
-/*
- * Perform a serdes "operation"
+/**
+ * sbl_pml_serdes_op() - Perform a serdes interrupt configuration
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @serdes_sel: Value
+ * @op: Read serdes version
+ * @data: Set to zero
+ * @result: Pass this value to caller
+ * @timeout: Time set used for polling
+ * @flags: Used to set US/MSec delay
  *
- *   Essentially write the op code and its data to a register
- *   then poll for completion bit
+ * This function validates the instance and port number, picks
+ * polling interval from the provided flags and executes SERDES
+ * core interrupt configuration. It polls the completion or timeout
+ * for this operation and returns success or negative on failure
  *
- *   We use a mutex as we don't know how long the operation might take so we
- *   might need to sleep. Timing is very approximate as its not very critical.
+ * Context: May sleep based on access to serdes
  *
- *   Currently we lock this to enforce a single operation - we can probably relax this
- *   now its in the sbl
+ * Return: 0 on success, negative error code on failure
  */
 int sbl_pml_serdes_op(struct sbl_inst *sbl, int port_num, u64 serdes_sel,
 		u64 op, u64 data, u16 *result, int timeout, unsigned int flags)
@@ -110,8 +118,15 @@ int sbl_pml_serdes_op(struct sbl_inst *sbl, int port_num, u64 serdes_sel,
 }
 EXPORT_SYMBOL(sbl_pml_serdes_op);
 
-/*
- * serdes core interrupt access timings
+/**
+ * sbl_pml_serdes_op_timing() - serdes core interrupt access timings
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @capture: Value to capture the interrupt delay
+ * @clear: Value to clear interrupt delay
+ * @set: Value to set interrupt delay
+ *
+ * Return: 0 on success
  */
 int sbl_pml_serdes_op_timing(struct sbl_inst *sbl, int port_num, u64 capture,
 		u64 clear, u64 set)

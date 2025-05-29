@@ -225,6 +225,7 @@ restart:
 	 * poll for lane alignment
 	 */
 	start_jiffy = jiffies;
+
 	while (!sbl_pml_pcs_aligned(sbl, port_num)) {
 
 		if (sbl_start_timeout(sbl, port_num)) {
@@ -806,8 +807,13 @@ char *sbl_pml_pcs_state_str(struct sbl_inst *sbl, int port_num, char *buf, int l
 	return buf;
 }
 
-/*
- * enable pcs recovery
+/**
+ * sbl_pml_pcs_recovery_enable() - Enable PCS recovery
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Context: Process context, Acquires lock and release
+ * pcs_recovery_lock <spin_lock>
  */
 void sbl_pml_pcs_recovery_enable(struct sbl_inst *sbl, int port_num)
 {
@@ -823,9 +829,13 @@ void sbl_pml_pcs_recovery_enable(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_pml_pcs_recovery_enable);
 
-
-/*
- * disable pcs recovery
+/**
+ * sbl_pml_pcs_recovery_disable() - Disable PCS recovery
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Context: Process context, Acquires lock and release
+ * pcs_recovery_lock <spin_lock>
  */
 void sbl_pml_pcs_recovery_disable(struct sbl_inst *sbl, int port_num)
 {
@@ -841,6 +851,13 @@ void sbl_pml_pcs_recovery_disable(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_pml_pcs_recovery_disable);
 
+/**
+ * sbl_pml_pcs_aligned() - Check pcs align status
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Return: status of pcs align
+ */
 bool sbl_pml_pcs_aligned(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -1040,12 +1057,22 @@ int  sbl_pml_pcs_am_start(struct sbl_inst *sbl, int port_num)
 	return 0;
 }
 
-
-/*
- * print out pcs state
- *
- */
 #ifdef CONFIG_SYSFS
+/**
+ * sbl_pml_pcs_sysfs_sprint() - Format serdes info into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * This function checks the pcs_config flag and based on that
+ * it will format serdes info string into buffer.
+ *
+ * Context: Process context, Acquires lock and release
+ * link->lock <spin_lock>
+ *
+ * Return: Number of characters written on success
+ */
 int sbl_pml_pcs_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -1069,6 +1096,21 @@ int sbl_pml_pcs_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size
 }
 EXPORT_SYMBOL(sbl_pml_pcs_sysfs_sprint);
 
+/**
+ * sbl_pml_pcs_lane_degrade_sysfs_sprint() - Formats PCS ALD,TX/RX lane degrade into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * This function formats PCS ALD/(TX/RX) lane degrade string into buffer
+ * based on the flag 'pcs_config'.
+ *
+ * Context: Process context, Acquires lock and release
+ * link->lock <spin_lock>
+ *
+ * Return: Number of characters written on success
+ */
 int sbl_pml_pcs_lane_degrade_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	struct sbl_link *link = sbl->link + port_num;

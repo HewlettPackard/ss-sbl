@@ -38,8 +38,19 @@ void sbl_link_counters_term(struct sbl_link *link)
 	link->counters = NULL;
 }
 
-/*
- * Get a block of SBL link counters
+/**
+ * sbl_link_counters_get() - Get a block of SBL link counters
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @counters: Number of counters to read from 'first'
+ * @first: Index of the first counter to read
+ * @count: Number of consecutive counters to read starting from 'first'
+ *
+ * Reads a sequence of counters starting from index 'first'
+ * until the given 'count' and stores them to output
+ * pointed by 'counters'
+ *
+ * Return: 0 on success, negative error code on failure
  */
 int sbl_link_counters_get(struct sbl_inst *sbl, int port_num,
 		int *counters, u16 first, u16 count)
@@ -71,8 +82,15 @@ int sbl_link_counters_get(struct sbl_inst *sbl, int port_num,
 }
 EXPORT_SYMBOL(sbl_link_counters_get);
 
-/*
- * Returns value of a SBL link counter
+/**
+ * sbl_link_counters_read() - Read value of a SBL link counter
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @counter: Index at which reads the counter value
+ *
+ * Read link count value based on the 'counter' index
+ *
+ * Return: value of a SBL link counter on success, 0 on failure
  */
 int sbl_link_counters_read(struct sbl_inst *sbl, int port_num, u16 counter)
 {

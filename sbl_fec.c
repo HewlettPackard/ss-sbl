@@ -339,6 +339,16 @@ static void sbl_fec_rates_warnings(struct sbl_inst *sbl, int port_num,
 	}
 }
 
+/**
+ * sbl_fec_thresholds_clear() - Clear fec ccw/ucw/warn thresholds to zero
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Clears fec ccw/ucw/warn parameters to zero. This update is performed
+ * while holding a spinlock to ensure safe concurrent access.
+ *
+ * Context: Process context, Acquires lock and release fec_cw_lock <spin_lock>
+ */
 void sbl_fec_thresholds_clear(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -356,12 +366,19 @@ void sbl_fec_thresholds_clear(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_fec_thresholds_clear);
 
-/*
- *setup the fec thresholds
+/**
+ * sbl_fec_thresholds_set() - setup the fec thresholds
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @ucw_in: value for link mode and media
+ * @ccw_in: value for link mode and media
  *
- * The input args can either be (negative) flags or
- * explicit (positive) numbers.
- * A threshold of zero will disable threshold detection
+ * This function gets ccw/ucw/ccw warning values using arguments
+ * provided and copies it to the fec parameters.
+ *
+ * Context: Process context, Acquires lock and release fec_cw_lock <spin_lock>
+ *
+ * Return: 0 on success, negative error code on failure
  */
 int sbl_fec_thresholds_set(struct sbl_inst *sbl, int port_num,
 		s32 ucw_in, s32 ccw_in)
@@ -496,10 +513,19 @@ fail:
 }
 EXPORT_SYMBOL(sbl_fec_thresholds_set);
 
-/*
- * setup the fec threshold adjustments
+/**
+ * sbl_fec_adjustments_set() - setup the fec threshold adjustments
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @ucw_adj: Value (An adjustment of zero means disable the test)
+ * @ccw_adj: Value (An adjustment of zero means disable the test)
  *
- *	An adjustment of zero means disable the test
+ * This function copies provided parameters(ucw adj/ccw adj) from caller
+ * into fec parameters of fec_ucw_down_thresh_adj and fec_ccw_down_thresh_adj
+ *
+ * Context: Process context, Acquires lock and release fec_cw_lock <spin_lock>
+ *
+ * Return: 0 on success
  */
 int sbl_fec_adjustments_set(struct sbl_inst *sbl, int port_num,
 		u32 ucw_adj, u32 ccw_adj)
@@ -675,6 +701,20 @@ void sbl_fec_timer(struct timer_list *timer)
 }
 
 #ifdef CONFIG_SYSFS
+/**
+ * sbl_fec_sysfs_sprint() - Format FEC parameters status into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * This function formats FEC parameters and writes the result into the
+ * provided buffer typically for use in sysfs output.
+ *
+ * Context: Process context, Acquires lock and release fec_cw_lock <spin_lock>
+ *
+ * Return: Number of characters written on success
+ */
 int sbl_fec_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	u64 ucw_thresh;
@@ -739,10 +779,18 @@ int sbl_fec_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t s
 EXPORT_SYMBOL(sbl_fec_sysfs_sprint);
 #endif
 
-/*
- * set the llr_tx_replay rate threshold
+/**
+ * sbl_fec_txr_rate_set() - set the llr replay threshold
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @txr_rate: Value - An adjustment of zero means disable the test
  *
- *	An adjustment of zero means disable the test
+ * This function sets the LLR (Link-Level Retry) replay threshold
+ * used by the FEC logic. The threshold value is provided by the caller.
+ *
+ * Context: Process context, Acquires lock and release fec_cw_lock <spin_lock>
+ *
+ * Return: 0 on success
  */
 int sbl_fec_txr_rate_set(struct sbl_inst *sbl, int port_num,
 		u32 txr_rate)
@@ -762,10 +810,21 @@ int sbl_fec_txr_rate_set(struct sbl_inst *sbl, int port_num,
 }
 EXPORT_SYMBOL(sbl_fec_txr_rate_set);
 
-/*
- * modify adjustments
+/**
+ * sbl_fec_modify_adjustments() - Update FEC threshold adjustments
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @ucw_up_adj: Adjusting un-corrected code word thresholds
+ * @ccw_up_adj: Adjusting corrected code word thresholds
+ * @ucw_down_adj: Adjusting un-corrected code word thresholds
+ * @ccw_down_adj: Adjusting corrected code word thresholds
+ * @stp_ccw_up_adj: stp un-corrected code word thresholds
  *
- *	 (really at test/debug/tuning interface)
+ * This function adjusts max/min of uncorrected/corrected
+ * words for tuning/debug/test purposes at various levels.
+ * Used at test/debug/tuning interface.
+ *
+ * Context: Process context, Acquires lock and release fec_cw_lock <spin_lock>
  */
 void sbl_fec_modify_adjustments(struct sbl_inst *sbl, int port_num,
 		u32 *ucw_up_adj, u32 *ccw_up_adj, u32 *ucw_down_adj, u32 *ccw_down_adj, u32 *stp_ccw_up_adj)
@@ -789,8 +848,12 @@ void sbl_fec_modify_adjustments(struct sbl_inst *sbl, int port_num,
 }
 EXPORT_SYMBOL(sbl_fec_modify_adjustments);
 
-/*
- * dump adjusted FEC thresholds
+/**
+ * sbl_fec_dump() - Print FEC info
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Context: Process context, Acquires lock and release fec_cw_lock <spin_lock>
  */
 void sbl_fec_dump(struct sbl_inst *sbl, int port_num)
 {
@@ -836,6 +899,15 @@ void sbl_fec_dump(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_fec_dump);
 
+/**
+ * sbl_fec_hwms_clear() - Clear fec HW management config
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * This function clears the FEC HWM configuration
+ *
+ * Context: Process context, Acquires lock and release fec_cw_lock <spin_lock>
+ */
 void sbl_fec_hwms_clear(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;

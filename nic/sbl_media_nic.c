@@ -11,6 +11,19 @@
 #include "sbl_internal.h"
 
 #ifdef CONFIG_SYSFS
+
+/**
+ * sbl_media_type_sysfs_sprint() - Report media type into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * This function reads the physical type of media used based on mconfigured
+ * and writes a formatted description of the type into the provided buffer
+ *
+ * Return: Number of characters written on success
+ */
 int sbl_media_type_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	struct sbl_link *link = sbl->link + port_num;

@@ -201,6 +201,12 @@ static int sbl_fec_init(struct sbl_inst *sbl)
 	return 0;
 }
 
+/**
+ * sbl_get_version() - Get SBL Version
+ * @major: Major version number
+ * @minor: Minor version number
+ * @inc: Incremented version
+ */
 void sbl_get_version(int *major, int *minor, int *inc)
 {
 	if (major)
@@ -212,6 +218,12 @@ void sbl_get_version(int *major, int *minor, int *inc)
 }
 EXPORT_SYMBOL(sbl_get_version);
 
+/**
+ * sbl_get_num_sbus_rings() - Get the number of sbus rings
+ * @sbl: A slingshot base link device instance
+ *
+ * Return: number of sbus rings
+ */
 int sbl_get_num_sbus_rings(struct sbl_inst *sbl)
 {
 	int err;
@@ -224,6 +236,19 @@ int sbl_get_num_sbus_rings(struct sbl_inst *sbl)
 }
 EXPORT_SYMBOL(sbl_get_num_sbus_rings);
 
+/**
+ * sbl_new_instance() - Create new sbl instance
+ * @accessor: Determined by the client driver, Which acts
+ *            as abstraction to perform low-level operation
+ * @pci_accessor: Points to bus/vendor specific PCI access
+ * @ops: callback function operations
+ * @init_attr: Pointer to struct sbl_init_attr
+ *
+ * This function initializes multiple members which
+ * helps to create new sbl instance
+ *
+ * Return: sbl instance on success, negative error code on failure
+ */
 struct sbl_inst *sbl_new_instance(void *accessor, void *pci_accessor,
 				  const struct sbl_ops *ops,
 				  struct sbl_init_attr *init_attr)
@@ -352,6 +377,15 @@ out:
 }
 EXPORT_SYMBOL(sbl_new_instance);
 
+/**
+ * sbl_delete_instance() - Delete sbl instance
+ * @sbl: A slingshot base link device instance
+ *
+ * This function clears the config and frees all
+ * memory associated with an SBL.
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_delete_instance(struct sbl_inst *sbl)
 {
 	struct sbl_link *link;
@@ -396,10 +430,15 @@ int sbl_delete_instance(struct sbl_inst *sbl)
 }
 EXPORT_SYMBOL(sbl_delete_instance);
 
-/*
- * initialise the instance
+/**
+ * sbl_initialise_instance() - Initialize the instance
+ * @sbl: A slingshot base link device instance
+ * @attr: Pointer to struct sbl_instance_attr
  *
- *   Most initialisation is done during configuration
+ * This function loads required firmware to SBM/Serdes as part of
+ * Initialising the base link instance
+ *
+ * Return: 0 on success, negative error code on failure
  */
 int sbl_initialise_instance(struct sbl_inst *sbl, struct sbl_instance_attr *attr)
 {
@@ -430,7 +469,12 @@ int sbl_initialise_instance(struct sbl_inst *sbl, struct sbl_instance_attr *attr
 }
 EXPORT_SYMBOL(sbl_initialise_instance);
 
-
+/**
+ * sbl_restore_instance() - Restoring instance
+ * @sbl: A slingshot base link device instance
+ *
+ * Return: negative error code on failure
+ */
 int sbl_restore_instance(struct sbl_inst *sbl)
 {
 	sbl_dev_err(sbl->dev, "Restoring an instance not supported (yet)\n");

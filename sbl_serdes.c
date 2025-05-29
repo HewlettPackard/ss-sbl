@@ -99,6 +99,18 @@ out:
 	return err;
 }
 
+/**
+ * sbl_serdes_load() - SerDes initial load function
+ * @sbl: pointer containing target config and state
+ * @port_num: target port number
+ * @force: reset and flash even if current fw is at the correct
+ *        rev and build number
+ *
+ *  When power cycle or controller boots, This function
+ *  Applies the SBus speedup and flashes all SBM/SerDes firmware images
+ *
+ * Return: 0 on success or negative errno on failure
+ */
 int sbl_serdes_load(struct sbl_inst *sbl, int port_num, bool force)
 {
 	int err;
@@ -583,9 +595,18 @@ int sbl_an_serdes_stop(struct sbl_inst *sbl, int port_num)
 	return err;
 }
 
-/*
- * Saved tuning params
+/**
+ * sbl_serdes_get_tuning_params() - Save tuning params
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @tuning_params: tuning parameters used to configure a link,
+ *                allowing the SerDes to come up without needing to DFE tune.
  *
+ * Get tuning parameters which was used to configure a link
+ *
+ * Context: Process, May sleep. Uses mutex_lock
+ *
+ * Return: 0 on success, negative error code on failure
  */
 int sbl_serdes_get_tuning_params(struct sbl_inst *sbl, int port_num,
 		struct sbl_tuning_params *tuning_params)
@@ -621,7 +642,19 @@ int sbl_serdes_get_tuning_params(struct sbl_inst *sbl, int port_num,
 }
 EXPORT_SYMBOL(sbl_serdes_get_tuning_params);
 
-
+/**
+ * sbl_serdes_set_tuning_params() - set tuning params for serdes
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @tuning_params: Pointer to struct sbl_tuning_params
+ *
+ *  Set tuning parameters used to configure a link, allowing the SerDes
+ *  to come up.
+ *
+ * Context: Process, May sleep. Uses mutex_lock
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_serdes_set_tuning_params(struct sbl_inst *sbl, int port_num,
 		struct sbl_tuning_params *tuning_params)
 {
@@ -657,7 +690,17 @@ int sbl_serdes_set_tuning_params(struct sbl_inst *sbl, int port_num,
 }
 EXPORT_SYMBOL(sbl_serdes_set_tuning_params);
 
-
+/**
+ * sbl_serdes_invalidate_tuning_params() - Invalidate tuning params
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Clearing per port tuning parameters
+ *
+ * Context: Process, May sleep. Uses mutex_lock
+ *
+ * Return: 0 on success, negative error code on failure.
+ */
 int sbl_serdes_invalidate_tuning_params(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link;
@@ -683,7 +726,14 @@ int sbl_serdes_invalidate_tuning_params(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_serdes_invalidate_tuning_params);
 
-
+/**
+ * sbl_serdes_invalidate_all_tuning_params() - Invalidate all tuning params
+ * @sbl: A slingshot base link device instance
+ *
+ * Clearing all ports tuning parameters
+ *
+ * Return: 0 on success
+ */
 int sbl_serdes_invalidate_all_tuning_params(struct sbl_inst *sbl)
 {
 	int i;
@@ -695,9 +745,24 @@ int sbl_serdes_invalidate_all_tuning_params(struct sbl_inst *sbl)
 }
 EXPORT_SYMBOL(sbl_serdes_invalidate_all_tuning_params);
 
-/*
- * Serdes configuration addition/removal support
+/**
+ * sbl_serdes_add_config() - Serdes configuration addition
+ * @sbl: A slingshot base link device instance
+ * @tp_state_mask0: State lookup mask
+ * @tp_state_mask1: State lookup mask
+ * @tp_state_match0: match values after masking
+ * @tp_state_match1: match values after masking
+ * @port_mask: applicable ports
+ * @serdes_mask: applicable serdes
+ * @vals: Configuration values
+ * @is_default: Default configuration
  *
+ * A SerDes configuration entry specifies a set of config values which
+ * are selected to get the SerDes to tune reliably for a given setup.
+ *
+ * Context: Process context, Acquires lock and release serdes_config_lock <spin_lock>
+ *
+ * Return: 0 on success, negative error code on failure
  */
 int sbl_serdes_add_config(struct sbl_inst *sbl,
 		u64 tp_state_mask0, u64 tp_state_mask1,
@@ -757,7 +822,23 @@ int sbl_serdes_add_config(struct sbl_inst *sbl,
 }
 EXPORT_SYMBOL(sbl_serdes_add_config);
 
-
+/**
+ * sbl_serdes_del_config() - Delete serdes configuration
+ * @sbl: A slingshot base link device instance
+ * @tp_state_mask0: State lookup mask
+ * @tp_state_mask1: State lookup mask
+ * @tp_state_match0: match values after masking
+ * @tp_state_match1: match values after masking
+ * @port_mask: applicable ports
+ * @serdes_mask: applicable serdes
+ *
+ * Delete SerDes config values which are selected to get the
+ * SerDes to tune
+ *
+ * Context: Process context, Acquires lock and release serdes_config_lock <spin_lock>
+ *
+ * Return: 0 on success, negative error code on failure
+ */
 int sbl_serdes_del_config(struct sbl_inst *sbl,
 		u64 tp_state_mask0, u64 tp_state_mask1,
 		u64 tp_state_match0, u64 tp_state_match1,
@@ -796,7 +877,15 @@ int sbl_serdes_del_config(struct sbl_inst *sbl,
 }
 EXPORT_SYMBOL(sbl_serdes_del_config);
 
-
+/**
+ * sbl_serdes_clear_all_configs() - serdes clear all configurations
+ * @sbl: A slingshot base link device instance
+ * @clr_default: Clear default value
+ *
+ * Context: Process context, Acquires lock and release serdes_config_lock <spin_lock>
+ *
+ * Return: 0 on success, negative error on failure
+ */
 int sbl_serdes_clear_all_configs(struct sbl_inst *sbl, bool clr_default)
 {
 	struct sbl_serdes_config *sc;
@@ -824,7 +913,13 @@ int sbl_serdes_clear_all_configs(struct sbl_inst *sbl, bool clr_default)
 }
 EXPORT_SYMBOL(sbl_serdes_clear_all_configs);
 
-
+/**
+ * sbl_serdes_dump_configs() - Print all serdes configs
+ * @sbl: A slingshot base link device instance
+ *
+ * Context: Process context, Acquires lock and release serdes_config_lock <spin_lock>
+ * Return: on error
+ */
 void sbl_serdes_dump_configs(struct sbl_inst *sbl)
 {
 	struct sbl_serdes_config *sc;
@@ -851,10 +946,23 @@ u32 sbl_serdes_get_config_tag(void)
 	return atomic_inc_return(&sbl_next_serdes_config_tag);
 }
 
-/*
- * sysfs state output
- */
 #ifdef CONFIG_SYSFS
+/**
+ * sbl_serdes_sysfs_sprint() - Format all seredes status into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * Inspects the current SERDES state and based on the value, formats
+ * relevant status or counter information into a readable string. The
+ * formatted output is written to the provided buffer. The output includes
+ * flags such as ":on", ":off", or serdes-reload-counters[fw,spico,pll] values
+ *
+ * Context: Process context, Acquires lock and release link->lock <spin_lock>
+ *
+ * Return: Number of characters written on success.
+ */
 int sbl_serdes_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -937,9 +1045,19 @@ int sbl_serdes_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_
 EXPORT_SYMBOL(sbl_serdes_sysfs_sprint);
 
 /*
- * Get the serdes firmware version information for the port as a string.
- * Multiple serdes firmware versions exist per port. Each serdes lane
- * firmware version is listed on a newline.
+ */
+/**
+ * sbl_serdes_fw_sysfs_sprint() - Format SERDES firmware rev and build into buffer
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * Get the serdes firmware version and build information for the port as a string.
+ * Multiple serdes firmware versions and build exist per port. Format those information
+ * into provided buffer
+ *
+ * Return: Number of characters written on success, negative error on failure
  */
 int sbl_serdes_fw_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size)
 {
@@ -977,8 +1095,14 @@ int sbl_serdes_fw_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, si
 }
 EXPORT_SYMBOL(sbl_serdes_fw_sysfs_sprint);
 
-/*
- * Get the sbm firmware version information for the sbus ring as a string.
+/**
+ * sbl_sbm_fw_sysfs_sprint() - Get sbus master firmware version
+ * @sbl: A slingshot base link device instance
+ * @ring: Value
+ * @buf: Destination buffer to write the data
+ * @size: Size of data to write
+ *
+ * Return: Number of characters on success, negative error on failure
  */
 int sbl_sbm_fw_sysfs_sprint(struct sbl_inst *sbl, int ring, char *buf, size_t size)
 {

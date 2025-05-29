@@ -17,6 +17,11 @@ static struct sbl_switch_info cas_brazos_switch_info = SBL_CASSINI_BRAZOS_SW_INF
 static struct sbl_switch_info cas_nic0_switch_info = SBL_CASSINI_NIC0_SW_INFO_INITIALIZER;
 static struct sbl_switch_info cas_nic1_switch_info = SBL_CASSINI_NIC1_SW_INFO_INITIALIZER;
 
+/**
+ * sbl_set_eth_name() - Set ethernet interface name
+ * @sbl: A slingshot base link device instance
+ * @name: String used to set as interface name
+ */
 void sbl_set_eth_name(struct sbl_inst *sbl, const char *name)
 {
 	if (!sbl || !name)

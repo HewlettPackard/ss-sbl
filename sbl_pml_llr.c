@@ -583,6 +583,13 @@ out_err:
 	return err;
 }
 
+/**
+ * sbl_pml_llr_get_state() - Get pml llr state
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Return: state value
+ */
 u32 sbl_pml_llr_get_state(struct sbl_inst *sbl, int port_num)
 {
 	u32 base  = SBL_PML_BASE(port_num);
@@ -609,8 +616,12 @@ u32 sbl_pml_llr_get_state(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_pml_llr_get_state);
 
-/*
- * stop
+/**
+ * sbl_pml_llr_stop() - Stop pml llr functionality
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ *
+ * Configure various pml llr registers to stop functionality
  */
 void sbl_pml_llr_stop(struct sbl_inst *sbl, int port_num)
 {
@@ -641,13 +652,14 @@ void sbl_pml_llr_stop(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_pml_llr_stop);
 
-
-/*
- * disable
+/**
+ * sbl_pml_llr_disable() - Disable pml llr
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
  *
- *  called by the fabric LSM when the link goes into draining
- *  the llr is stopped
- *
+ * This function disables the LLR feature by updating the LLR
+ * mode configuration register. Also updates the link info to reflect
+ * disabled state and clear active status.
  */
 void sbl_pml_llr_disable(struct sbl_inst *sbl, int port_num)
 {
@@ -666,13 +678,13 @@ void sbl_pml_llr_disable(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_pml_llr_disable);
 
-
-/*
- * enable
+/**
+ * sbl_pml_llr_enable() - Enable pml llr
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
  *
- *  called by the fabric LSM when the link goes into starting
- *  the llr is restored to its previous state
- *
+ * Sets the LLR mode based on the link configuration to
+ * enable the LLR feature.
  */
 void sbl_pml_llr_enable(struct sbl_inst *sbl, int port_num)
 {
@@ -684,8 +696,18 @@ void sbl_pml_llr_enable(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_pml_llr_enable);
 
-/*
- * check llr is ready with timeout
+/**
+ * sbl_pml_llr_check_is_ready() - check llr state
+ * @sbl: A slingshot base link device instance
+ * @port_num: port number
+ * @timeout_ms: Value
+ *
+ * Check matching LLR state in invervals, if state
+ * matches then return else sleep in intervals untill timeout.
+ *
+ * Context: Sleep in intervals based on condition
+ *
+ * Return: true on success
  */
 bool sbl_pml_llr_check_is_ready(struct sbl_inst *sbl, int port_num, unsigned int timeout_ms)
 {
