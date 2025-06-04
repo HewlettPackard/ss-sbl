@@ -1,0 +1,7 @@
+name: Check for SITF pre-merge completion
+
+on: pull_request_review
+
+jobs:
+  sitf-pre-merge:
+    uses: hpe/hpc-lonesshot-slingshot_bot/.github/workflows/sitf_pre_merge_status.yaml@master
