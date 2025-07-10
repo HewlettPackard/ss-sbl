@@ -1,0 +1,12 @@
+# Copyright 2025 Hewlett Packard Enterprise Development LP
+
+prefix=@prefix@
+includedir=${prefix}/usr/include
+
+Name: sbldrv
+Description: Slingshot base link headers access by dependents
+Version: 1.0.0
+
+Requires:
+Cflags: -I${includedir}
+Libs:

@@ -36,6 +36,7 @@ TOUCH          := touch
 PWD            := $(shell pwd)
 KDIR           ?= /lib/modules/$(shell uname -r)/build
 STAGING_DIR    ?= /tmp/staging_dir
+PKGCONFIG_DIR = $(STAGING_DIR)/usr/lib/pkgconfig
 
 # Rosetta-specific defines
 ifdef PLATFORM_ROSETTA_HW
@@ -64,13 +65,16 @@ else
 all: modules
 endif
 
+sbldrv.pc: pkgconfig/sbldrv.pc.in
+	sed "s|@prefix@|$(STAGING_DIR)|g" $< > $@
+
 modules clean:
 	$(MAKE_KNL)  $@
 
 setup:
 	./contrib/install_git_hooks.sh
 
-stage_install: setup modules
+stage_install: setup modules sbldrv.pc
 	$(INSTALL) -d $(STAGING_DIR)
 	$(INSTALL) -d $(STAGING_DIR)/lib/modules/$(KNL_REL)
 	$(TOUCH) $(STAGING_DIR)/lib/modules/$(KNL_REL)/modules.order
@@ -93,6 +97,10 @@ stage_install: setup modules
 	$(INSTALL) -m 644 uapi/sbl_sbm_constants.h $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 uapi/sbl_counters.h $(STAGING_DIR)/usr/include/uapi
 	$(INSTALL) -m 644 uapi/sbl_cassini.h $(STAGING_DIR)/usr/include/uapi
+	$(INSTALL) -m 644 uapi/sbl_serdes_map.h $(STAGING_DIR)/usr/include/uapi
+	$(INSTALL) -m 644 sbl_serdes_map_autogen.h $(STAGING_DIR)/usr/include/uapi
+	$(INSTALL) -m 644 sbl_kconfig.h $(STAGING_DIR)/usr/include/uapi
+	$(INSTALL) -D -m 644 sbldrv.pc $(PKGCONFIG_DIR)/sbldrv.pc
 
 stage_uninstall:
 	$(RM) $(STAGING_DIR)/usr/include/linux/sbl.h
@@ -108,6 +116,11 @@ stage_uninstall:
 	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_serdes.h
 	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_sbm_constants.h
 	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_counters.h
+	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_serdes_map.h
+	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_serdes_map_autogen.h
+	$(RM) $(STAGING_DIR)/usr/include/uapi/sbl_kconfig.h
+	$(RM) sbldrv.pc
+	$(RM) $(PKGCONFIG_DIR)/sbldrv.pc
 
 # 'make rpm' target for Cassini hosts
 .PHONY: dist rpm
