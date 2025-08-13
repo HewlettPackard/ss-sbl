@@ -18,8 +18,7 @@
 #include "sbl_internal.h"
 
 
-/*
- * start timeout is the limit for sbl_base_link_start() to bring the link up
+/* start timeout is the limit for sbl_base_link_start() to bring the link up
  * this includes all stages of link bringup
  */
 void sbl_link_init_start_timeout(struct sbl_inst *sbl, int port_num)
@@ -39,9 +38,7 @@ void sbl_link_init_start_timeout(struct sbl_inst *sbl, int port_num)
 }
 
 
-/*
- * change the start timeout
- */
+/* change the start timeout */
 void sbl_link_update_start_timeout(struct sbl_inst *sbl, int port_num, unsigned int timeout_ms)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -58,9 +55,7 @@ void sbl_link_update_start_timeout(struct sbl_inst *sbl, int port_num, unsigned 
 }
 
 
-/*
- * test if we have timed out - returns true if we have
- */
+/* test if we have timed out - returns true if we have */
 bool sbl_start_timeout(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -92,9 +87,7 @@ u32 sbl_get_start_timeout(struct sbl_inst *sbl, int port_num)
 }
 
 
-/*
- * update start timeout to ensure there is a minimum  amout of time remaining
- */
+/* update start timeout to ensure there is a minimum  amout of time remaining */
 void sbl_start_timeout_ensure_remaining(struct sbl_inst *sbl, int port_num, unsigned int remaining_s)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -161,9 +154,7 @@ void sbl_link_start_record_timespec(struct sbl_inst *sbl, int port_num)
 }
 
 
-/*
- * up time is the time to tune serdes and bring-up pml
- */
+/* up time is the time to tune serdes and bring-up pml */
 void sbl_link_up_begin(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -188,10 +179,7 @@ void sbl_link_up_record_timespec(struct sbl_inst *sbl, int port_num)
 }
 
 
-/*
- * tune time is the time serdes spent actually tuning
- *
- */
+/* tune time is the time serdes spent actually tuning */
 void sbl_link_tune_begin(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -249,5 +237,3 @@ void sbl_link_tune_update_total_timespec(struct sbl_inst *sbl, int port_num)
 	link->total_tune_time.tv_nsec = ns;
 	spin_unlock(&link->timeout_lock);
 }
-
-

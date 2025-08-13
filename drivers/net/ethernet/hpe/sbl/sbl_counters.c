@@ -11,9 +11,7 @@
 
 #include "sbl_internal.h"
 
-/*
- * create and initialise the SBL link's counter array
- */
+/* create and initialise the SBL link's counter array */
 int sbl_link_counters_init(struct sbl_link *link)
 {
 	int i;
@@ -30,9 +28,7 @@ int sbl_link_counters_init(struct sbl_link *link)
 	return 0;
 }
 
-/*
- * destroy the SBL link's counter array
- */
+/* destroy the SBL link's counter array */
 void sbl_link_counters_term(struct sbl_link *link)
 {
 	kfree(link->counters);
@@ -116,9 +112,7 @@ int sbl_link_counters_read(struct sbl_inst *sbl, int port_num, u16 counter)
 }
 EXPORT_SYMBOL(sbl_link_counters_read);
 
-/*
- * Increment a SBL link counter
- */
+/* Increment a SBL link counter */
 int sbl_link_counters_incr(struct sbl_inst *sbl, int port_num, u16 counter)
 {
 	struct sbl_link *link;

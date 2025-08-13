@@ -8,8 +8,7 @@
  * @brief Cassini platform options provided by the microcontroller
  *
  */
-enum cass_uc_platform
-{
+enum cass_uc_platform {
 	SBL_UC_PLATFORM_UNDEFINED = 0,
 	SBL_UC_PLATFORM_UNKNOWN,
 	SBL_UC_PLATFORM_SAWTOOTH,

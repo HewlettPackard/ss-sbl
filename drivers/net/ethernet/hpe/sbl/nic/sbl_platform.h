@@ -22,9 +22,7 @@
 
 #define sbl_dev_dbg_ratelimited(_dev, _fmt, ...) \
 	dev_dbg_ratelimited((_dev), "%s[%s]: " _fmt, sbl->iattr.inst_name, sbl->iattr.eth_if_name, ##__VA_ARGS__)
-/*
- * Configuration passing into SBL init
- */
+/* Configuration passing into SBL init */
 struct sbl_init_attr {
 	u32 magic;
 	u32 uc_nic;

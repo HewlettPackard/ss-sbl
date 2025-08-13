@@ -56,8 +56,7 @@ static int sbl_fec_rates_update(struct sbl_inst *sbl, int port_num,
 
 	spin_lock(&fec_prmts->fec_cnt_lock);
 
-	/*
-	 * make sure the period is sufficient to update rates
+	/* make sure the period is sufficient to update rates
 	 * otherwise zero rates so nothing fires
 	 */
 	if (time_is_after_jiffies(fec_prmts->fec_curr_cnts->time + msecs_to_jiffies(window))) {
@@ -86,8 +85,7 @@ static int sbl_fec_rates_update(struct sbl_inst *sbl, int port_num,
 		return -EINTR;
 	}
 
-	/*
-	 * calc time difference  (HZ)
+	/* calc time difference  (HZ)
 	 * (unsigned so rollover ok)
 	 */
 	tdiff = fec_prmts->fec_curr_cnts->time - fec_prmts->fec_prev_cnts->time;
@@ -112,9 +110,7 @@ static int sbl_fec_rates_update(struct sbl_inst *sbl, int port_num,
 
 }
 
-/*
- * returns true if the corrected code word rate is bad
- */
+/* returns true if the corrected code word rate is bad */
 static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 				u32 thresh_adj, bool use_stp_thresh)
 {
@@ -128,11 +124,9 @@ static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 
 	sbl_fec_ccw_bad_get(fec_prmts, use_stp_thresh, &ccw_bad, &ccw_hwm);
 
-	/*
-	 * update high water mark
-	 *
-	 *	 we record this even if no test is performed so we can use it for
-	 *	 debug/calibration
+	/* update high water mark
+	 * we record this even if no test is performed so we can use it for
+	 * debug/calibration
 	 */
 	if (fec_prmts->fec_rates->ccw > ccw_hwm) {
 		spin_lock(&fec_prmts->fec_cw_lock);
@@ -140,9 +134,7 @@ static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 		spin_unlock(&fec_prmts->fec_cw_lock);
 	}
 
-	/*
-	 * apply percentage adjustment
-	 */
+	/* apply percentage adjustment */
 	ccw_bad = ccw_bad * thresh_adj / 100;
 
 	if (ccw_bad == 0) {
@@ -151,9 +143,7 @@ static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 		return false;
 	}
 
-	/*
-	 * check corrected code words
-	 */
+	/* check corrected code words */
 	if (fec_prmts->fec_rates->ccw > ccw_bad) {
 		sbl_link_counters_incr(sbl, port_num, fec_ccw_err);
 		ignore_err = sbl_debug_option(sbl, port_num, SBL_DEBUG_IGNORE_HIGH_FEC_CCW);
@@ -175,10 +165,8 @@ static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 	return false;
 }
 
-/*
- * returns true if the uncorrected code word rate is bad
- *
- *	 threshold adjustment is a percentage
+/* returns true if the uncorrected code word rate is bad
+ * threshold adjustment is a percentage
  */
 static bool sbl_fec_ucw_rate_bad(struct sbl_inst *sbl, int port_num,
 				u32 thresh_adj)
@@ -193,11 +181,9 @@ static bool sbl_fec_ucw_rate_bad(struct sbl_inst *sbl, int port_num,
 
 	sbl_fec_ucw_bad_get(fec_prmts, &ucw_bad, &ucw_hwm);
 
-	/*
-	 * update high water mark
-	 *
-	 *	 we record this even if no test is performed so we can use it for
-	 *	 debug/calibration
+	/* update high water mark
+	 * we record this even if no test is performed so we can use it for
+	 * debug/calibration
 	 */
 	if (fec_prmts->fec_rates->ucw > ucw_hwm) {
 		spin_lock(&fec_prmts->fec_cw_lock);
@@ -213,9 +199,7 @@ static bool sbl_fec_ucw_rate_bad(struct sbl_inst *sbl, int port_num,
 		return false;
 	}
 
-	/*
-	 * check uncorrected code words
-	 */
+	/* check uncorrected code words */
 	if (fec_prmts->fec_rates->ucw > ucw_bad) {
 		sbl_link_counters_incr(sbl, port_num, fec_ucw_err);
 		ignore_err = sbl_debug_option(sbl, port_num, SBL_DEBUG_IGNORE_HIGH_FEC_UCW);
@@ -254,11 +238,9 @@ static bool sbl_fec_txr_rate_bad(struct sbl_inst *sbl, int port_num,
 	llr_tx_replay_hwm = fec_prmts->fec_llr_tx_replay_hwm;
 	spin_unlock(&fec_prmts->fec_cw_lock);
 
-	/*
-	 * update high water mark
-	 *
-	 *	 we record this even if no test is performed so we can use it for
-	 *	 debug/calibration
+	/* update high water mark
+	 * we record this even if no test is performed so we can use it for
+	 * debug/calibration
 	 */
 	if (fec_prmts->fec_rates->llr_tx_replay > llr_tx_replay_hwm) {
 		spin_lock(&fec_prmts->fec_cw_lock);
@@ -270,9 +252,7 @@ static bool sbl_fec_txr_rate_bad(struct sbl_inst *sbl, int port_num,
 		return false;
 	}
 
-	/*
-	 * check llr_tx_replay rate
-	 */
+	/* check llr_tx_replay rate */
 	if (fec_prmts->fec_rates->llr_tx_replay > llr_tx_replay_bad) {
 		sbl_link_counters_incr(sbl, port_num, fec_txr_err);
 		ignore_err = sbl_debug_option(sbl, port_num, SBL_DEBUG_IGNORE_HIGH_FEC_TXR);
@@ -291,8 +271,7 @@ static bool sbl_fec_txr_rate_bad(struct sbl_inst *sbl, int port_num,
 	return false;
 }
 
-/*
- * print a few warnings (so we can see how things are changing) about high
+/* print a few warnings (so we can see how things are changing) about high
  * fec lane error rates
  */
 static void sbl_fec_rates_warnings(struct sbl_inst *sbl, int port_num,
@@ -396,9 +375,7 @@ int sbl_fec_thresholds_set(struct sbl_inst *sbl, int port_num,
 	u64 fecl_warn  = 0;
 	int err = 0;
 
-	/*
-	 * Uncorrected codeword threshold
-	 */
+	/* Uncorrected codeword threshold */
 	switch (ucw_in) {
 	case SBL_LINK_FEC_INVALID:
 		sbl_dev_err(sbl->dev, "%d: link ucw invalid", port_num);
@@ -429,9 +406,7 @@ int sbl_fec_thresholds_set(struct sbl_inst *sbl, int port_num,
 		break;
 	}
 
-	/*
-	 * Corrected codeword threshold
-	 */
+	/* Corrected codeword threshold */
 	switch (ccw_in) {
 	case SBL_LINK_FEC_INVALID:
 		sbl_dev_err(sbl->dev, "%d: attr ccw invalid", port_num);
@@ -466,9 +441,7 @@ int sbl_fec_thresholds_set(struct sbl_inst *sbl, int port_num,
 		break;
 	}
 
-	/*
-	 * ccw warning thresholds
-	 */
+	/* ccw warning thresholds */
 	err = sbl_base_link_get_status(sbl, port_num,
 			NULL, NULL, NULL, NULL, NULL, &link_mode);
 

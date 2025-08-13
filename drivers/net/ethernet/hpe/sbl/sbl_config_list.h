@@ -8,8 +8,7 @@
 #include <uapi/ethernet/sbl_serdes_defaults.h>
 
 
-/*
- * A SerDes configuration list entry specifies a set of config values which
+/* A SerDes configuration list entry specifies a set of config values which
  * are selected to get the SerDes to tune reliably for a given setup. Some default
  * entries are statically defined - additional entries can be added and removed from the
  * list dynamically
@@ -35,9 +34,7 @@ struct sbl_serdes_config {
 };
 
 
-/*
- * Default serdes config initializer
- */
+/* Default serdes config initializer */
 #define SBL_SERDES_CONFIG_INITIALIZER					\
 {									\
 	/*                   --mlmlmtlmtplblp           */              \

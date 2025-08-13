@@ -11,8 +11,7 @@
 #define SBL_TUNING_PARAM_VERSION                  2
 
 #define SBL_SERDES_CONFIG_MAGIC          0x63736d76  /* scvm */
-#define SBL_MAX_OOB_SERDES_PARAMS        0 /* Allow no more than this number of
-					      params to be out of bounds */
+#define SBL_MAX_OOB_SERDES_PARAMS        0 /* Allow no more than this number of params to be out of bounds */
 #define SBL_CTLE_HF_MIN          0
 #define SBL_CTLE_HF_MAX          15
 #define SBL_CTLE_LF_MIN          0
@@ -293,8 +292,7 @@ enum sbl_afec_params {
 /**
  * @brief Arrays of SerDes tuning parameters.
  */
-struct sbl_serdes_params
-{
+struct sbl_serdes_params {
 	__s16 ctle[NUM_CTLE_PARAMS];  /**< CTLE tuning params */
 	__s16 ffe[NUM_FFE_PARAMS];    /**< FFE tuning params */
 	__s16 dfe[NUM_DFE_PARAMS];    /**< DFE tuning params */
@@ -319,14 +317,13 @@ struct sbl_serdes_params
  *         were derived. This allows us to prevent applying saved parameters
  *         to configurations different from which they were intended for.
  */
-struct sbl_tuning_params
-{
+struct sbl_tuning_params {
 	__u32 magic;          /**< = SBL_TUNING_PARAM_MAGIC */
 	__u32 version;        /**< version number */
 	__u64 tp_state_hash0;  /**< Info for lp, lb, tp, lb, mt, mv */
 	__u64 tp_state_hash1;  /**< Info for ml */
 	struct sbl_serdes_params params[4];
-};	
+};
 
 
 /**
@@ -335,8 +332,7 @@ struct sbl_tuning_params
  */
 #define SBL_SC_MAX_INTR          16
 
-struct sbl_sc_values
-{
+struct sbl_sc_values {
 	__u32 magic;                        /**< = SBL_SERDES_CONFIG_MAGIC */
 	__u32 atten;                        /**< attenuation */
 	__u32 pre;                          /**<  */

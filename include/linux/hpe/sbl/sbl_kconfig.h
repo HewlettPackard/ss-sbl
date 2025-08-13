@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /* Copyright 2019-2020,2022-2023,2025 Hewlett Packard Enterprise Development LP. All rights reserved. */
-/*
- *
- * Kconfig fixup for external modules
+/*   Kconfig fixup for external modules
  *
  *   It is not possible to use the normal Kconfig infrastructure for
  *   externally built modules
@@ -26,15 +24,11 @@
 
 #define CONFIG_SBL				 y
 
-/*
- * currently unused config options we don't want to forget about
- */
+/* currently unused config options we don't want to forget about */
 #undef  CONFIG_SBL_FAST_AUTONEG
 #undef  CONFIG_SBL_MAC_PCS_EMU
 
-/*
- * Rosetta hardware platform
- */
+/* Rosetta hardware platform */
 #ifdef SBL_PLATFORM_ROS_HW
 
 #define CONFIG_SBL_PLATFORM_ROS		y
@@ -43,9 +37,7 @@
 #define CONFIG_SBL_NUM_PORTS            64
 #define CONFIG_SBL_NUM_SBUS_RINGS       2
 
-/*
- * Cassini hardware platform
- */
+/* Cassini hardware platform */
 #elif defined(SBL_PLATFORM_CAS_HW)
 
 #define CONFIG_SBL_PLATFORM_CAS		y
@@ -55,16 +47,12 @@
 #define CONFIG_SBL_NUM_SBUS_RINGS       1  /* 2 rings, but only one per NIC */
 
 #else /* SBL_PLATFORM_* */
-/*
- * undefined platform not possible, can't build
- */
+/* undefined platform not possible, can't build */
 #error  "Target platform not defined"
 #endif /* SBL_PLATFORM_* */
 
 #else /* SBL_EXTERNAL_BUILD */
-/*
- * undefined platform not possible, can't build
- */
+/* undefined platform not possible, can't build */
 #error  "Non-external builds of SBL are not supported!"
 
 #endif /* SBL_EXTERNAL_BUILD */

@@ -52,10 +52,9 @@ out:
 	return err;
 }
 
-/*
- * calculate the loop time
+/* calculate the loop time
  *
- *  try to make a number of measurements or timeout/cancelled
+ * try to make a number of measurements or timeout/cancelled
  */
 static int sbl_pml_llr_measure_loop_time_ns(struct sbl_inst *sbl, int port_num,
 		u64 *llr_loop_time)
@@ -153,8 +152,7 @@ out:
 	return err;
 }
 
-/*
- * calculate the required size of the llr buffer
+/*   calculate the required size of the llr buffer
  *
  *   we will use the measured loop time not cable length as we dont
  *   always have that.
@@ -212,9 +210,7 @@ static void sbl_pml_llr_calculate_capacity(struct sbl_inst *sbl, int port_num,
 		port_num, *max_data, *max_seq);
 }
 
-/*
- * enable llr timing measurements
- */
+/* enable llr timing measurements */
 static void sbl_pml_llr_enable_loop_timing(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -230,9 +226,7 @@ static void sbl_pml_llr_enable_loop_timing(struct sbl_inst *sbl, int port_num)
 	sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_LLR_LOOP);
 }
 
-/*
- * disable llr timing measurements
- */
+/* disable llr timing measurements */
 static void sbl_pml_llr_disable_loop_timing(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -248,9 +242,7 @@ static void sbl_pml_llr_disable_loop_timing(struct sbl_inst *sbl, int port_num)
 	sbl_link_info_clear(sbl, port_num, SBL_LINK_INFO_LLR_LOOP);
 }
 
-/*
- * set LLR mode
- */
+/* set LLR mode */
 static void sbl_pml_llr_mode_set(struct sbl_inst *sbl, int port_num, u32 llr_mode)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -277,9 +269,7 @@ static void sbl_pml_llr_mode_set(struct sbl_inst *sbl, int port_num, u32 llr_mod
 	sbl_read64(sbl, base|SBL_PML_CFG_LLR_OFFSET);  /* flush */
 }
 
-/*
- *  LLR detect
- */
+/* LLR detect */
 static int sbl_pml_llr_detect(struct sbl_inst *sbl, int port_num, u32 *llr_mode)
 {
 	u32           base       = SBL_PML_BASE(port_num);
@@ -333,9 +323,7 @@ out:
 	return err;
 }
 
-/*
- *  get LLR mode
- */
+/* get LLR mode */
 static int sbl_pml_llr_mode_get(struct sbl_inst *sbl, int port_num, u32 *llr_mode)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -425,9 +413,7 @@ out_err:
 	return err;
 }
 
-/*
- *  configure
- */
+/* configure */
 void sbl_pml_llr_config(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -472,9 +458,7 @@ void sbl_pml_llr_config(struct sbl_inst *sbl, int port_num)
 }
 
 
-/*
- *  start
- */
+/* start */
 int sbl_pml_llr_start(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -727,16 +711,14 @@ bool sbl_pml_llr_check_is_ready(struct sbl_inst *sbl, int port_num, unsigned int
 EXPORT_SYMBOL(sbl_pml_llr_check_is_ready);
 
 
-/*
- * behaviour when the link is down
- *   TODO - revisit with cassini and/or faster restart
+/* behaviour when the link is down
+ * TODO - revisit with cassini and/or faster restart
  */
 u64 sbl_pml_llr_link_down_behaviour(struct sbl_inst *sbl,
 		int port_num)
 {
 	if (sbl_is_fabric_link(sbl, port_num)) {
-		/*
-		 *   fabric link should really be BLOCK, but only if the pcs
+		/*   fabric link should really be BLOCK, but only if the pcs
 		 *   can recover quickly. Currently it can't - pcs failure means
 		 *   going right back to tuning the serdes.
 		 */

@@ -20,14 +20,10 @@
 #include "sbl_serdes_map.h"
 #include "sbl_internal.h"
 
-/*
- * for debug purposes we can add an extra null message page for fabric links
- */
+/* for debug purposes we can add an extra null message page for fabric links */
 #define SBL_SEND_EXTRA_FABRIC_NULL_PAGE                 0
 
-/*
- * set the reset state
- */
+/* set the reset state */
 static void sbl_an_pml_an_reset(struct sbl_inst *sbl, int port_num, u64 reset_state)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -113,9 +109,7 @@ static bool sbl_an_is_base_page(struct sbl_inst *sbl, int port_num)
 	return val;
 }
 
-/*
- * Setup the pages
- */
+/* Setup the pages */
 static int sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -125,9 +119,7 @@ static int sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num)
 	/* init to known non-zero value so it's easy to tell used pages from init pages */
 	memset(link->an_tx_page, 0xAA, sizeof(link->an_tx_page));
 
-	/*
-	 * build the base page
-	 */
+	/* build the base page */
 
 	link->an_tx_page[0] = 0;
 	link->an_tx_page[0] |= AN_CW_S_802_3;
@@ -164,8 +156,7 @@ static int sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num)
 		link->an_tx_page[0] |= (AN_CW_A_50GBASE_CR)   << AN_CW_A_BASE_BIT;
 	}
 
-	/*
-	 * Not sure what to set here - both Arista and Mellanox say zero so for
+	/* Not sure what to set here - both Arista and Mellanox say zero so for
 	 * now we will do the same and set nothing
 	 */
 
@@ -181,9 +172,7 @@ static int sbl_an_setup_tx_pages(struct sbl_inst *sbl, int port_num)
 		return 0;
 	}
 
-	/*
-	 * build HPE OUI next pages
-	 */
+	/* build HPE OUI next pages */
 
 	/* have next page (set in previous page) */
 	link->an_tx_page[0] |= AN_CW_NP_MASK;
@@ -231,9 +220,8 @@ static int sbl_an_pml_setup(struct sbl_inst *sbl, int port_num)
 	u64 cfg_rx_pcs_reg;
 	u64 val64;
 
-	/*
-	 * disable pcs autoneg
-	 *   as pcs is also disabled this will reset the pcs-serdes CDC logic
+	/* disable pcs autoneg
+	 * as pcs is also disabled this will reset the pcs-serdes CDC logic
 	 */
 	cfg_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
 	cfg_pcs_reg = SBL_PML_CFG_PCS_ENABLE_AUTO_NEG_UPDATE(cfg_pcs_reg, 0ULL);
@@ -270,9 +258,8 @@ static int sbl_an_pml_setup(struct sbl_inst *sbl, int port_num)
 	/* clear err flags */
 	sbl_pml_err_flgs_clear_all(sbl, port_num);
 
-	/*
-	 * enable autoneg
-	 *   this will take CDC logic out of reset
+	/* enable autoneg
+	 * this will take CDC logic out of reset
 	 */
 	cfg_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
 	cfg_pcs_reg = SBL_PML_CFG_PCS_ENABLE_AUTO_NEG_UPDATE(cfg_pcs_reg, 1ULL);
@@ -285,9 +272,7 @@ static int sbl_an_pml_setup(struct sbl_inst *sbl, int port_num)
 	return 0;
 }
 
-/*
- * perform page exchange
- *
+/* perform page exchange
  *
  *   Rosetta has a hw bug whereby some error flags cannot be cleared by the normal method
  *   as the an state machine will continually reassert them. (The failed, complete and
@@ -345,9 +330,7 @@ static int sbl_an_exchange(struct sbl_inst *sbl, int port_num)
 	link->an_tx_page[0] &= ~AN_CW_T_MASK;
 	link->an_tx_page[0] |= ((link->an_nonce << AN_CW_T_BASE_BIT) & AN_CW_T_MASK);
 
-	/*
-	 * base page exchange
-	 */
+	/* base page exchange */
 
 	err = sbl_an_hw_wait_prepare(sbl, port_num);
 	if (err)
@@ -391,9 +374,7 @@ static int sbl_an_exchange(struct sbl_inst *sbl, int port_num)
 		return -EBADE;
 	}
 
-	/*
-	 * next page exchange
-	 */
+	/* next page exchange */
 	err = sbl_an_page_exchange(sbl, port_num, remaining_jiffies);
 
 	if (err)
@@ -444,13 +425,11 @@ static int sbl_an_ability_match(struct sbl_inst *sbl, int port_num)
 
 	if (!sbl->is_hw) {
 		/* Netsim/Z1: No AN happening, so just force the response data to the
-		 *   tx data to ensure capability match
+		 * tx data to ensure capability match
 		 */
 		link->an_rx_page[0] = link->an_tx_page[0];
 	}
-	/*
-	 * abilities
-	 */
+	/* abilities */
 	tech_ability = (link->an_tx_page[0] & link->an_rx_page[0] & AN_CW_A_MASK)
 			>> AN_CW_A_BASE_BIT;
 	fec_ability = (link->an_tx_page[0] & link->an_rx_page[0] & AN_CW_F_MASK)
@@ -460,9 +439,7 @@ static int sbl_an_ability_match(struct sbl_inst *sbl, int port_num)
 	sbl_dev_dbg(sbl->dev, "an %d: tech 0x%x, fec 0x%x, pause %d", port_num,
 			tech_ability, fec_ability, pause_ability);
 
-	/*
-	 * FEC mode (we only do RS)
-	 */
+	/* FEC mode (we only do RS) */
 	if (fec_ability & AN_CW_F_25G_RS_REQ) {
 		/* ignore for now - set in config */
 	} else if (fec_ability & AN_CW_F_25G_BASER_REQ) {
@@ -473,13 +450,9 @@ static int sbl_an_ability_match(struct sbl_inst *sbl, int port_num)
 				port_num, fec_ability);
 	}
 
-	/*
-	 * TODO pause
-	 */
+	/* TODO pause */
 
-	/*
-	 * link mode (speed)
-	 */
+	/* link mode (speed) */
 	if (tech_ability & AN_CW_A_200GBASE_CR4) {
 		link->link_mode = SBL_LINK_MODE_BS_200G;
 	} else if (tech_ability & AN_CW_A_100GBASE_CR4) {
@@ -494,9 +467,7 @@ static int sbl_an_ability_match(struct sbl_inst *sbl, int port_num)
 		return -ENOENT;
 	}
 
-	/*
-	 * look at next page(s)
-	 */
+	/* look at next page(s) */
 	link->lp_subtype = SBL_LP_SUBTYPE_UNKNOWN;
 	for (x = 1; x < link->an_rx_count; ++x) {
 
@@ -609,8 +580,7 @@ static void sbl_an_update_timeout(struct sbl_inst *sbl, int port_num)
 	}
 }
 
-/*
- * If there is no common mode between this port and our link partner
+/* If there is no common mode between this port and our link partner
  * and if the lp advertises 100KR4 and we advertise 100CR4 then add 100CR4
  * to the lp's abilities.
  *
@@ -618,7 +588,6 @@ static void sbl_an_update_timeout(struct sbl_inst *sbl, int port_num)
  * 100CR even though it seems to be able to tune in this mode. Adding 100CR4
  * to the lp abilities means that we will resolve 100CR4 and start using this
  * mode.
- *
  */
 #define SBL_AN_KR4_BIT (1ULL << (AN_CW_A_BASE_BIT + AN_CW_A_100GBASE_KR4_BIT))
 #define SBL_AN_CR4_BIT (1ULL << (AN_CW_A_BASE_BIT + AN_CW_A_100GBASE_CR4_BIT))
@@ -686,17 +655,13 @@ int sbl_link_autoneg(struct sbl_inst *sbl, int port_num)
 		return -EINVAL;
 	}
 
-	/*
-	 * we can never be in loopback mode as the nonce will be the same!
-	 */
+	/* we can never be in loopback mode as the nonce will be the same! */
 	if (link->blattr.loopback_mode != SBL_LOOPBACK_MODE_OFF) {
 		sbl_dev_err(sbl->dev, "an %d: cannot autoneg in loopback mode", port_num);
 		return -ENOTUNIQ;
 	}
 
-	/*
-	 * pcs must not be enabled and autoneg must be off
-	 */
+	/* pcs must not be enabled and autoneg must be off */
 	cfg_pcs_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
 	if (SBL_PML_CFG_PCS_PCS_ENABLE_GET(cfg_pcs_reg)) {
 		sbl_dev_err(sbl->dev, "an %d: pcs is enabled", port_num);
@@ -709,26 +674,20 @@ int sbl_link_autoneg(struct sbl_inst *sbl, int port_num)
 		goto out;
 	}
 
-	/*
-	 * sort out the data to send/receive
-	 */
+	/* sort out the data to send/receive */
 	err = sbl_an_setup_tx_pages(sbl, port_num);
 	if (err) {
 		sbl_dev_err(sbl->dev, "an %d, page setup failed [%d]", port_num, err);
 		goto out;
 	}
 
-	/*
-	 * setup
-	 */
+	/* setup */
 	err = sbl_pml_install_intr_handler(sbl, port_num, SBL_AUTONEG_ERR_FLGS);
 	if (err)
 		goto out;
 	link->an_100cr4_fixup_applied = false;
 
-	/*
-	 * try to negotiate
-	 */
+	/* try to negotiate */
 	link->an_try_count = 0;
 	while (1) {
 
@@ -757,8 +716,7 @@ int sbl_link_autoneg(struct sbl_inst *sbl, int port_num)
 		/* try to exchange pages */
 		err = sbl_an_exchange(sbl, port_num);
 		if (err == -EPROTO) {
-			/*
-			 * we have received an unexpected base page
+			/* we have received an unexpected base page
 			 * The lp must have restarted autoneg and we should too
 			 *
 			 * However we know that some Mellanox cards will do this if there is no
@@ -883,9 +841,7 @@ void sbl_an_setup_null_page(struct sbl_inst *sbl, int port_num)
 	u32 base = SBL_PML_BASE(port_num);
 	u64 null_page;
 
-	/*
-	 * Construct a null message page as in 802.3-2015: 28.2.3.4.1 & annex 28C
-	 */
+	/* Construct a null message page as in 802.3-2015: 28.2.3.4.1 & annex 28C */
 	null_page  = sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET);
 	null_page ^= AN_NP_T_MASK;          /* toggle bit 11 */
 	null_page &= ~AN_NP_NP_MASK;        /* clear next page bit */
@@ -899,9 +855,7 @@ void sbl_an_setup_null_page(struct sbl_inst *sbl, int port_num)
 	sbl_read64(sbl, base|SBL_PML_CFG_PCS_AUTONEG_NEXT_PAGE_OFFSET);
 }
 
-/*
- * setup to detect complete or page received error flags become set
- */
+/* setup to detect complete or page received error flags become set */
 int sbl_an_hw_wait_prepare(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -975,8 +929,7 @@ int sbl_get_an_pages(struct sbl_inst *sbl, int port_num, int *count, u64 *pages)
 	}
 
 	if (link->an_rx_count > *count) {
-		/*
-		 * insufficient space
+		/* insufficient space
 		 * update size to say how much we need and return
 		 */
 		*count = link->an_rx_count;

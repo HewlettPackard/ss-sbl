@@ -21,9 +21,7 @@
 #include "sbl_serdes_fn.h"
 #include "sbl_internal.h"
 
-/*
- * detect the presence of our link partner
- */
+/* detect the presence of our link partner */
 static int sbl_base_link_lp_detect(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -47,10 +45,7 @@ static int sbl_base_link_lp_detect(struct sbl_inst *sbl, int port_num)
 	return err;
 }
 
-/*
- * Check/recover SBL FW
- *
- */
+/* Check/recover SBL FW */
 static int sbl_base_link_check_fix_fw(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -86,10 +81,7 @@ static int sbl_link_get_mode_electrical(struct sbl_inst *sbl, int port_num)
 	return sbl_link_autoneg(sbl, port_num);
 }
 
-/*
- * For now we will just use the configured speed
- *
- */
+/* For now we will just use the configured speed */
 static int sbl_link_get_mode_optical(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -101,10 +93,7 @@ static int sbl_link_get_mode_optical(struct sbl_inst *sbl, int port_num)
 	return 0;
 }
 
-/*
- * determine the link mode (speed)
- *
- */
+/* determine the link mode (speed) */
 static int sbl_base_link_get_mode(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -144,9 +133,7 @@ static int sbl_base_link_get_mode(struct sbl_inst *sbl, int port_num)
 		return 0;
 }
 
-/*
- * return true if get_mode failed because autoneg timed out
- */
+/* return true if get_mode failed because autoneg timed out */
 static bool sbl_base_link_an_timed_out(struct sbl_inst *sbl, int port_num, int err)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -420,9 +407,7 @@ int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 		return -EUCLEAN;
 	}
 
-	/*
-	 * only local loopback is possible without media
-	 */
+	/* only local loopback is possible without media */
 	if (link->blattr.loopback_mode != SBL_LOOPBACK_MODE_LOCAL) {
 		err = sbl_media_validate_config(sbl, port_num);
 		if (err) {
@@ -434,31 +419,24 @@ int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 
 	link->blstate = SBL_BASE_LINK_STATUS_STARTING;
 
-	/*
-	 * check for loopback mode change
-	 */
+	/* check for loopback mode change */
 	if (link->blattr.loopback_mode != link->loopback_mode)
 		link->llr_loop_time = 0;
 	link->loopback_mode = link->blattr.loopback_mode;
 
-	/*
-	 * setup the timeout for start to complete
+	/* setup the timeout for start to complete
 	 * (autoneg might modify this later)
 	 */
 	sbl_link_init_start_timeout(sbl, port_num);
 
-	/*
-	 * clear out any residual pcs state
-	 */
+	/* clear out any residual pcs state */
 	sbl_pml_set_defaults(sbl, port_num);
 
 	/* reset state */
 	link->lp_detected = false;
 
-	/*
-	 * validate serdes firmwares are (still) uncorrupted, recover them if
-	 *  needed
-	 *
+	/* validate serdes firmwares are (still) uncorrupted, recover them if
+	 * needed
 	 */
 	err = sbl_base_link_check_fix_fw(sbl, port_num);
 	if (err) {
@@ -466,10 +444,8 @@ int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 		goto out;
 	}
 
-	/*
-	 * determine the link mode
-	 *
-	 *   this may do autoneg for electrical links
+	/* determine the link mode
+	 * this may do autoneg for electrical links
 	 */
 	err = sbl_base_link_get_mode(sbl, port_num);
 	if (err) {
@@ -487,9 +463,7 @@ int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 		goto out;
 	}
 
-	/*
-	 * wait until we detect the link partner
-	 */
+	/* wait until we detect the link partner */
 	err = sbl_base_link_lp_detect(sbl, port_num);
 	if (err) {
 		sbl_base_link_report_err(sbl, "lpd", port_num, err);
@@ -499,18 +473,14 @@ int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 	/* record when we really start to bring up the link */
 	sbl_link_up_begin(sbl, port_num);
 
-	/*
-	 * start the serdes
-	 */
+	/* start the serdes */
 	err = sbl_serdes_start(sbl, port_num);
 	if (err) {
 		sbl_base_link_report_err(sbl, "serdes_start", port_num, err);
 		goto out;
 	}
 
-	/*
-	 * start the pml block (pcs,mac,llr)
-	 */
+	/* start the pml block (pcs,mac,llr) */
 	err = sbl_pml_start(sbl, port_num);
 	if (err) {
 		sbl_base_link_report_err(sbl, "pml_start", port_num, err);
@@ -535,16 +505,13 @@ int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 		goto out_pcs;
 	}
 
-	/*
-	 * start fec checking
-	 */
+	/* start fec checking */
 	err = sbl_fec_up_check(sbl, port_num);
 	if (err) {
 		sbl_serdes_invalidate_tuning_params(sbl, port_num);
 		sbl_dev_info(sbl->dev, "%d: failed start fec check", err);
 
-		/*
-		 * SSHOTPLAT-5697 forces a maximum effort tune
+		/* SSHOTPLAT-5697 forces a maximum effort tune
 		 * straight away after FEC up check fails.
 		 */
 		sbl_dev_dbg(sbl->dev, "bl %d: forcing a maximum effort tune for next retry", port_num);
@@ -553,18 +520,14 @@ int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 		goto out_pcs;
 	}
 
-	/*
-	 * start monitoring for link faults
-	 */
+	/* start monitoring for link faults */
 	err = sbl_link_fault_monitor_start(sbl, port_num);
 	if (err) {
 		sbl_dev_err(sbl->dev, "bl %d: link fault detect start failed [%d]\n", port_num, err);
 		goto out_pcs;
 	}
 
-	/*
-	 * final check the link is still up and all lanes remain active
-	 */
+	/* final check the link is still up and all lanes remain active */
 	if (!sbl_pml_pcs_up(sbl, port_num)) {
 		sbl_dev_err(sbl->dev, "bl %d: link failed during startup\n", port_num);
 		err = -ENETDOWN;
@@ -599,9 +562,7 @@ int sbl_base_link_start(struct sbl_inst *sbl, int port_num)
 
 	return 0;
 
-	/*
-	 * failed
-	 */
+	/* failed */
 out_fm:
 	sbl_link_fault_monitor_stop(sbl, port_num);
 out_pcs:
@@ -872,8 +833,7 @@ int sbl_base_link_stop(struct sbl_inst *sbl, int port_num)
 	if (!sbl_debug_option(sbl, port_num, SBL_DEBUG_KEEP_SERDES_UP))
 		link->blstate = SBL_BASE_LINK_STATUS_STOPPING;
 
-	/*
-	 * We stop the serdes before stopping the pml to avoid breaking AOC firmware,
+	/* We stop the serdes before stopping the pml to avoid breaking AOC firmware,
 	 * really we should stop the pml first. This should be harmless provided
 	 * down detection is off.
 	 */
@@ -1040,17 +1000,14 @@ void sbl_base_link_try_start_fail_cleanup(struct sbl_inst *sbl, int port_num)
 		link->intr_err_flgs = 0;
 	}
 
-	/*
-	 * when debugging we can leave the hw in its current state
-	 */
+	/* when debugging we can leave the hw in its current state */
 	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_INHIBIT_CLEANUP)) {
 		sbl_dev_warn(sbl->dev, "%d: hw cleanup inhibited\n", port_num);
 		mutex_unlock(&link->busy_mtx);
 		return;
 	}
 
-	/*
-	 * clean up the serdes state
+	/* clean up the serdes state
 	 * We have to do this before resetting the PML or the optical transceivers can
 	 * fail.
 	 */
@@ -1069,8 +1026,7 @@ void sbl_base_link_try_start_fail_cleanup(struct sbl_inst *sbl, int port_num)
 	if (link->sstate != SBL_SERDES_STATUS_DOWN)
 		sbl_serdes_reset(sbl, port_num);
 
-	/*
-	 * some errors we can clean up and move to down so
+	/* some errors we can clean up and move to down so
 	 * we can try to come up again directly
 	 */
 	if (link->blstate == SBL_BASE_LINK_STATUS_ERROR) {
@@ -1259,8 +1215,7 @@ u64  sbl_link_get_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 
-	/*
-	 * for electrical links use a threshold of 1.e-5
+	/* for electrical links use a threshold of 1.e-5
 	 * (we consider loopback links to be electrical)
 	 */
 	if ((link->mattr.media == SBL_LINK_MEDIA_ELECTRICAL) ||
@@ -1281,8 +1236,7 @@ u64  sbl_link_get_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num)
 
 	}
 
-	/*
-	 * optical links seem to require a threshold of about 4e-5
+	/* optical links seem to require a threshold of about 4e-5
 	 * (otherwise pcal can sometimes take us over the threshold)
 	 */
 	if (link->mattr.media == SBL_LINK_MEDIA_OPTICAL) {
@@ -1320,8 +1274,7 @@ u64  sbl_link_get_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 
-	/*
-	 * ieee thresholds are about 2e-4
+	/* ieee thresholds are about 2e-4
 	 * We dont care about media type
 	 */
 	switch (link->link_mode) {
@@ -1352,8 +1305,7 @@ u64  sbl_link_get_stp_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 
-	/*
-	 * for electrical links use a threshold of 1.e-8
+	/* for electrical links use a threshold of 1.e-8
 	 * (we consider loopback links to be electrical)
 	 */
 	if ((link->mattr.media == SBL_LINK_MEDIA_ELECTRICAL) ||
@@ -1374,8 +1326,7 @@ u64  sbl_link_get_stp_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num)
 
 	}
 
-	/*
-	 * optical links seem to require a threshold of about 4e-8
+	/* optical links seem to require a threshold of about 4e-8
 	 * (otherwise pcal can sometimes take us over the threshold)
 	 */
 	if (link->mattr.media == SBL_LINK_MEDIA_OPTICAL) {
@@ -1413,8 +1364,7 @@ u64  sbl_link_get_stp_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
 
-	/*
-	 * ieee thresholds are about 2e-8
+	/* ieee thresholds are about 2e-8
 	 * We dont care about media type
 	 */
 	switch (link->link_mode) {
@@ -1432,9 +1382,8 @@ u64  sbl_link_get_stp_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num)
 }
 EXPORT_SYMBOL(sbl_link_get_stp_ccw_thresh_ieee);
 
-/*
- * Link info
- *    lets you see the current state of the link
+/* Link info
+ * lets you see the current state of the link
  *
  * No locking here
  */

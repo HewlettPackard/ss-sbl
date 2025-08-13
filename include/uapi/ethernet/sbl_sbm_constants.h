@@ -14,7 +14,7 @@
 #define LEVEL_WARN                           3
 #define LEVEL_INFO                           2
 #define LEVEL_DBG                            1
-	
+
 /* SBus address conversion macros */
 #define SBUS_ADDR(ring, rx_addr)        ((ring << 8) | rx_addr)
 #define SBUS_RING(sbus_addr)            ((sbus_addr & 0x300) >> 8)
@@ -22,25 +22,25 @@
 
 /* SBus operation defines */
 #define SBUS_CMD_MODE_OFFSET             7
-#define SBUS_CMD_MODE_MASK               0x1 << SBUS_CMD_MODE_OFFSET
+#define SBUS_CMD_MODE_MASK               (0x1 << SBUS_CMD_MODE_OFFSET)
 #define SBUS_IFACE_DST_OFFSET            5
-#define SBUS_IFACE_DST_MASK              0x3 << SBUS_IFACE_DST_OFFSET
+#define SBUS_IFACE_DST_MASK              (0x3 << SBUS_IFACE_DST_OFFSET)
 #define SBUS_CMD_OFFSET                  0
-#define SBUS_CMD_MASK                    0xf << SBUS_CMD_OFFSET
+#define SBUS_CMD_MASK                    (0xf << SBUS_CMD_OFFSET)
 
-#define SBUS_CMD_MODE_CTLR               1 << SBUS_CMD_MODE_OFFSET
-#define SBUS_CMD_MODE_RCVR               0 << SBUS_CMD_MODE_OFFSET
-#define SBUS_IFACE_DST_TAP               0 << SBUS_IFACE_DST_OFFSET
-#define SBUS_IFACE_DST_CORE              1 << SBUS_IFACE_DST_OFFSET
-#define SBUS_IFACE_DST_SPICO             2 << SBUS_IFACE_DST_OFFSET
-#define SBUS_IFACE_DST_SPARE             3 << SBUS_IFACE_DST_OFFSET
-#define SBUS_CMD_RESET                   0 << SBUS_CMD_OFFSET
-#define SBUS_CMD_WRITE                   1 << SBUS_CMD_OFFSET
-#define SBUS_CMD_READ                    2 << SBUS_CMD_OFFSET
-#define SBUS_CMD_READ_RESULT             3 << SBUS_CMD_OFFSET
+#define SBUS_CMD_MODE_CTLR               (1 << SBUS_CMD_MODE_OFFSET)
+#define SBUS_CMD_MODE_RCVR               (0 << SBUS_CMD_MODE_OFFSET)
+#define SBUS_IFACE_DST_TAP               (0 << SBUS_IFACE_DST_OFFSET)
+#define SBUS_IFACE_DST_CORE              (1 << SBUS_IFACE_DST_OFFSET)
+#define SBUS_IFACE_DST_SPICO             (2 << SBUS_IFACE_DST_OFFSET)
+#define SBUS_IFACE_DST_SPARE             (3 << SBUS_IFACE_DST_OFFSET)
+#define SBUS_CMD_RESET                   (0 << SBUS_CMD_OFFSET)
+#define SBUS_CMD_WRITE                   (1 << SBUS_CMD_OFFSET)
+#define SBUS_CMD_READ                    (2 << SBUS_CMD_OFFSET)
+#define SBUS_CMD_READ_RESULT             (3 << SBUS_CMD_OFFSET)
 
 #define SBUS_RC_RESET                    0
-#define SBUS_RC_WRITE_COMPLETE           1 
+#define SBUS_RC_WRITE_COMPLETE           1
 #define SBUS_RC_WRITE_FAILED             2
 #define SBUS_RC_READ_ALL_COMPLETE        3
 #define SBUS_RC_READ_COMPLETE            4

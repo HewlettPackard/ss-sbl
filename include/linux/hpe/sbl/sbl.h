@@ -16,7 +16,7 @@
 
 #define SBL_VERSION_MAJOR		      3
 #define SBL_VERSION_MINOR		     22
-#define SBL_VERSION_INC			     22
+#define SBL_VERSION_INC			     23
 
 #define SBL_MAGIC		     0x6273696c  /* sbli */
 #define SBL_INIT_ATTR_MAGIC	     0x62736965  /* sbla */
@@ -35,9 +35,7 @@ struct sbl_sc_values;
 struct sbl_serdes_config;
 
 
-/*
- * Reasons for taking the link down asynchronously
- */
+/* Reasons for taking the link down asynchronously */
 enum sbl_link_down_origin {
 	SBL_LINK_DOWN_ORIGIN_UNKNOWN = 0,
 	SBL_LINK_DOWN_ORIGIN_LINK_DOWN,
@@ -53,8 +51,7 @@ enum sbl_link_down_origin {
 };
 
 
-/*
- * Internal llr state machine states
+/* Internal llr state machine states
  * (missing from pml header)
  */
 enum sbl_pml_llr_state_e {
@@ -130,9 +127,7 @@ enum sbl_lp_subtype {
 };
 
 
-/*
- * Operations provided by the calling framework
- */
+/* Operations provided by the calling framework */
 struct sbl_ops {
 	/* register access */
 	u32  (*sbl_read32)(void *pci_accessor, long offset);
@@ -174,9 +169,7 @@ struct fec_data {
 	struct work_struct fec_timer_work;
 };
 
-/*
- * A slingshot base link device instance
- */
+/* A slingshot base link device instance */
 struct sbl_inst {
 	int magic;
 	int id;
@@ -222,9 +215,7 @@ void sbl_get_version(int *major, int *minor, int *inc);
 
 int sbl_get_num_sbus_rings(struct sbl_inst *sbl);
 
-/*
- * Instance management
- */
+/* Instance management */
 struct sbl_inst *sbl_new_instance(void *accessor, void *pci_accessor,
 				  const struct sbl_ops *ops,
 				  struct sbl_init_attr *init_attr);
@@ -233,9 +224,7 @@ int    sbl_delete_instance(struct sbl_inst *sbl);
 int    sbl_initialise_instance(struct sbl_inst *sbl, struct sbl_instance_attr *attr);
 int    sbl_restore_instance(struct sbl_inst *sbl);
 
-/*
- * media management
- */
+/* media management */
 int  sbl_media_config(struct sbl_inst *sbl, int port_num,
 		struct sbl_media_attr *attr);
 int  sbl_media_unconfig(struct sbl_inst *sbl, int port_num);
@@ -248,9 +237,7 @@ u64  sbl_media_get_loop_time_ns(struct sbl_inst *sbl, int port_num,
 		bool require_measurement);
 u32 sbl_media_get_len_cm(struct sbl_inst *sbl, int port_num, u64 len);
 
-/*
- * Base link control
- */
+/* Base link control */
 int  sbl_get_lp_subtype(struct sbl_inst *sbl, int port_num, enum sbl_lp_subtype *lp_subtype);
 int  sbl_base_link_config(struct sbl_inst *sbl, int port_num,
 		struct sbl_base_link_attr *blattr);
@@ -269,9 +256,7 @@ char *sbl_base_link_state_str(struct sbl_inst *sbl, int port_num, char *buf, int
 int  sbl_base_link_dump_attr(struct sbl_inst *sbl, int port_num,
 		char *buf, size_t size);
 
-/*
- * fec thresholds
- */
+/* fec thresholds */
 int  sbl_link_get_fec_thresholds(struct sbl_inst *sbl, int port_num,
 		int *ucw_bad, int *ccw_bad, int *fecl_warn);
 u64  sbl_link_get_ucw_thresh_ieee(struct sbl_inst *sbl, int port_num);
@@ -281,9 +266,7 @@ u64  sbl_link_get_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num);
 u64  sbl_link_get_stp_ccw_thresh_ieee(struct sbl_inst *sbl, int port_num);
 u64  sbl_link_get_stp_ccw_thresh_hpe(struct sbl_inst *sbl, int port_num);
 
-/*
- * serdes tuning params
- */
+/* serdes tuning params */
 int sbl_serdes_get_tuning_params(struct sbl_inst *sbl, int port_num,
 		struct sbl_tuning_params *tuning_params);
 int sbl_serdes_set_tuning_params(struct sbl_inst *sbl, int port_num,
@@ -295,9 +278,7 @@ int sbl_serdes_invalidate_all_tuning_params(struct sbl_inst *sbl);
 int sbl_flags_get_poll_interval_from_flags(unsigned int flags);
 int sbl_flags_get_delay_from_flags(unsigned int flags);
 
-/*
- * serdes configurations
- */
+/* serdes configurations */
 int  sbl_serdes_add_config(struct sbl_inst *sbl, u64 tp_state_mask0,
 		u64 tp_state_mask1, u64 tp_state_match0,
 		u64 tp_state_match1, u64 port_mask, u8 serdes_mask,
@@ -309,29 +290,21 @@ int sbl_serdes_clear_all_configs(struct sbl_inst *sbl, bool clr_default);
 void sbl_serdes_dump_configs(struct sbl_inst *sbl);
 struct sbl_switch_info *sbl_get_switch_info(int *size);
 
-/*
- * pml block intr handler
- */
+/* pml block intr handler */
 int sbl_pml_hdlr(struct sbl_inst *sbl, int port_num, void *data);
 void sbl_pml_recovery_cancel(struct sbl_inst *sbl, int port_num);
 
-/*
- * serdes operations (using core interrupt mechanism)
- */
+/* serdes operations (using core interrupt mechanism) */
 int sbl_pml_serdes_op_timing(struct sbl_inst *sbl, int port_num, u64 capture,
 		u64 clear, u64 set);
 int sbl_pml_serdes_op(struct sbl_inst *sbl, int port_num, u64 serdes_sel,
 		u64 op, u64 data, u16 *result, int timeout, unsigned int flags);
 
-/*
- * MAC
- */
+/* MAC */
 void sbl_pml_mac_start(struct sbl_inst *sbl, int port_num);
 void sbl_pml_mac_stop(struct sbl_inst *sbl, int port_num);
 
-/*
- * misc
- */
+/* misc */
 void sbl_pml_llr_stop(struct sbl_inst *sbl, int port_num);
 void sbl_pml_llr_disable(struct sbl_inst *sbl, int port_num);
 void sbl_pml_llr_enable(struct sbl_inst *sbl, int port_num);
@@ -349,9 +322,7 @@ void sbl_set_degraded_flag(struct sbl_inst *sbl, int port_num);
 void sbl_clear_degraded_flag(struct sbl_inst *sbl, int port_num);
 bool sbl_get_degraded_flag(struct sbl_inst *sbl, int port_num);
 
-/*
- * sysfs support
- */
+/* sysfs support */
 #ifdef CONFIG_SYSFS
 int sbl_media_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size);
 int sbl_media_type_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size);
@@ -368,17 +339,13 @@ int sbl_sbm_fw_sysfs_sprint(struct sbl_inst *sbl, int ring, char *buf, size_t si
 int sbl_fec_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size);
 #endif
 
-/*
- * debug support
- */
+/* debug support */
 void sbl_debug_clear_config(struct sbl_inst *sbl, int port_num);
 void sbl_debug_update_config(struct sbl_inst *sbl, int port_num,
 		u32 clear_flags, u32 set_flags);
 int sbl_debug_get_config(struct sbl_inst *sbl, int port_num, u32 *options);
 
-/*
- * pretty printing
- */
+/* pretty printing */
 const char *sbl_link_state_str(enum sbl_base_link_status state);
 const char *sbl_link_len_str(enum sbl_link_len len);
 const char *sbl_link_vendor_str(enum sbl_link_vendor vendor);
@@ -397,9 +364,7 @@ const char *sbl_async_alert_str(enum sbl_async_alert_type alert_type);
 const char *sbl_fec_discard_str(enum sbl_fec_discard_type discard_type);
 const char *sbl_down_origin_str(enum sbl_link_down_origin down_origin);
 
-/*
- * SBL counter get functions
- */
+/* SBL counter get functions */
 int sbl_link_counters_get(struct sbl_inst *sbl, int port_num,
 						int *counters, u16 first, u16 count);
 int sbl_link_counters_read(struct sbl_inst *sbl, int port_num, u16 counter);

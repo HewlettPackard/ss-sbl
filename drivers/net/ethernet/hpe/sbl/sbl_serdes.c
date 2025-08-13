@@ -66,9 +66,7 @@ out:
 	return err;
 }
 
-/*
- * This delay is to give time for the optical transceivers to lock
- */
+/* This delay is to give time for the optical transceivers to lock */
 static int sbl_serdes_optical_lock_delay(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -149,8 +147,7 @@ int sbl_serdes_load(struct sbl_inst *sbl, int port_num, bool force)
 EXPORT_SYMBOL(sbl_serdes_load);
 
 
-/*
- * link partner detection
+/* link partner detection
  *
  * This function will attempt a serdes minitune. This fast tune will only
  * succeed if the lp is sending AM using the same mode as we are using.
@@ -195,8 +192,7 @@ int sbl_serdes_lp_detect(struct sbl_inst *sbl, int port_num)
 			goto out_err;
 		}
 
-		/*
-		 * If the other end is there then we should block for no more
+		/* If the other end is there then we should block for no more
 		 * than 5s
 		 */
 		err = sbl_serdes_minitune_block(sbl, port_num);
@@ -208,8 +204,7 @@ int sbl_serdes_lp_detect(struct sbl_inst *sbl, int port_num)
 
 		case -ETIMEDOUT:
 			sbl_dev_warn(sbl->dev, "p%d: serdes_lpd timed out", port_num);
-			/*
-			 * Occasionally serdes minitune will fail even though the link
+			/* Occasionally serdes minitune will fail even though the link
 			 * partner is actually there!
 			 * Sometimes we can recover by resetting the serdes PLLs and/or
 			 * reloading the serdes firmware
@@ -291,8 +286,7 @@ int sbl_serdes_start(struct sbl_inst *sbl, int port_num)
 		goto out;
 	}
 
-	/*
-	 * wait a while before starting to tune to let the optics lock if present
+	/* wait a while before starting to tune to let the optics lock if present
 	 * (in local loopback mode however there are never any optics to wait for)
 	 */
 	if (link->blattr.loopback_mode != SBL_LOOPBACK_MODE_LOCAL) {
@@ -318,8 +312,7 @@ int sbl_serdes_start(struct sbl_inst *sbl, int port_num)
 			break;
 		case -ETIMEDOUT:
 			sbl_dev_dbg(sbl->dev, "p%d: SerDes start: tuning timed out", port_num);
-			/*
-			 * occasionally tuning can fail even thought the lp is good
+			/* occasionally tuning can fail even thought the lp is good
 			 * resetting the serdes rx plls or reloading the serdes fw can
 			 * sometimes fix this
 			 */
@@ -479,8 +472,7 @@ int sbl_serdes_reset(struct sbl_inst *sbl, int port_num)
 	else
 		goto out_success;
 
-	/*
-	 * This is really bad!
+	/* This is really bad!
 	 * There is nothing we can do but say we are in error and
 	 * be reset again
 	 */
@@ -1045,8 +1037,6 @@ int sbl_serdes_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_
 }
 EXPORT_SYMBOL(sbl_serdes_sysfs_sprint);
 
-/*
- */
 /**
  * sbl_serdes_fw_sysfs_sprint() - Format SERDES firmware rev and build into buffer
  * @sbl: A slingshot base link device instance

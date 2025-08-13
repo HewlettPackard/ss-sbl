@@ -133,8 +133,7 @@ bool sbl_media_check_mode_supported(struct sbl_inst *sbl, int port_num, u32 link
 	u32 info_mode_bit = 0;
 
 	if (!link->mattr.info) {
-		/*
-		 * We have no info about media
+		/* We have no info about media
 		 * assume its OK so we can carry on
 		 * if its not we will fail later anyway
 		 */
@@ -264,9 +263,7 @@ static bool sbl_media_check_len_supported(struct sbl_inst *sbl, int port_num, u6
 }
 
 
-/*
- * return valid length in cm or 0
- */
+/* return valid length in cm or 0 */
 u32 sbl_media_get_len_cm(struct sbl_inst *sbl, int port_num, u64 len)
 {
 	if (sbl_media_check_len_supported(sbl, port_num, len)) {
@@ -326,9 +323,7 @@ u32 sbl_media_get_len_cm(struct sbl_inst *sbl, int port_num, u64 len)
 }
 
 
-/*
- * calc loop time based on cable length
- */
+/* calc loop time based on cable length */
 int sbl_media_calc_loop_time(struct sbl_inst *sbl, int port_num, u64 *calc_loop_time)
 {
 	struct sbl_link *link;

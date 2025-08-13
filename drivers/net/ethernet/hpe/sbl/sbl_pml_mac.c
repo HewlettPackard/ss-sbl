@@ -18,9 +18,7 @@
 #include "sbl_internal.h"
 
 
-/*
- *  get mode
- */
+/* get mode */
 static void sbl_pml_mac_get_mode(struct sbl_inst *sbl, int port_num, u64 *ifg_mode, u64 *ifg_adjustment)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -80,9 +78,7 @@ static void sbl_pml_mac_get_mode(struct sbl_inst *sbl, int port_num, u64 *ifg_mo
 	}
 }
 
-/*
- *  configure
- */
+/* configure */
 int sbl_pml_mac_config(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -186,9 +182,7 @@ void sbl_pml_mac_stop(struct sbl_inst *sbl, int port_num)
 EXPORT_SYMBOL(sbl_pml_mac_stop);
 
 
-/*
- * get the current hw status
- */
+/* get the current hw status */
 void sbl_pml_mac_hw_status(struct sbl_inst *sbl, int port_num, bool *tx_op, bool *rx_op,
 		u32 *ifg_mode, u32 *ifg_adjustment)
 {
@@ -211,9 +205,7 @@ void sbl_pml_mac_hw_status(struct sbl_inst *sbl, int port_num, bool *tx_op, bool
 }
 
 
-/*
- *  HPC IFG set
- */
+/* HPC IFG set */
 void sbl_pml_mac_hpc_set(struct sbl_inst *sbl, int port_num)
 {
 	u32 base  = SBL_PML_BASE(port_num);

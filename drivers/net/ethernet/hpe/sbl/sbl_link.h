@@ -7,14 +7,10 @@
 #define _SBL_LINK_H_
 
 
-/*
- * link mode auto negotiation
- */
+/* link mode auto negotiation */
 int sbl_link_autoneg(struct sbl_inst *sbl, int port_num);
 
-/*
- * state info flags for trace/debug
- */
+/* state info flags for trace/debug */
 enum sbl_link_info_flags {
 	SBL_LINK_INFO_LP_DET       = (1<<0),  /* trying to detect lp */
 	SBL_LINK_INFO_PCS_ANEG     = (1<<1),  /* pcs configured for autoneg */
@@ -38,17 +34,13 @@ enum sbl_link_info_flags {
 void sbl_link_info_set(struct sbl_inst *sbl, int port_num, u32 flag);
 void sbl_link_info_clear(struct sbl_inst *sbl, int port_num, u32 flag);
 
-/*
- * sysfs
- */
+/* sysfs */
 #ifdef CONFIG_SYSFS
 int sbl_pml_pcs_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size);
 int sbl_pml_pcs_lane_degrade_sysfs_sprint(struct sbl_inst *sbl, int port_num, char *buf, size_t size);
 #endif
 
-/*
- * debug
- */
+/* debug */
 void sbl_link_lock_dbg(struct sbl_inst *sbl, int port_num, char *text);
 
 

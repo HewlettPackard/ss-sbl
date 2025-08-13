@@ -99,9 +99,7 @@ out_free_sbl_link_counters:
 	return ERR_PTR(-ENOMEM);
 }
 
-/*
- * All operations must be supplied or SBL cannot function
- */
+/* All operations must be supplied or SBL cannot function */
 #define SBL_SETUP_OP_TBL_ENTRY(e)  \
 	if (ops->e) \
 		sbl->ops.e = ops->e; \
@@ -454,10 +452,8 @@ int sbl_initialise_instance(struct sbl_inst *sbl, struct sbl_instance_attr *attr
 
 	memcpy(&sbl->iattr, attr, sizeof(struct sbl_instance_attr));
 
-	/*
-	 * load the required firmware
-	 *
-	 *    force load all ports if serdes firmware validation fails
+	/* load the required firmware
+	 * force load all ports if serdes firmware validation fails
 	 */
 	err = sbl_serdes_load(sbl, SBL_ALL_PORTS, false);
 	if (err) {

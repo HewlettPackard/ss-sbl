@@ -13,9 +13,7 @@
 #include "sbl_internal.h"
 #include "sbl_serdes_map.h"
 
-/*
- * validate a port (link) number
- */
+/* validate a port (link) number */
 int sbl_validate_port_num(struct sbl_inst *sbl, int port_num)
 {
 	if (!((port_num >= 0) && (port_num < sbl->switch_info->num_ports)))

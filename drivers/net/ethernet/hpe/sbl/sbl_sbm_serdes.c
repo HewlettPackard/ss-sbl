@@ -989,9 +989,7 @@ int sbl_sbm_spico_int(void *inst, u32 sbus_addr, int code, int data,
 }
 EXPORT_SYMBOL(sbl_sbm_spico_int);
 
-/*
- * Returns a SBUS master address based on a ring number
- */
+/* Returns a SBUS master address based on a ring number */
 static int sbl_chip_ring_sbus_to_port_serdes(void *inst, int chip,
 					     int ring, int sbus,
 					     int *port_out, int *serdes_out)

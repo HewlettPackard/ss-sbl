@@ -30,8 +30,7 @@ static dev_t          sbl_devt;
 				    SBL_VERSION_MINOR,	\
 				    SBL_VERSION_INC)
 
-/*
- * module init function
+/*   module init function
  *
  *   The char device is only used for fw loading and printing to the console
  *   For now multiple instances all share the same device
@@ -42,9 +41,7 @@ static int __init sbl_init(void)
 
 	pr_info("%s : v" SBL_VERSION_STR " loading (" CONFIG_SBL_BUILD_NAME " build)\n", module_name(THIS_MODULE));
 
-	/*
-	 * create a device
-	 */
+	/* create a device */
 	err = alloc_chrdev_region(&sbl_devt, 0, 1, DEVICE_NAME);
 	if (err) {
 		pr_err("%s : failed to get dev region [%d]\n",
@@ -90,9 +87,7 @@ struct device *sbl_get_device(void)
 	return sbl_dev;
 }
 
-/*
- * module exit function
- */
+/* module exit function */
 static void __exit sbl_exit(void)
 {
 	pr_info("%s : module unloading\n", module_name(THIS_MODULE));

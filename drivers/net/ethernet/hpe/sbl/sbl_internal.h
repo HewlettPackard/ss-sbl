@@ -29,15 +29,13 @@
 
 #define SBL_AN_MAX_TX_PAGES             3
 
-/*
- * Max number of times we can tune using saved params and find params out-of-bounds
+/* Max number of times we can tune using saved params and find params out-of-bounds
  * before we give up and do a full tune without saved params
  */
 #define SBL_MAX_TUNE_PARAM_OOB_FAILS   4
 
 
-/*
- * The amount of time SBL waits before reloading firmware
+/* The amount of time SBL waits before reloading firmware
  * when firmware corruption is detected.
  */
 #define SBL_SERDES_STATE_DUMP_DELAY 200 /* ms */
@@ -75,9 +73,7 @@ struct sbl_pml_recovery {
 	__u64 rl_window_start;
 	int rl_time_remaining;
 };
-/*
- * link database record
- */
+/* link database record */
 struct sbl_link {
 	int num;                                  /* link/port number */
 	spinlock_t lock;                          /* Data lock */
@@ -205,10 +201,9 @@ const char *sbl_an_state_str(int state);
 const char *sbl_an_get_sm_state(struct sbl_inst *sbl, int port_num);
 
 
-/*
- * These functions are provides by the calling framework
+/* These functions are provides by the calling framework
  *
- *   register access
+ * register access
  */
 static inline u32  sbl_read32(struct sbl_inst *sbl, long offset)
 {
@@ -230,9 +225,7 @@ static inline void sbl_write64(struct sbl_inst *sbl, long offset, u64 val)
 	(*sbl->ops.sbl_write64)(sbl->pci_accessor, offset, val);
 }
 
-/*
- * sbus access
- */
+/* sbus access */
 static inline int sbl_sbus_op(struct sbl_inst *sbl, int ring, u32 req_data,
 		u8 data_addr, u8 rx_addr, u8 command,
 		u32 *rsp_data, u8 *result_code, u8 *overrun,
@@ -249,9 +242,7 @@ static inline int sbl_sbus_op_reset(struct sbl_inst *sbl, int ring)
 	return (*sbl->ops.sbl_sbus_op_reset)(sbl->accessor, ring);
 }
 
-/*
- * misc other functions
- */
+/* misc other functions */
 static inline bool sbl_is_fabric_link(struct sbl_inst *sbl, int port_num)
 {
 	return (*sbl->ops.sbl_is_fabric_link)(sbl->accessor, port_num);
@@ -281,9 +272,7 @@ void sbl_an_dump_state(struct sbl_inst *sbl, int port_num) __maybe_unused;
 void sbl_an_version_read(struct sbl_inst *sbl, int port_num);
 int  sbl_an_hw_wait_prepare(struct sbl_inst *sbl, int port_num)  __maybe_unused;
 bool sbl_an_next_is_complete(struct sbl_inst *sbl, int port_num) __maybe_unused;
-/*
- * SBL counter functions
- */
+/* SBL counter functions */
 int sbl_link_counters_init(struct sbl_link *link);
 void sbl_link_counters_term(struct sbl_link *link);
 int sbl_link_counters_incr(struct sbl_inst *sbl, int port_num, u16 counter);

@@ -67,17 +67,13 @@ static bool get_serdes_precoding(struct sbl_inst *sbl, int port_num)
 	}
 }
 
-/*
- * Dummy function used when DEV_TRACE2 or DEV_TRACE3 are not defined
- */
+/* Dummy function used when DEV_TRACE2 or DEV_TRACE3 are not defined */
 void dev_ignore(struct device *dev, const char *format, ...)
 {
 
 }
 
-/*
- * Creates a u64 hash key based on the currently requested serdes state
- */
+/* Creates a u64 hash key based on the currently requested serdes state */
 /* NOTE: enums need to be bitwise values to use this hashing */
 static u64 sbl_get_tp_hash0(struct sbl_inst *sbl, int port_num)
 {
@@ -137,9 +133,7 @@ void sbl_serdes_get_fw_vers(struct sbl_inst *sbl, int port_num, int serdes,
 	}
 }
 
-/*
- * Get mask of serdes used for target link mode
- */
+/* Get mask of serdes used for target link mode */
 static u8 get_serdes_tx_mask(struct sbl_inst *sbl, int port_num)
 {
 	int serdes;
@@ -176,9 +170,7 @@ static u8 get_serdes_tx_mask(struct sbl_inst *sbl, int port_num)
 	return serdes_mask;
 }
 
-/*
- * Get mask of serdes used for target link mode
- */
+/* Get mask of serdes used for target link mode */
 static u8 get_serdes_rx_mask(struct sbl_inst *sbl, int port_num)
 {
 	int serdes;
@@ -220,9 +212,7 @@ static u8 get_serdes_rx_mask(struct sbl_inst *sbl, int port_num)
 	return serdes_mask;
 }
 
-/*
- * Utility function to skip over irrelevant serdes lanes
- */
+/* Utility function to skip over irrelevant serdes lanes */
 static bool tx_serdes_required_for_link_mode(struct sbl_inst *sbl, int port_num,
 					     int serdes)
 {
@@ -236,9 +226,7 @@ static bool tx_serdes_required_for_link_mode(struct sbl_inst *sbl, int port_num,
 		return false;
 }
 
-/*
- * Utility function to skip over irrelevant serdes lanes
- */
+/* Utility function to skip over irrelevant serdes lanes */
 static bool rx_serdes_required_for_link_mode(struct sbl_inst *sbl, int port_num,
 					     int serdes)
 {
@@ -250,9 +238,7 @@ static bool rx_serdes_required_for_link_mode(struct sbl_inst *sbl, int port_num,
 		return false;
 }
 
-/*
- * Returns a count of the number of bits set in input val
- */
+/* Returns a count of the number of bits set in input val */
 static int sbl_num_bits_set(u64 val)
 {
 	int bits_set = 0;
@@ -265,9 +251,7 @@ static int sbl_num_bits_set(u64 val)
 	return bits_set;
 }
 
-/*
- * Looks up sbl_sc_val struct for the given port, serdes, and hash
- */
+/* Looks up sbl_sc_val struct for the given port, serdes, and hash */
 static int sbl_get_serdes_config_values(struct sbl_inst *sbl, int port_num,
 					int serdes, struct sbl_sc_values *vals)
 {
@@ -346,8 +330,7 @@ static int sbl_get_serdes_config_values(struct sbl_inst *sbl, int port_num,
 	return -ENOENT;
 }
 
-/*
- * Checks if there are valid tuning params in the sbl struct which can
+/* Checks if there are valid tuning params in the sbl struct which can
  * be used for this serdes tune
  */
 static bool sbl_is_retune(struct sbl_inst *sbl, int port_num)
@@ -406,9 +389,7 @@ static bool sbl_is_retune(struct sbl_inst *sbl, int port_num)
 	return false;
 }
 
-/*
- * Parse the vers string into rev and build
- */
+/* Parse the vers string into rev and build */
 static int sbl_parse_version_string(struct sbl_inst *sbl, char *fw_fname,
 				    int *fw_rev, int *fw_build)
 {

@@ -21,9 +21,7 @@
 #include "sbl_internal.h"
 #include "sbl_serdes_fn.h"
 
-/*
- * Bring-up PML block of a link
- */
+/* Bring-up PML block of a link */
 int sbl_pml_start(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -38,9 +36,7 @@ int sbl_pml_start(struct sbl_inst *sbl, int port_num)
 		goto out_err;
 	}
 
-	/*
-	 * pcs must be sending am so link partner can tune
-	 */
+	/* pcs must be sending am so link partner can tune */
 	if (!(link->link_info & SBL_LINK_INFO_PCS_TX_AM)) {
 		sbl_dev_err(sbl->dev, "%d: pml pcs not tx am", port_num);
 		err = -ENODATA;
@@ -63,8 +59,7 @@ int sbl_pml_start(struct sbl_inst *sbl, int port_num)
 
 	sbl_pml_llr_config(sbl, port_num);
 
-	/*
-	 * keep trying to get the PML block up until
+	/* keep trying to get the PML block up until
 	 * we succeed, timeout or have a fatal error
 	 */
 	while (true) {
@@ -119,8 +114,7 @@ out_done:
 
 out_err_invalidate:
 	if (link->dfe_tune_count == SBL_DFE_USED_SAVED_PARAMS) {
-		/*
-		 * either the link partner is not starting or the saved params could be bad -
+		/* either the link partner is not starting or the saved params could be bad -
 		 * we cannot (currently) determine which so destroy the saved params
 		 * just in case
 		 */
@@ -136,9 +130,7 @@ out_err:
 }
 
 
-/*
- * Take down the PML block of a link
- */
+/* Take down the PML block of a link */
 int sbl_pml_link_down(struct sbl_inst *sbl, int port_num)
 {
 	sbl_dev_dbg(sbl->dev, "%d: pml bring-down starting\n", port_num);
@@ -155,11 +147,10 @@ int sbl_pml_link_down(struct sbl_inst *sbl, int port_num)
 	return 0;
 }
 
-/*
- * function to reset the major PML cfg regs to their default values
+/* function to reset the major PML cfg regs to their default values
  *
- *   It would seem that the default for the llr down behaviour is
- *   SBL_LLR_LINK_DOWN_BLOCK this should be SBL_LLR_LINK_DOWN_DISCARD;
+ * It would seem that the default for the llr down behaviour is
+ * SBL_LLR_LINK_DOWN_BLOCK this should be SBL_LLR_LINK_DOWN_DISCARD;
  */
 void sbl_pml_set_defaults(struct sbl_inst *sbl, int port_num)
 {
@@ -169,8 +160,7 @@ void sbl_pml_set_defaults(struct sbl_inst *sbl, int port_num)
 
 	/* pcs */
 	if (link->sstate != SBL_SERDES_STATUS_DOWN) {
-		/*
-		 * default is to not tx am.
+		/* default is to not tx am.
 		 * we should not do this because it can break optical headshells
 		 */
 		sbl_dev_warn(sbl->dev, "%d: pcs reset while serdes is running\n", port_num);
@@ -232,10 +222,9 @@ void sbl_pml_set_defaults(struct sbl_inst *sbl, int port_num)
 }
 
 
-/*
- * interrupt support
+/* interrupt support
  *
- *   we only have one handler
+ * we only have one handler
  */
 int sbl_pml_install_intr_handler(struct sbl_inst *sbl, int port_num, u64 err_flags)
 {
@@ -307,10 +296,9 @@ int sbl_pml_remove_intr_handler(struct sbl_inst *sbl, int port_num)
 }
 
 
-/*
- * Error flags
+/* Error flags
  *
- *   TODO: inline?
+ * TODO: inline?
  */
 bool sbl_pml_err_flgs_test(struct sbl_inst *sbl, int port_num, u64 err_flgs)
 {
@@ -368,15 +356,11 @@ void sbl_pml_link_down_async_alert(struct sbl_inst *sbl, int port_num, u32 down_
 	else
 		err_flags = SBL_PML_REC_FAULT_ERR_FLAGS;
 
-	/*
-	 * going down or in recovery state, so don't need more intrs
-	 */
+	/* going down or in recovery state, so don't need more intrs */
 	sbl_pml_disable_intr_handler(sbl, port_num, err_flags);
 
 	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_INHIBIT_CLEANUP)) {
-		/*
-		 * set state to error and signal no cleanup with the error number
-		 */
+		/* set state to error and signal no cleanup with the error number */
 		link->blstate = SBL_BASE_LINK_STATUS_ERROR;
 		link->blerr = -ECONNABORTED;
 	}
@@ -414,8 +398,7 @@ static void sbl_pml_recovery_origin_counter_update(struct sbl_inst *sbl, int por
 	}
 }
 
-/*
- * PML recovery is limited by the combined amount of time spent in one or more
+/* PML recovery is limited by the combined amount of time spent in one or more
  * recovery attempts over a window, rather than by a count. This approximates
  * bandwidth loss. For example, 60 ms per second in PML recovery corresponds
  * to a roughly %6 loss of bandwidth.
@@ -642,8 +625,7 @@ int sbl_pml_hdlr(struct sbl_inst *sbl, int port_num, void *data)
 		alert = SBL_ASYNC_ALERT_RX_DEGRADE_FAILURE;
 
 	if (alert) {
-		/*
-		 * if Auto Lane Degrade is enabled, we will print this message regardless of whether
+		/* if Auto Lane Degrade is enabled, we will print this message regardless of whether
 		 * the link went down because of lane degrade failure or not
 		 */
 		sbl_dev_err(sbl->dev, "%d: pml hdlr - link going down - all lanes down [%d]", port_num, alert);
@@ -651,17 +633,13 @@ int sbl_pml_hdlr(struct sbl_inst *sbl, int port_num, void *data)
 		sbl_async_alert(sbl, port_num, alert, NULL, 0);
 	}
 
-	/*
-	 * autoneg err flags
-	 */
+	/* autoneg err flags */
 	if (raised_flgs & SBL_AUTONEG_ERR_FLGS) {
 		sbl_pml_disable_intr_handler(sbl, port_num, SBL_AUTONEG_ERR_FLGS);
 		complete(&link->an_hw_change);
 	}
 
-	/*
-	 * link faults
-	 */
+	/* link faults */
 	if (SBL_PML_ERR_FLG_PCS_HI_SER_GET(raised_flgs)) {
 		if (sbl_debug_option(sbl, port_num, SBL_DEBUG_IGNORE_HISER)) {
 			sbl_dev_warn(sbl->dev, "%d: pml hdlr - hiser - ignored", port_num);

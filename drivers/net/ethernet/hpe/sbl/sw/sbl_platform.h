@@ -12,9 +12,7 @@
 #define sbl_dev_info(_dev, _fmt, ...) dev_info((_dev), (_fmt), ##__VA_ARGS__)
 #define sbl_dev_err_ratelimited(_dev, _fmt, ...) dev_err_ratelimited((_dev), (_fmt), ##__VA_ARGS__)
 #define sbl_dev_dbg_ratelimited(_dev, _fmt, ...) dev_dbg_ratelimited((_dev), (_fmt), ##__VA_ARGS__)
-/*
- * Configuration passing into SBL init
- */
+/* Configuration passing into SBL init */
 struct sbl_init_attr {
 	u32 magic;
 };

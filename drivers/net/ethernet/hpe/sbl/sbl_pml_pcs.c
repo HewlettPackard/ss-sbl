@@ -19,8 +19,7 @@
 #include "sbl_internal.h"
 #include "sbl_serdes_fn.h"
 
-/*
- * Function to find the lanes that data will be arriving on and
+/* Function to find the lanes that data will be arriving on and
  * setup the correct active lanes to align and active fec lanes.
  */
 static int sbl_pml_pcs_determine_active_lanes(struct sbl_inst *sbl, int port_num)
@@ -33,24 +32,21 @@ static int sbl_pml_pcs_determine_active_lanes(struct sbl_inst *sbl, int port_num
 
 	switch (link->link_mode) {
 	case SBL_LINK_MODE_BS_200G:
-		/*
-		 * 4 lanes of 50Gbps - 8 internal 25Gbps fec lanes
+		/* 4 lanes of 50Gbps - 8 internal 25Gbps fec lanes
 		 * setup directly
 		 */
 		link->active_rx_lanes  = 0xf;    /* all */
 		link->active_fec_lanes = 0xff;   /* all */
 		break;
 	case SBL_LINK_MODE_BJ_100G:
-		/*
-		 * 4 lanes of 25Gbps - 4 internal 25Gbps lanes
+		/* 4 lanes of 25Gbps - 4 internal 25Gbps lanes
 		 * setup directly
 		 */
 		link->active_rx_lanes  = 0xf;    /* all */
 		link->active_fec_lanes = 0xf;    /* special case */
 		break;
 	case SBL_LINK_MODE_CD_100G:
-		/*
-		 * 2 lanes of 50Gbps - 4 internal 25Gbps lanes
+		/* 2 lanes of 50Gbps - 4 internal 25Gbps lanes
 		 * locate incoming lanes 0 and 1
 		 */
 		link->active_rx_lanes  = 0;
@@ -74,8 +70,7 @@ static int sbl_pml_pcs_determine_active_lanes(struct sbl_inst *sbl, int port_num
 		}
 		break;
 	case SBL_LINK_MODE_CD_50G:
-		/*
-		 * 1 lanes of 50Gbps - 2 internal 25Gbps lanes
+		/* 1 lanes of 50Gbps - 2 internal 25Gbps lanes
 		 * locate incoming lane 0
 		 */
 		if (link->loopback_mode == SBL_LOOPBACK_MODE_LOCAL) {
@@ -105,9 +100,7 @@ static int sbl_pml_pcs_determine_active_lanes(struct sbl_inst *sbl, int port_num
 	return 0;
 }
 
-/*
- * helper state functions
- */
+/* helper state functions */
 static bool sbl_pml_pcs_locked(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -151,9 +144,7 @@ static void sbl_pml_pcs_stop_lock(struct sbl_inst *sbl, int port_num)
 	sbl_read64(sbl, base|SBL_PML_CFG_RX_PCS_OFFSET);
 }
 
-/*
- * wait for the pcs to become aligned
- */
+/* wait for the pcs to become aligned */
 static int sbl_pml_pcs_alignment_wait(struct sbl_inst *sbl, int port_num)
 {
 	unsigned long start_jiffy;
@@ -164,8 +155,7 @@ static int sbl_pml_pcs_alignment_wait(struct sbl_inst *sbl, int port_num)
 
 	sbl_link_info_set(sbl, port_num, SBL_LINK_INFO_PCS_A_WAIT);
 
-	 /*
-	  * poll for all lanes to get bitlock
+	 /*   poll for all lanes to get bitlock
 	  *
 	  *   This might be a very long time as the other end obviously needs to
 	  *   be coming up at the same time. So start eagerly checking and then back off.
@@ -222,9 +212,7 @@ restart:
 			usleep_range(10000, 11000);
 	}
 
-	/*
-	 * poll for lane alignment
-	 */
+	/* poll for lane alignment */
 	start_jiffy = jiffies;
 
 	while (!sbl_pml_pcs_aligned(sbl, port_num)) {
@@ -252,8 +240,7 @@ restart:
 		elapsed = jiffies_to_msecs(jiffies - start_jiffy);
 		if (elapsed > SBL_PML_PCS_ALIGN_TIMEOUT) {
 
-			/*
-			 * we should have got alignment by now
+			/* we should have got alignment by now
 			 * give up, restart locking and try again
 			 */
 			sbl_pml_pcs_stop_lock(sbl, port_num);
@@ -283,8 +270,7 @@ static bool sbl_pml_pcs_no_faults(struct sbl_inst *sbl, int port_num)
 	return (faults == 0ULL);
 }
 
-/*
- * wait for pcs faults to clear
+/* wait for pcs faults to clear
  *
  * we wait for fault to stay clear as it is momentarily set sometimes
  */
@@ -324,8 +310,7 @@ static int sbl_pml_pcs_fault_clear_wait(struct sbl_inst *sbl, int port_num)
 			goto out;
 		}
 
-		/*
-		 * check for no fault
+		/* check for no fault
 		 * we need multiple good tests to be sure it is up
 		 */
 		if (sbl_pml_pcs_no_faults(sbl, port_num)) {
@@ -357,9 +342,7 @@ out:
 	return err;
 }
 
-/*
- * PCS configuration
- */
+/* PCS configuration */
 static int sbl_pml_pcs_config(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -467,8 +450,7 @@ static int sbl_pml_pcs_config(struct sbl_inst *sbl, int port_num)
 	val64 = SBL_PML_CFG_RX_PCS_ENABLE_RX_SM_UPDATE(val64,                           /* state machine */
 			(link->blattr.options & SBL_OPT_FABRIC_LINK) ? 0ULL : 1ULL);
 	en_lane_degrade_reg = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
-	/*
-	 * If we disable the following CSR, Auto Lane Degrade is enabled and
+	/* If we disable the following CSR, Auto Lane Degrade is enabled and
 	 * there is a concern regarding handling of short burst errors
 	 */
 	if (SBL_PML_CFG_PCS_ENABLE_AUTO_LANE_DEGRADE_GET(en_lane_degrade_reg))
@@ -486,8 +468,7 @@ static int sbl_pml_pcs_config(struct sbl_inst *sbl, int port_num)
 	return 0;
 }
 
-/*
- * Enables auto lane degrading in the hardware.
+/* Enables auto lane degrading in the hardware.
  *
  * This function can also be called if the AM_LOCK is observed on some lanes
  * but not all and the timeout has expired. This will allow auto lane degrade
@@ -570,9 +551,7 @@ bool sbl_pml_lp_pls_available(struct sbl_inst *sbl, int port_num)
 	return (val64 == MAX_PLS_AVAILABLE);
 }
 
-/*
- * PCS start-up
- */
+/* PCS start-up */
 void sbl_pml_pcs_start(struct sbl_inst *sbl, int port_num)
 {
 	struct sbl_link *link = sbl->link + port_num;
@@ -592,9 +571,7 @@ void sbl_pml_pcs_start(struct sbl_inst *sbl, int port_num)
 				val32, 0ULL);
 	sbl_write32(sbl, base|SBL_PML_CFG_PCS_AMS_OFFSET, val32);
 
-	/*
-	 * start pcs
-	 */
+	/* start pcs */
 	val64 = sbl_read64(sbl, base|SBL_PML_CFG_PCS_OFFSET);
 	val64 = SBL_PML_CFG_PCS_PCS_ENABLE_UPDATE(val64, 1ULL);
 	sbl_write64(sbl, base|SBL_PML_CFG_PCS_OFFSET, val64);
@@ -641,8 +618,7 @@ void sbl_pml_pcs_disable_alignment(struct sbl_inst *sbl, int port_num)
 }
 
 
-/*
- * remote fault.
+/* remote fault.
  *
  * there is a debug reg we can use to send remote fault to our link partner
  */
@@ -680,8 +656,7 @@ void sbl_pml_pcs_clear_tx_rf(struct sbl_inst *sbl, int port_num)
 }
 
 
-/*
- * wait for the pcs to come up
+/*   wait for the pcs to come up
  *
  *   i.e for it to be locked and aligned and faults to have cleared
  *
@@ -694,25 +669,18 @@ int sbl_pml_pcs_wait(struct sbl_inst *sbl, int port_num)
 
 	sbl_dev_dbg(sbl->dev, "%d: pcs wait", port_num);
 
-	/*
-	 * start locking
-	 */
+	/* start locking */
 	sbl_pml_pcs_start_lock(sbl, port_num);
 
-	/*
-	 * clear forcing remote fault.
+	/* clear forcing remote fault.
 	 * (it will continue to be set until PCS is actually ready)
 	 */
 	sbl_pml_pcs_clear_tx_rf(sbl, port_num);
 
-	/*
-	 * keep trying to bring the pcs up until we timeout
-	 */
+	/* keep trying to bring the pcs up until we timeout */
 	while (true) {
 
-		/*
-		 * wait for alignment
-		 */
+		/* wait for alignment */
 		err = sbl_pml_pcs_alignment_wait(sbl, port_num);
 		switch (err) {
 		case 0:
@@ -735,9 +703,7 @@ int sbl_pml_pcs_wait(struct sbl_inst *sbl, int port_num)
 			goto out;
 		}
 
-		/*
-		 * wait for faults to clear
-		 */
+		/* wait for faults to clear */
 		err = sbl_pml_pcs_fault_clear_wait(sbl, port_num);
 		switch (err) {
 
@@ -931,9 +897,7 @@ void sbl_pml_recovery_log_pcs_status(struct sbl_inst *sbl, int port_num)
 			port_num, val64);
 }
 
-/*
- * stop the pcs
- */
+/* stop the pcs */
 void sbl_pml_pcs_stop(struct sbl_inst *sbl, int port_num)
 {
 	u32 base = SBL_PML_BASE(port_num);
@@ -967,9 +931,7 @@ void sbl_pml_pcs_stop(struct sbl_inst *sbl, int port_num)
 }
 
 
-/*
- * enable/disable pcs sending ordered sets
- */
+/* enable/disable pcs sending ordered sets */
 void sbl_pml_pcs_ordered_sets(struct sbl_inst *sbl,
 		int port_num, int enable)
 {
@@ -998,8 +960,7 @@ void sbl_pml_pcs_ordered_sets(struct sbl_inst *sbl,
 }
 
 
-/*
- * Start/Stop sending am.
+/*   Start/Stop sending am.
  *
  *   Start: configures and starts the PCS and then immediately disables the alignment
  *   locking process
@@ -1027,8 +988,7 @@ int  sbl_pml_pcs_am_start(struct sbl_inst *sbl, int port_num)
 		return -ENAVAIL;
 	}
 
-	/*
-	 * configuring will stop the pcs
+	/* configuring will stop the pcs
 	 * this might perturb link partner when tuning so report we do this
 	 */
 	if (link->link_info & SBL_LINK_INFO_PCS_TX_AM)

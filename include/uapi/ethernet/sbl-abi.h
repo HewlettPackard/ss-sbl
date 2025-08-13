@@ -63,8 +63,7 @@
  *   Values less than 1ms will use a busy wait, values 1ms and greater
  *   will sleep
  */
-enum sbl_serdes_sbus_op_flag
-{
+enum sbl_serdes_sbus_op_flag {
 	SBL_FLAG_DELAY_3US       =  1<<0,  /**< 3us delay */
 	SBL_FLAG_DELAY_4US       =  1<<1,  /**< 4us delay */
 	SBL_FLAG_DELAY_5US       =  1<<2,  /**< 5us delay */
@@ -84,8 +83,7 @@ enum sbl_serdes_sbus_op_flag
 /**
  * @brief instance attributes
  */
-struct sbl_instance_attr
-{
+struct sbl_instance_attr {
 	__u32 magic;                           /**< = SBL_INSTANCE_ATTR_MAGIC */
 
 	char  inst_name[10];                   /**< instance name  */
@@ -160,8 +158,7 @@ static inline void sbl_instance_attr_initializer(struct sbl_instance_attr *attr)
 /**
  * @brief The physical type of the link media
  */
-enum sbl_link_media
-{
+enum sbl_link_media {
 	SBL_LINK_MEDIA_INVALID = 0,
 	SBL_LINK_MEDIA_UNKNOWN,
 	SBL_LINK_MEDIA_ELECTRICAL,  /**< physical wires */
@@ -172,8 +169,7 @@ enum sbl_link_media
 /**
  * @brief The physical type of the link media with digital/analog
  */
-enum sbl_link_media_extended
-{
+enum sbl_link_media_extended {
 	SBL_EXT_LINK_MEDIA_ELECTRICAL      = 1<<0, /**< physical wires        */
 	SBL_EXT_LINK_MEDIA_OPTICAL_ANALOG  = 1<<1, /**< analog optical fiber  */
 	SBL_EXT_LINK_MEDIA_OPTICAL_DIGITAL = 1<<2, /**< digital optical fiber */
@@ -184,8 +180,7 @@ enum sbl_link_media_extended
 /**
  * @brief The cable vendor
  */
-enum sbl_link_vendor
-{
+enum sbl_link_vendor {
 	SBL_LINK_VENDOR_INVALID        = 0,
 	SBL_LINK_VENDOR_TE             = 1<<0,
 	SBL_LINK_VENDOR_LEONI          = 1<<1,
@@ -207,8 +202,7 @@ enum sbl_link_vendor
  * @brief Cable length indicator
  */
 /* Remember to update validation function */
-enum sbl_link_len
-{
+enum sbl_link_len {
 	SBL_LINK_LEN_INVALID   = 0,
 	SBL_LINK_LEN_BACKPLANE = 1ULL << 0,
 	SBL_LINK_LEN_000_300   = 1ULL << 1,
@@ -265,8 +259,7 @@ enum sbl_link_len
  * @brief Attributes describing the media configuration
  *
  */
-struct sbl_media_attr
-{
+struct sbl_media_attr {
 	__u32 magic;
 	__u32 media;   /**< The link media type */
 	__u64 len;     /**< Cable length */
@@ -307,8 +300,7 @@ static inline void sbl_media_attr_initializer(struct sbl_media_attr *attr)
  * @brief media attributes flags
  *
  */
-enum sbl_media_attr_info_flags
-{
+enum sbl_media_attr_info_flags {
 	SBL_MEDIA_INFO_SUPPORTS_BS_200G         = 1<<0,  /**< Media supports SBL_LINK_MODE_BS_200G */
 	SBL_MEDIA_INFO_SUPPORTS_BJ_100G         = 1<<1,  /**< Media supports SBL_LINK_MODE_BJ_100G */
 	SBL_MEDIA_INFO_SUPPORTS_CD_100G         = 1<<2,  /**< Media supports SBL_LINK_MODE_CD_100G */
@@ -323,8 +315,7 @@ enum sbl_media_attr_info_flags
 /**
  * @brief IEEE modes for a link
  */
-enum sbl_link_mode
-{
+enum sbl_link_mode {
 	SBL_LINK_MODE_INVALID = 0,
 	SBL_LINK_MODE_BS_200G = 1<<0, /**< 4 lanes of 50Gbps PAM-4 */
 	SBL_LINK_MODE_BJ_100G = 1<<1, /**< 4 lanes of 25Gbps NRZ   */
@@ -336,8 +327,7 @@ enum sbl_link_mode
 /**
  * @brief AN modes for a link
  */
-enum sbl_an_mode
-{
+enum sbl_an_mode {
 	SBL_AN_MODE_INVALID = 0,
 	SBL_AN_MODE_UNKNOWN,
 	SBL_AN_MODE_OFF,         /**< AN off, use link_mode */
@@ -349,8 +339,7 @@ enum sbl_an_mode
 /**
  * @brief option flags
  */
-enum sbl_options_flags
-{
+enum sbl_options_flags {
 	SBL_OPT_FABRIC_LINK                = 1<<1,  /**< assert link is a fabric link */
 	SBL_OPT_SERDES_LPD                 = 1<<2,  /**< use the serdes to detect the link partner */
 	SBL_OPT_DFE_SAVE_PARAMS            = 1<<3,  /**< Save current tuning params after tuning */
@@ -379,8 +368,7 @@ enum sbl_options_flags
  * @brief The loopback mode
  *
  */
-enum sbl_loopback_mode
-{
+enum sbl_loopback_mode {
 	SBL_LOOPBACK_MODE_INVALID = 0,
 	SBL_LOOPBACK_MODE_LOCAL   = 1<<0, /**< Loopback in local serdes                           */
 	SBL_LOOPBACK_MODE_REMOTE  = 1<<1, /**< Loopback in remote serdes (not currently possible) */
@@ -391,8 +379,7 @@ enum sbl_loopback_mode
 /**
  * @brief Link partner
  */
-enum sbl_link_partner
-{
+enum sbl_link_partner {
 	SBL_LINK_PARTNER_INVALID = 0,
 	SBL_LINK_PARTNER_SWITCH  = 1<<0, /**< Switch port */
 	SBL_LINK_PARTNER_NIC     = 1<<1, /**< Edge port   */
@@ -403,8 +390,7 @@ enum sbl_link_partner
 /**
  * @brief Tuning pattern
  */
-enum sbl_tuning_pattern
-{
+enum sbl_tuning_pattern {
 	SBL_TUNING_PATTERN_INVALID = 0,
 	SBL_TUNING_PATTERN_CORE    = 1<<0, /**< Tune off core data        */
 	SBL_TUNING_PATTERN_PRBS    = 1<<1, /**< Tune off a PRBS13 pattern */
@@ -414,8 +400,7 @@ enum sbl_tuning_pattern
 /**
  * @brief Precoding config
  */
-enum sbl_precoding_config
-{
+enum sbl_precoding_config {
 	SBL_PRECODING_INVALID = 0,
 	SBL_PRECODING_UNKNOWN,
 	SBL_PRECODING_DEFAULT,    /**< On for fabric links, Off for Ethernet links */
@@ -428,8 +413,7 @@ enum sbl_precoding_config
  * @brief The status of a link SerDes
  *
  */
-enum sbl_serdes_status
-{
+enum sbl_serdes_status {
 	SBL_SERDES_STATUS_UNKNOWN    = 0,
 	SBL_SERDES_STATUS_AUTONEG    = 1<<0,  /**< SerDes in autoneg mode */
 	SBL_SERDES_STATUS_LPD_MT     = 1<<1,  /**< SerDes detecting the link partner by minitune */
@@ -445,8 +429,7 @@ enum sbl_serdes_status
  * @brief The status of a link SerDes
  *
  */
-enum sbl_fw_status
-{
+enum sbl_fw_status {
 	SBL_FW_STATUS_UNKNOWN            = 0,
 	SBL_FW_STATUS_NOT_FLASHED        = 1<<0,  /**< Not flashed  */
 	SBL_FW_STATUS_FLASHED            = 1<<1,  /**< SBM and SerDes flashed */
@@ -457,8 +440,7 @@ enum sbl_fw_status
 /**
  * @brief FEC (Reed-Solomon) mode
  */
-enum sbl_rs_mode
-{
+enum sbl_rs_mode {
 	SBL_RS_MODE_INVALID = 0,
 	SBL_RS_MODE_UNKNOWN,
 	SBL_RS_MODE_OFF,            /**< error correction OFF error checking OFF syndrome checking OFF marking OFF */
@@ -473,8 +455,7 @@ enum sbl_rs_mode
 /**
  * @brief IFG config
  */
-enum sbl_ifg_config
-{
+enum sbl_ifg_config {
 	SBL_IFG_CONFIG_INVALID = 0,
 	SBL_IFG_CONFIG_UNKNOWN,
 	SBL_IFG_CONFIG_HPC,          /**< mode hpc,  adj ignored */
@@ -487,8 +468,7 @@ enum sbl_ifg_config
 /**
  * @brief link-level retry (LLR) mode
  */
-enum sbl_llr_mode
-{
+enum sbl_llr_mode {
 	SBL_LLR_MODE_INVALID = 0,
 	SBL_LLR_MODE_UNKNOWN,
 	SBL_LLR_MODE_OFF,          /**< No Retry */
@@ -504,8 +484,7 @@ enum sbl_llr_mode
  *  @note Fabric link must be set to SBL_LLR_LINK_DOWN_BLOCK
  *
  */
-enum sbl_llr_down_behaviour
-{
+enum sbl_llr_down_behaviour {
 	SBL_LLR_LINK_DOWN_INVALID = 0,
 	SBL_LLR_LINK_DOWN_UNKNOWN,
 	SBL_LLR_LINK_DOWN_DISCARD,      /**< Discard frame */
@@ -527,8 +506,7 @@ enum sbl_llr_down_behaviour
  *   Different setting will be required for fabric or Ethernet links
  *
  */
-struct sbl_base_link_attr
-{
+struct sbl_base_link_attr {
 	__u32 magic;
 
 	/* option flags */
@@ -539,17 +517,14 @@ struct sbl_base_link_attr
 
 	/* electrical or optical exclusive configuration */
 	__u32 config_target;             /**< PEC or AOC valid */
-	union
-	{
-		struct
-		{
+	union {
+		struct {
 			/* auto negotiation */
 			__u32 an_mode;                 /**< Requested autonegotiate mode */
 			__u32 an_retry_timeout;        /**< Timeout for an AN attempt to complete before retrying (s) */
 			__u32 an_max_retry;            /**< Max number of retries before failing */
 		} pec;
-		struct
-		{
+		struct {
 			/* optical transceiver locking delay */
 			__u32 optical_lock_delay;      /**< time to wait for lock (ms) */
 			__u32 optical_lock_interval;   /**< wakeup interval (ms) */
@@ -584,8 +559,7 @@ struct sbl_base_link_attr
 	__u32 llr_mode;                  /**< Link-level retry (LLR) mode */
 	__u32 ifg_config;                /**< Inter-frame gap (IFG) config */
 
-	struct
-	{
+	struct {
 		__u32 timeout;           /**< PML recovery timeout */
 		__u32 rl_max_duration;   /**< Rate limiter recovery time per window */
 		__u32 rl_window_size;    /**< Rate limiter window size */
@@ -596,8 +570,7 @@ struct sbl_base_link_attr
 /**
  * @brief PEC or AOC configured
  */
-enum sbl_base_link_config_target
-{
+enum sbl_base_link_config_target {
 	SBL_BASE_LINK_CONFIG_INVALID   = 0,
 	SBL_BASE_LINK_CONFIG_UNKNOWN,
 	SBL_BASE_LINK_CONFIG_PEC,
@@ -610,8 +583,7 @@ enum sbl_base_link_config_target
  * @brief The status of a base link
  *
  */
-enum sbl_base_link_status
-{
+enum sbl_base_link_status {
 	SBL_BASE_LINK_STATUS_UNKNOWN          = 0,
 	SBL_BASE_LINK_STATUS_UNCONFIGURED     = 1<<0,  /**< Base link is not configured */
 	SBL_BASE_LINK_STATUS_STARTING         = 1<<1,  /**< Base link bring-up in progress */

@@ -135,9 +135,7 @@ int sbl_test_link_up(struct sbl_inst *sbl, int port_num, int loopback_mode)
 	if (err)
 		return err;
 
-	/*
-	 * configure media
-	 */
+	/* configure media */
 	mattr.magic = SBL_MEDIA_ATTR_MAGIC;
 	mattr.media = SBL_LINK_MEDIA_ELECTRICAL;
 	mattr.len   = 2;
@@ -148,9 +146,7 @@ int sbl_test_link_up(struct sbl_inst *sbl, int port_num, int loopback_mode)
 		goto out;
 	}
 
-	/*
-	 * configure base-link
-	 */
+	/* configure base-link */
 	sbl_blattr_init(&blattr, loopback_mode);
 
 	err = sbl_base_link_config(sbl, port_num, &blattr);
@@ -159,9 +155,7 @@ int sbl_test_link_up(struct sbl_inst *sbl, int port_num, int loopback_mode)
 		goto out;
 	}
 
-	/*
-	 * start the base link
-	 */
+	/* start the base link */
 	err = sbl_base_link_start(sbl, port_num);
 	if (err)
 		dev_err(sbl->dev, "%d: base link start failed [%d]\n", port_num, err);
@@ -386,8 +380,7 @@ int sbl_test_scratch(struct sbl_inst *sbl, int port_num)
 EXPORT_SYMBOL(sbl_test_scratch);
 
 
-/*
- * Updates return value of SerDes FW CRC check.
+/* Updates return value of SerDes FW CRC check.
  * If sbl_test_crc_failure set by sbl_test_inject_serdes_fw_crc_failure is 1,
  * CRC returns failure.
  */

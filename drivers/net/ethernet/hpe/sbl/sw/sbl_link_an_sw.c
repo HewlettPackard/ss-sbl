@@ -19,9 +19,7 @@
 #include "sbl_serdes_map.h"
 #include "sbl_internal.h"
 
-/*
- * np exchange - check for complete or done
- */
+/* np exchange - check for complete or done */
 static int sbl_an_sm_is_np_exchange_done(struct sbl_inst *sbl, int port_num, u64 *sm_state)
 {
 	u64 pcs_an_next_page_reg = 0;
@@ -47,9 +45,7 @@ static int sbl_an_sm_is_np_exchange_done(struct sbl_inst *sbl, int port_num, u64
 	return -ETIME;
 }
 
-/*
- * exchange - check for done
- */
+/* exchange - check for done */
 static bool sbl_an_sm_is_exchange_done(struct sbl_inst *sbl, int port_num, u64 sm_state)
 {
 	u64 pcs_an_next_page_reg = 0;
