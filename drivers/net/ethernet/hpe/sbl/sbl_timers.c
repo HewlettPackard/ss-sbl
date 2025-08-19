@@ -7,13 +7,13 @@
 #include <linux/device.h>
 #include <linux/delay.h>
 #include <linux/ktime.h>
-#include <sbl/sbl_pml.h>
-
 
 #include <linux/hpe/sbl/sbl.h>
 #include <linux/hpe/sbl/sbl_kconfig.h>
 
-#include "sbl_pml.h"
+#include <sbl/sbl_pml.h>
+
+#include "sbl_pml_fn.h"
 #include "sbl_link.h"
 #include "sbl_internal.h"
 

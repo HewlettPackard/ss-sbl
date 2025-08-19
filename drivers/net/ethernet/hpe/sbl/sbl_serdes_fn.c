@@ -6,12 +6,12 @@
 #include <linux/device.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
-#include <sbl/sbl_pml.h>
 
 #include <linux/hpe/sbl/sbl.h>
 #include <linux/hpe/sbl/sbl_kconfig.h>
 #include <linux/hpe/sbl/sbl_test.h>
 
+#include <sbl/sbl_pml.h>
 
 #include <uapi/ethernet/sbl_sbm_constants.h>
 #include <uapi/ethernet/sbl_serdes_defaults.h>
@@ -23,7 +23,7 @@
 #include "sbl_serdes_fn.h"
 #include "sbl_internal.h"
 #include "sbl_config_list.h"
-#include "sbl_pml.h"
+#include "sbl_pml_fn.h"
 
 static void sbl_send_serdes_fw_corruption_alert(struct sbl_inst *sbl, int port, int serdes)
 {

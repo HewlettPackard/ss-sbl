@@ -17,7 +17,7 @@
 #include "sbl_serdes.h"
 #include "sbl_config_list.h"
 #include "sbl_serdes_map.h"
-#include "sbl_pml.h"
+#include "sbl_pml_fn.h"
 #include "sbl_internal.h"
 
 static atomic_t sbl_inst_id = ATOMIC_INIT(-1);

@@ -7,12 +7,13 @@
 #include <linux/device.h>
 #include <linux/random.h>
 #include <linux/delay.h>
-#include <sbl/sbl_pml.h>
 
 #include <linux/hpe/sbl/sbl.h>
 #include <linux/hpe/sbl/sbl_an.h>
 
-#include "sbl_pml.h"
+#include <sbl/sbl_pml.h>
+
+#include "sbl_pml_fn.h"
 #include "sbl_link.h"
 #include "sbl_serdes.h"
 #include "sbl_constants.h"

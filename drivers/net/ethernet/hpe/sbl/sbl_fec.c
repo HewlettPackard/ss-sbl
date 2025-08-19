@@ -17,7 +17,7 @@
 #include <sbl/sbl_pml.h>
 
 #include "sbl_serdes_map.h"
-#include "sbl_pml.h"
+#include "sbl_pml_fn.h"
 #include "sbl_link.h"
 #include "sbl_serdes.h"
 #include "sbl_serdes_fn.h"

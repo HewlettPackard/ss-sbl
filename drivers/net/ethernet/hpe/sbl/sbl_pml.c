@@ -11,12 +11,13 @@
 #include <linux/jiffies.h>
 #include <linux/init.h>
 #include <linux/timer.h>
-#include <sbl/sbl_pml.h>
 
 #include <linux/hpe/sbl/sbl_kconfig.h>
 #include <linux/hpe/sbl/sbl.h>
 
-#include "sbl_pml.h"
+#include <sbl/sbl_pml.h>
+
+#include "sbl_pml_fn.h"
 #include "sbl_link.h"
 #include "sbl_internal.h"
 #include "sbl_serdes_fn.h"
