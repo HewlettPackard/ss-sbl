@@ -10,6 +10,7 @@
 #include "uapi/sbl.h"
 #include "sbl.h"
 #include "sbl_constants.h"
+#include "sbl_internal.h"
 
 
 /*

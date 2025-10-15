@@ -16,6 +16,7 @@ else
     CE_CONFIG_BRANCH=${CE_CONFIG_BRANCH:-main}
 fi
 
+
 if [ -d ${CE_BUILD_SCRIPT_REPO} ]; then
     git -C ${CE_BUILD_SCRIPT_REPO} fetch
     git -C ${CE_BUILD_SCRIPT_REPO} checkout ${CE_CONFIG_BRANCH}

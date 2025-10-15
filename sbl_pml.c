@@ -339,7 +339,7 @@ void sbl_pml_err_flgs_clear_all(struct sbl_inst *sbl, int port_num)
 	sbl_write64(sbl, base|SBL_PML_ERR_CLR_OFFSET, err_flgs);
 }
 
-bool sbl_pml_recovery_ignore_down_origin_fault(u32 down_origin)
+static bool sbl_pml_recovery_ignore_down_origin_fault(u32 down_origin)
 {
 	switch (down_origin) {
 	case SBL_LINK_DOWN_ORIGIN_LINK_DOWN:

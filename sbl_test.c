@@ -11,6 +11,7 @@
 #include "sbl.h"
 #include "sbl_serdes.h"
 #include "sbl_serdes_fn.h"
+#include "sbl_test.h"
 #include "sbl_pml.h"
 #include "sbl_internal.h"
 #include "sbl_constants.h"
