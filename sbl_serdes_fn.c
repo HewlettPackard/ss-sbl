@@ -36,7 +36,6 @@ static u8 get_serdes_tx_mask(struct sbl_inst *sbl, int port_num);
 static u8 get_serdes_rx_mask(struct sbl_inst *sbl, int port_num);
 static bool get_serdes_precoding(struct sbl_inst *sbl, int port_num);
 
-
 /**
  * @brief dummy function used when DEV_TRACE2 or DEV_TRACE3 are not defined
  *
@@ -1300,8 +1299,8 @@ int sbl_serdes_firm_upload(struct sbl_inst *sbl, int port_num, size_t fw_size,
 	return 0;
 }
 
-int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
-				 struct sbl_tuning_params *tps)
+static int sbl_get_serdes_tuning_params(struct sbl_inst *sbl, int port_num,
+					struct sbl_tuning_params *tps)
 {
 	int i, serdes, err;
 

@@ -163,7 +163,7 @@ int sbl_sbm_firm_upload(struct sbl_inst *sbl, int sbus_ring,
 int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num);
 
 /**
- * @brief Gets a given SerDes' tuning params
+ * @brief Save a given SerDes' tuning params
  *
  * Since the AAPL code does not provide this type of convenience function,
  *  we piece it together here.
