@@ -68,8 +68,7 @@ is_cm4_serdes_addr(u32 sbus_addr)
 #endif
 }
 
-#ifdef CONFIG_SBL_PLATFORM_CAS_HW
-static bool
+bool
 is_pcie_serdes_addr(u32 sbus_addr)
 {
 	u8 ring     = SBUS_RING(sbus_addr);
@@ -91,10 +90,8 @@ is_pcie_serdes_addr(u32 sbus_addr)
 	return false;
 #endif
 }
-#endif
 
-#ifdef CONFIG_SBL_PLATFORM_CAS_HW
-static bool
+bool
 is_pcie_serdes_pcs_addr(u32 sbus_addr)
 {
 	u8 ring     = SBUS_RING(sbus_addr);
@@ -116,7 +113,6 @@ is_pcie_serdes_pcs_addr(u32 sbus_addr)
 	return false;
 #endif
 }
-#endif
 
 bool
 is_sbm_crm_addr(u32 sbus_addr)
