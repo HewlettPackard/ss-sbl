@@ -24,6 +24,24 @@ typedef uint32_t u32;
 bool is_cm4_serdes_addr(u32 sbus_addr);
 
 /**
+ * @brief Returns true if the sbus_addr is a PCIe SerDes
+ *
+ * @param sbus_addr address describing a serdes ring and rxaddr
+ *
+ * @return true if match, else false
+ */
+bool is_pcie_serdes_addr(u32 sbus_addr);
+
+/**
+ * @brief Returns true if the sbus_addr is a PCIe SerDes PCS
+ *
+ * @param sbus_addr address describing a serdes ring and rxaddr
+ *
+ * @return true if match, else false
+ */
+bool is_pcie_serdes_pcs_addr(u32 sbus_addr);
+
+/**
  * @brief Returns true if the sbus_addr is a Sbus Master Controller Reciever
  *         Memory
  *
