@@ -16,7 +16,6 @@ else
     CE_CONFIG_BRANCH=${CE_CONFIG_BRANCH:-main}
 fi
 
-
 if [ -d ${CE_BUILD_SCRIPT_REPO} ]; then
     git -C ${CE_BUILD_SCRIPT_REPO} fetch
     git -C ${CE_BUILD_SCRIPT_REPO} checkout ${CE_CONFIG_BRANCH}
@@ -30,4 +29,4 @@ fi
 setup_dst_env
 
 dst_build_rpm -c ${CE_BUILD_SCRIPT_REPO}/build/configs/${CE_CONFIG_FILE} $@
-# dst_build_deb --yamlfile ${CE_BUILD_SCRIPT_REPO}/build/configs/${CE_CONFIG_FILE} --ps ${PRODUCT} --main-branch "main" --main-quality-stream "main" $@
+dst_build_deb --yamlfile ${CE_BUILD_SCRIPT_REPO}/build/configs/${CE_CONFIG_FILE} --ps ${PRODUCT} --main-branch "main" --main-quality-stream "main" $@
