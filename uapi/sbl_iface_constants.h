@@ -16,6 +16,7 @@ extern "C" {
 
 /* General constants */
 #define SBL_MAX_STR_LEN                      256
+#define SBL_HALF_MAX_STR_LEN                 128
 #define LEVEL_ERR                            4
 #define LEVEL_WARN                           3
 #define LEVEL_INFO                           2

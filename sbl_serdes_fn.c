@@ -1527,10 +1527,14 @@ int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 {
 	int i, serdes, err;
-	struct sbl_tuning_params tps;
+	struct sbl_tuning_params *tps;
 	int min, max;
 	int num_oob_params;
 	int max_oob_params = SBL_MAX_OOB_SERDES_PARAMS;
+
+	tps = kzalloc(sizeof(struct sbl_tuning_params), GFP_KERNEL);
+	if (!tps)
+		return -ENOMEM;
 
 	// debug adjustment to number of oob tuning params allowed
 	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_BAD_PARAM_1))
@@ -1538,9 +1542,11 @@ int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 	if (sbl_debug_option(sbl, port_num, SBL_DEBUG_BAD_PARAM_2))
 		max_oob_params += 2;
 
-	err = sbl_get_serdes_tuning_params(sbl, port_num, &tps);
-	if (err)
+	err = sbl_get_serdes_tuning_params(sbl, port_num, tps);
+	if (err) {
+		kfree(tps);
 		return err;
+	}
 
 	for (serdes = 0; serdes < sbl->switch_info->num_serdes; ++serdes) {
 		if (!rx_serdes_required_for_link_mode(sbl, port_num, serdes))
@@ -1596,16 +1602,16 @@ int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 			default:
 				continue;
 			}
-			if ((tps.params[serdes].ctle[i] < min) ||
-			    (tps.params[serdes].ctle[i] > max)) {
+			if ((tps->params[serdes].ctle[i] < min) ||
+			    (tps->params[serdes].ctle[i] > max)) {
 				sbl_dev_warn(sbl->dev, "p%ds%d: CTLE[%d] value(%d) out of bounds(%d:%d)!",
 					 port_num, serdes, i,
-					 tps.params[serdes].ctle[i], min, max);
+					 tps->params[serdes].ctle[i], min, max);
 				num_oob_params++;
 			} else {
 				sbl_dev_dbg(sbl->dev, "p%ds%d: CTLE[%d] value(%d) within bounds(%d:%d)",
 					 port_num, serdes, i,
-					 tps.params[serdes].ctle[i], min, max);
+					 tps->params[serdes].ctle[i], min, max);
 			}
 		}
 
@@ -1670,16 +1676,16 @@ int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 			default:
 				continue;
 			}
-			if ((tps.params[serdes].ffe[i] < min) ||
-			    (tps.params[serdes].ffe[i] > max)) {
+			if ((tps->params[serdes].ffe[i] < min) ||
+			    (tps->params[serdes].ffe[i] > max)) {
 				sbl_dev_warn(sbl->dev, "p%ds%d: FFE[%d] value(%d) out of bounds(%d:%d)!",
 					 port_num, serdes, i,
-					 tps.params[serdes].ffe[i], min, max);
+					 tps->params[serdes].ffe[i], min, max);
 				num_oob_params++;
 			} else {
 				sbl_dev_dbg(sbl->dev, "p%ds%d: FFE[%d] value(%d) within bounds(%d:%d)",
 					 port_num, serdes, i,
-					 tps.params[serdes].ffe[i], min, max);
+					 tps->params[serdes].ffe[i], min, max);
 			}
 		}
 		for (i = 0; i < NUM_DFE_PARAMS; ++i) {
@@ -1743,16 +1749,16 @@ int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 			default:
 				continue;
 			}
-			if ((tps.params[serdes].dfe[i] < min) ||
-			    (tps.params[serdes].dfe[i] > max)) {
+			if ((tps->params[serdes].dfe[i] < min) ||
+			    (tps->params[serdes].dfe[i] > max)) {
 				sbl_dev_warn(sbl->dev, "p%ds%d: DFE[%d] value(%d) out of bounds(%d:%d)!",
 					 port_num, serdes, i,
-					 tps.params[serdes].dfe[i], min, max);
+					 tps->params[serdes].dfe[i], min, max);
 				num_oob_params++;
 			} else {
 				sbl_dev_dbg(sbl->dev, "p%ds%d: DFE[%d] value(%d) within bounds(%d:%d)",
 					 port_num, serdes, i,
-					 tps.params[serdes].dfe[i], min, max);
+					 tps->params[serdes].dfe[i], min, max);
 			}
 		}
 
@@ -1766,6 +1772,7 @@ int sbl_check_serdes_tuning_params(struct sbl_inst *sbl, int port_num)
 		}
 	}
 
+	kfree(tps);
 	return 0;
 }
 #endif /* defined(CONFIG_SBL_PLATFORM_CAS_EMU) || defined (CONFIG_SBL_PLATFORM_CAS_SIM) */

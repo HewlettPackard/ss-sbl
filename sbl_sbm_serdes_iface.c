@@ -834,14 +834,34 @@ spico_interrupt_to_string(u32 sbus_addr, u16 interrupt, char *intr_str)
 #endif
 
 #if !defined(CONFIG_SBL_PLATFORM_CAS_EMU) && !defined(CONFIG_SBL_PLATFORM_CAS_SIM)
+static void sbus_msg_print(void *inst, int severity, const char *message)
+{
+	SBL_INST *sbl = (SBL_INST *)inst;
+
+	if (!sbl || !message)
+		return;
+	if (severity >= LEVEL_ERR)
+		SBL_ERR(sbl->dev, "%s", message);
+	else if (severity >= LEVEL_WARN)
+		SBL_WARN(sbl->dev, "%s", message);
+	else if (severity >= LEVEL_INFO)
+		SBL_INFO(sbl->dev, "%s", message);
+	else
+		SBL_TRACE1(sbl->dev, "%s", message);
+}
+#endif
+
+#if !defined(CONFIG_SBL_PLATFORM_CAS_EMU) && !defined(CONFIG_SBL_PLATFORM_CAS_SIM)
 static void sbus_msg(void *inst, u32 sbus_addr, u32 req_data,
 		     u8 reg_addr, u8 command, u32 rsp_data,
 		     u8 result_code, u8 overrun, int timeout,
 		     u32 flags, int rc, int severity)
 {
 	SBL_INST *sbl = (SBL_INST *)inst;
-	char sbus_addr_str[SBL_MAX_STR_LEN], cmd_str[SBL_MAX_STR_LEN];
-	char reg_addr_str[SBL_MAX_STR_LEN], rc_str[SBL_MAX_STR_LEN];
+	char sbus_addr_str[SBL_HALF_MAX_STR_LEN];
+	char reg_addr_str[SBL_HALF_MAX_STR_LEN]; 
+	char cmd_str[SBL_HALF_MAX_STR_LEN];
+	char rc_str[SBL_HALF_MAX_STR_LEN];
 	char message[SBL_MAX_STR_LEN];
 
 	if (!sbl)
@@ -854,19 +874,15 @@ static void sbus_msg(void *inst, u32 sbus_addr, u32 req_data,
 
 	snprintf(message, SBL_MAX_STR_LEN, "SBUS_OP: addr:0x%03x(%-20s) req_data:0x%08x reg_addr:0x%04x(%-15s)",
 		 sbus_addr, sbus_addr_str, req_data, reg_addr, reg_addr_str);
+	sbus_msg_print(inst, severity, message);
+
 	snprintf(message, SBL_MAX_STR_LEN, "SBUS_OP: command:0x%02x(%-24s), rsp_data:0x%08x result_code:0x%01x(%-14s)",
 		 command, cmd_str, rsp_data, result_code, rc_str);
+	sbus_msg_print(inst, severity, message);
+
 	snprintf(message, SBL_MAX_STR_LEN, "SBUS_OP: overrun:%d timeout:0x%04x flags:0x%04x rc:%d",
 		 overrun, timeout, flags, rc);
-	if (severity >= LEVEL_ERR)
-		SBL_ERR(sbl->dev, "%s", message);
-	else if (severity >= LEVEL_WARN)
-		SBL_WARN(sbl->dev, "%s", message);
-	else if (severity >= LEVEL_INFO)
-		SBL_INFO(sbl->dev, "%s", message);
-	else
-		SBL_TRACE1(sbl->dev, "%s", message);
-
+	sbus_msg_print(inst, severity, message);
 }
 #endif
 
