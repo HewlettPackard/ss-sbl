@@ -104,20 +104,21 @@ export INSTALL_MOD_DIR=extra/%{name}
 
 echo %flavors_to_build
 for flavor in %flavors_to_build; do
-    make -C %{kernel_source $flavor} modules_install M=$PWD/obj/$flavor
-    install -D $PWD/obj/$flavor/Module.symvers $RPM_BUILD_ROOT/%{prefix}/src/slingshot-base-link/$flavor/Module.symvers
+    make -C %{kernel_source $flavor} modules_install M=$PWD/obj/$flavor/drivers/net/ethernet/hpe/sbl
+    install -D $PWD/obj/$flavor/drivers/net/ethernet/hpe/sbl/Module.symvers $RPM_BUILD_ROOT/%{prefix}/src/slingshot-base-link/$flavor/Module.symvers
 done
 
-install -D -m 644 source/sbl.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl.h
-install -D -m 644 source/sbl_an.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl_an.h
-install -D -m 644 source/sbl_kconfig.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl_kconfig.h
-install -D -m 644 source/sbl_serdes_map.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl_serdes_map.h
-install -D -m 644 source/uapi/sbl.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl.h
-install -D -m 644 source/uapi/sbl_cassini.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_cassini.h
-install -D -m 644 source/uapi/sbl_counters.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_counters.h
-install -D -m 644 source/uapi/sbl_sbm_constants.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_sbm_constants.h
-install -D -m 644 source/uapi/sbl_serdes.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_serdes.h
-install -D -m 644 source/uapi/sbl_serdes_defaults.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_serdes_defaults.h
+install -D -m 644 source/include/linux/hpe/sbl/sbl.h                    $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl.h
+install -D -m 644 source/include/linux/hpe/sbl/sbl_an.h                 $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl_an.h
+install -D -m 644 source/include/linux/hpe/sbl/sbl_kconfig.h            $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl_kconfig.h
+
+install -D -m 644 source/include/uapi/ethernet/sbl-abi.h                $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl-abi.h
+install -D -m 644 source/include/uapi/ethernet/sbl_cassini.h            $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_cassini.h
+install -D -m 644 source/include/uapi/ethernet/sbl_counters.h           $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_counters.h
+install -D -m 644 source/include/uapi/ethernet/sbl_sbm_constants.h      $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_sbm_constants.h
+install -D -m 644 source/include/uapi/ethernet/sbl_serdes_defaults.h    $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_serdes_defaults.h
+install -D -m 644 source/include/uapi/ethernet/sbl_serdes.h             $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_serdes.h
+install -D -m 644 source/include/uapi/ethernet/sbl_serdes_map.h         $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_serdes_map.h
 
 %if 0%{?rhel}
 # Centos/Rocky/RHEL does not exclude the depmod-generated modules.* files from
@@ -152,8 +153,8 @@ sed\
 rm -f %{buildroot}${dkms_source_dir}/dkms.conf.in
 
 %files devel
-%{_includedir}/linux/*.h
-%{_includedir}/uapi/*.h
+%{_includedir}/linux/hpe/sbl/*.h
+%{_includedir}/uapi/ethernet/*.h
 %{prefix}/src/slingshot-base-link/*/Module.symvers
 
 %files dkms -f dkms-files
