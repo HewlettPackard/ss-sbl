@@ -119,7 +119,10 @@ endif
 sbldrv.pc: ../../../../../pkgconfig/sbldrv.pc.in
 	sed "s|@prefix@|$(STAGING_DIR)|g" $< > $@
 
-modules:
+platform_cp:
+	cp $(SBL_PLATFORM_HDR) $(PWD)/../../../../../include/linux/hpe/sbl/sbl_platform.h
+
+modules: platform_cp
 	$(MAKE_KNL) modules
 
 clean:

@@ -111,6 +111,7 @@ done
 install -D -m 644 source/include/linux/hpe/sbl/sbl.h                    $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl.h
 install -D -m 644 source/include/linux/hpe/sbl/sbl_an.h                 $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl_an.h
 install -D -m 644 source/include/linux/hpe/sbl/sbl_kconfig.h            $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl_kconfig.h
+install -D -m 644 $PWD/obj/$flavor/include/linux/hpe/sbl/sbl_platform.h                  $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl_platform.h
 
 install -D -m 644 source/include/uapi/ethernet/sbl-abi.h                $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl-abi.h
 install -D -m 644 source/include/uapi/ethernet/sbl_cassini.h            $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_cassini.h
