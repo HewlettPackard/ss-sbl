@@ -97,6 +97,9 @@ SBL_NAME = sbl
 else # Cassini
 KCPPFLAGS      += -I$(PWD)/../../../../../../cassini-headers/install/include -I$(PWD)/../../../../../include
 KNL_REL        := $(KERNELRELEASE)
+ifeq ($(strip $(KNL_REL)),)
+KNL_REL        := $(shell uname -r)
+endif
 SBL_NAME = cxi-sbl
 endif
 
@@ -129,7 +132,9 @@ clean:
 	if [ -d "$(KDIR)" ];then \
 		$(MAKE_KNL) clean; \
 	fi; \
-	rm -f *.o *.ko *.mod.c *.symvers *.order
+	rm -f sbldrv.pc \
+	rm -f modules.livepatch \
+	rm -f $(PWD)/../../../../../include/linux/hpe/sbl/sbl_platform.h
 
 stage_install: modules sbldrv.pc
 	$(INSTALL) -d $(STAGING_DIR)
@@ -150,14 +155,37 @@ stage_install: modules sbldrv.pc
 	$(INSTALL) -D -m 644 sbldrv.pc $(PKGCONFIG_DIR)/sbldrv.pc
 
 stage_uninstall:
-	for hdr in $(UNINSTALL_LINUX_HDRS); do \
-	$(RM) $(STAGING_DIR)/usr/include/linux/hpe/sbl/$$hdr; \
-	done
-	for hdr in $(UNINSTALL_UAPI_ETHERNET_HDRS); do \
-	$(RM) $(STAGING_DIR)/usr/include/uapi/ethernet/$$hdr; \
-	done
-	$(RM) sbldrv.pc
-	$(RM) $(PKGCONFIG_DIR)/sbldrv.pc
+	if [ -d "$(STAGING_DIR)" ]; then \
+		for hdr in $(UNINSTALL_LINUX_HDRS); do \
+			$(RM) $(STAGING_DIR)/usr/include/linux/hpe/sbl/$$hdr; \
+		done; \
+		for hdr in $(UNINSTALL_UAPI_ETHERNET_HDRS); do \
+			$(RM) $(STAGING_DIR)/usr/include/uapi/ethernet/$$hdr; \
+		done; \
+		$(RM) $(PKGCONFIG_DIR)/sbldrv.pc; \
+		$(RM) $(STAGING_DIR)/lib/modules/$(KNL_REL)/modules.order; \
+		$(RM) $(STAGING_DIR)/lib/modules/$(KNL_REL)/modules.builtin; \
+		$(RM) $(STAGING_DIR)/lib/modules/$(KNL_REL)/module.symvers.sbl; \
+		$(RM) $(STAGING_DIR)/lib/modules/$(KNL_REL)/updates/$(SBL_NAME).ko; \
+		rmdir $(STAGING_DIR)/usr/include/uapi/ethernet; \
+		rmdir $(STAGING_DIR)/usr/include/uapi; \
+		rmdir $(STAGING_DIR)/usr/include/linux/hpe/sbl; \
+		rmdir $(STAGING_DIR)/usr/include/linux/hpe; \
+		rmdir $(STAGING_DIR)/usr/include/linux; \
+		rmdir $(STAGING_DIR)/usr/include; \
+		rmdir $(STAGING_DIR)/usr/lib/pkgconfig; \
+		rmdir $(STAGING_DIR)/usr/lib; \
+		rmdir $(STAGING_DIR)/usr; \
+                if [ -d "$(STAGING_DIR)/lib/modules/$(KNL_REL)/updates" ]; then \
+                        rmdir $(STAGING_DIR)/lib/modules/$(KNL_REL)/updates; \
+                fi; \
+                if [ -d "$(STAGING_DIR)/lib/modules/$(KNL_REL)/extra" ]; then \
+                        rmdir $(STAGING_DIR)/lib/modules/$(KNL_REL)/extra; \
+                fi; \
+		rmdir $(STAGING_DIR)/lib/modules/$(KNL_REL); \
+		rmdir $(STAGING_DIR)/lib/modules; \
+		rmdir $(STAGING_DIR)/lib; \
+		rmdir $(STAGING_DIR); \
+	fi
 
 # last line
-
