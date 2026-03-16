@@ -665,7 +665,8 @@ void sbl_fec_timer(struct timer_list *timer)
 {
 	int port_num;
 	struct sbl_link *link;
-	struct fec_data *fec_data = from_timer(fec_data, timer, fec_timer);
+	struct fec_data *fec_data = timer_container_of(fec_data, timer,
+						       fec_timer);
 	struct sbl_inst *sbl = fec_data->sbl;
 
 	port_num = fec_data->port_num;

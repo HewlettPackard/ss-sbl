@@ -61,6 +61,10 @@
 })
 #endif
 
+#ifndef timer_container_of
+#define timer_container_of from_timer
+#endif
+
 struct sbl_pml_recovery {
 	struct sbl_inst *sbl;
 	struct timer_list timer;
