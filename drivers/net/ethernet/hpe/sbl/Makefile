@@ -98,7 +98,12 @@ else # Cassini
 KCPPFLAGS      += -I$(PWD)/../../../../../../cassini-headers/install/include -I$(PWD)/../../../../../include
 KNL_REL        := $(KERNELRELEASE)
 ifeq ($(strip $(KNL_REL)),)
+ifneq ($(wildcard $(KDIR)/include/config/kernel.release),)
+KNL_REL        := $(strip $(shell cat $(KDIR)/include/config/kernel.release))
+endif
+ifeq ($(strip $(KNL_REL)),)
 KNL_REL        := $(shell uname -r)
+endif
 endif
 SBL_NAME = cxi-sbl
 endif
@@ -163,10 +168,12 @@ stage_uninstall:
 			$(RM) $(STAGING_DIR)/usr/include/uapi/ethernet/$$hdr; \
 		done; \
 		$(RM) $(PKGCONFIG_DIR)/sbldrv.pc; \
-		$(RM) $(STAGING_DIR)/lib/modules/$(KNL_REL)/modules.order; \
-		$(RM) $(STAGING_DIR)/lib/modules/$(KNL_REL)/modules.builtin; \
-		$(RM) $(STAGING_DIR)/lib/modules/$(KNL_REL)/module.symvers.sbl; \
-		$(RM) $(STAGING_DIR)/lib/modules/$(KNL_REL)/updates/$(SBL_NAME).ko; \
+		if [ -d "$(STAGING_DIR)/lib/modules" ]; then \
+			find "$(STAGING_DIR)/lib/modules" -type f \
+			\( -name "$(SBL_NAME).ko*" -o -name "modules.*" -o -name "module.symvers.sbl" \) \
+			-delete; \
+			find "$(STAGING_DIR)/lib/modules" -mindepth 1 -type d -empty -delete; \
+		fi; \
 		rmdir $(STAGING_DIR)/usr/include/uapi/ethernet; \
 		rmdir $(STAGING_DIR)/usr/include/uapi; \
 		rmdir $(STAGING_DIR)/usr/include/linux/hpe/sbl; \
@@ -176,13 +183,6 @@ stage_uninstall:
 		rmdir $(STAGING_DIR)/usr/lib/pkgconfig; \
 		rmdir $(STAGING_DIR)/usr/lib; \
 		rmdir $(STAGING_DIR)/usr; \
-                if [ -d "$(STAGING_DIR)/lib/modules/$(KNL_REL)/updates" ]; then \
-                        rmdir $(STAGING_DIR)/lib/modules/$(KNL_REL)/updates; \
-                fi; \
-                if [ -d "$(STAGING_DIR)/lib/modules/$(KNL_REL)/extra" ]; then \
-                        rmdir $(STAGING_DIR)/lib/modules/$(KNL_REL)/extra; \
-                fi; \
-		rmdir $(STAGING_DIR)/lib/modules/$(KNL_REL); \
 		rmdir $(STAGING_DIR)/lib/modules; \
 		rmdir $(STAGING_DIR)/lib; \
 		rmdir $(STAGING_DIR); \
