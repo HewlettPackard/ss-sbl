@@ -26,7 +26,7 @@
 %define release_extra 0
 
 Name:           cray-slingshot-base-link
-Version:        1.0.0
+Version:        1.0.2
 Release:        %(echo ${BUILD_METADATA})
 Summary:        HPE Slingshot Base Link driver
 License:        GPL-2.0
@@ -70,7 +70,8 @@ Development files for Slingshot Base Link driver
 Summary:        DKMS support for %{name} kernel modules
 Requires:       dkms
 Requires:       cray-cassini-headers-user
-Conflicts:      %{distro_kernel_package_name}
+Conflicts:      kmod-%{name}
+Conflicts:      %{name}-kmp
 BuildArch:      noarch
 
 %description dkms
@@ -161,9 +162,17 @@ rm -f %{buildroot}${dkms_source_dir}/dkms.conf.in
 %files dkms -f dkms-files
 
 %changelog
+* Mon Sep 08 2026 Patrick Bueb <patrick.bueb@hpe.com> 1.0.2
+- Build the DKMS module in %post (dependency-ordered) instead of %posttrans; this module is
+  versioned (no upgrade collision) and is a build dependency of other modules (ENCASSINI-2814).
+* Wed Sep 02 2026 Patrick Bueb <patrick.bueb@hpe.com> 1.0.1
+- Move the DKMS build/install to the posttrans scriptlet so the old module is removed first on upgrade.
+- Standardize kmod/dkms Conflicts.
 
 %pre dkms
 
+# Build in %post: this module is versioned (no upgrade collision), and %post runs in
+# dependency order so it is built before the modules that build-depend on it.
 %post dkms
 if [ -f /usr/libexec/dkms/common.postinst ] && [ -x /usr/libexec/dkms/common.postinst ]
 then
