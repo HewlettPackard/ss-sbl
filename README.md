@@ -17,8 +17,6 @@ SBL_EXTERNAL_BUILD=1
 Target platform. One of:
 PLATFORM_ROSETTA_HW=1
 PLATFORM_CASSINI_HW=1
-PLATFORM_CASSINI_EMU=1
-PLATFORM_CASSINI_SIM=1
 
 Rosetta builds:
 The slingshot_base_link repo must be checked out to the following location:
@@ -41,10 +39,10 @@ cxi-driver.
 
 Cassini environment build:
 This build will automatically call make with SBL_CONFIG set as follows:
-SBL_CONFIG := SBL_EXTERNAL_BUILD=1 PLATFORM_CASSINI_SIM=1
+SBL_CONFIG := SBL_EXTERNAL_BUILD=1 PLATFORM_CASSINI_HW=1
 See devbootstrap to build the Cassini environment with the SBL module included:
 $ git clone ssh://git@github.hpe.com:hpe/hpc-shs-devbootstrap.git
 
 Cassini Standalone Build:
 SBL can be checkout out and built as follows:
-$ SBL_EXTERNAL_BUILD=1 PLATFORM_CASSINI_SIM=1 make
+$ SBL_EXTERNAL_BUILD=1 PLATFORM_CASSINI_HW=1 make

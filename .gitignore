@@ -9,4 +9,8 @@
 .tmp_versions
 Module.symvers
 modules.order
-
+cxi-sbl.mod
+modules.livepatch
+drivers/net/ethernet/hpe/sbl/sbldrv.pc
+include/linux/hpe/sbl/sbl_platform.h
+staging_dir/
