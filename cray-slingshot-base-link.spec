@@ -1,4 +1,7 @@
-# Build for Cassini hardware by default;
+# Build for Cassini hardware by default; build for emulator or netsim by
+# defining the 'platform' macro.
+# e.g. rpmbuild --define 'platform PLATFORM_CASSINI_SIM' ...
+# If 'platform' is not defined, default to PLATFORM_CASSINI_HW
 %define platform_arg %{!?platform:PLATFORM_CASSINI_HW}%{?platform:%platform}=1
 
 %{!?dkms_source_tree:%define dkms_source_tree /usr/src}
@@ -26,7 +29,7 @@
 %define release_extra 0
 
 Name:           cray-slingshot-base-link
-Version:        1.0.2
+Version:        1.0.0
 Release:        %(echo ${BUILD_METADATA})
 Summary:        HPE Slingshot Base Link driver
 License:        GPL-2.0
@@ -70,8 +73,7 @@ Development files for Slingshot Base Link driver
 Summary:        DKMS support for %{name} kernel modules
 Requires:       dkms
 Requires:       cray-cassini-headers-user
-Conflicts:      kmod-%{name}
-Conflicts:      %{name}-kmp
+Conflicts:      %{distro_kernel_package_name}
 BuildArch:      noarch
 
 %description dkms
@@ -105,22 +107,20 @@ export INSTALL_MOD_DIR=extra/%{name}
 
 echo %flavors_to_build
 for flavor in %flavors_to_build; do
-    make -C %{kernel_source $flavor} modules_install M=$PWD/obj/$flavor/drivers/net/ethernet/hpe/sbl
-    install -D $PWD/obj/$flavor/drivers/net/ethernet/hpe/sbl/Module.symvers $RPM_BUILD_ROOT/%{prefix}/src/slingshot-base-link/$flavor/Module.symvers
+    make -C %{kernel_source $flavor} modules_install M=$PWD/obj/$flavor
+    install -D $PWD/obj/$flavor/Module.symvers $RPM_BUILD_ROOT/%{prefix}/src/slingshot-base-link/$flavor/Module.symvers
 done
 
-install -D -m 644 source/include/linux/hpe/sbl/sbl.h                    $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl.h
-install -D -m 644 source/include/linux/hpe/sbl/sbl_an.h                 $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl_an.h
-install -D -m 644 source/include/linux/hpe/sbl/sbl_kconfig.h            $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl_kconfig.h
-install -D -m 644 $PWD/obj/$flavor/include/linux/hpe/sbl/sbl_platform.h                  $RPM_BUILD_ROOT/%{_includedir}/linux/hpe/sbl/sbl_platform.h
-
-install -D -m 644 source/include/uapi/ethernet/sbl-abi.h                $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl-abi.h
-install -D -m 644 source/include/uapi/ethernet/sbl_cassini.h            $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_cassini.h
-install -D -m 644 source/include/uapi/ethernet/sbl_counters.h           $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_counters.h
-install -D -m 644 source/include/uapi/ethernet/sbl_sbm_constants.h      $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_sbm_constants.h
-install -D -m 644 source/include/uapi/ethernet/sbl_serdes_defaults.h    $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_serdes_defaults.h
-install -D -m 644 source/include/uapi/ethernet/sbl_serdes.h             $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_serdes.h
-install -D -m 644 source/include/uapi/ethernet/sbl_serdes_map.h         $RPM_BUILD_ROOT/%{_includedir}/uapi/ethernet/sbl_serdes_map.h
+install -D -m 644 source/sbl.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl.h
+install -D -m 644 source/sbl_an.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl_an.h
+install -D -m 644 source/sbl_kconfig.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl_kconfig.h
+install -D -m 644 source/sbl_serdes_map.h $RPM_BUILD_ROOT/%{_includedir}/linux/sbl_serdes_map.h
+install -D -m 644 source/uapi/sbl.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl.h
+install -D -m 644 source/uapi/sbl_cassini.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_cassini.h
+install -D -m 644 source/uapi/sbl_counters.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_counters.h
+install -D -m 644 source/uapi/sbl_iface_constants.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_iface_constants.h
+install -D -m 644 source/uapi/sbl_serdes.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_serdes.h
+install -D -m 644 source/uapi/sbl_serdes_defaults.h $RPM_BUILD_ROOT/%{_includedir}/uapi/sbl_serdes_defaults.h
 
 %if 0%{?rhel}
 # Centos/Rocky/RHEL does not exclude the depmod-generated modules.* files from
@@ -155,24 +155,16 @@ sed\
 rm -f %{buildroot}${dkms_source_dir}/dkms.conf.in
 
 %files devel
-%{_includedir}/linux/hpe/sbl/*.h
-%{_includedir}/uapi/ethernet/*.h
+%{_includedir}/linux/*.h
+%{_includedir}/uapi/*.h
 %{prefix}/src/slingshot-base-link/*/Module.symvers
 
 %files dkms -f dkms-files
 
 %changelog
-* Mon Sep 08 2026 Patrick Bueb <patrick.bueb@hpe.com> 1.0.2
-- Build the DKMS module in %post (dependency-ordered) instead of %posttrans; this module is
-  versioned (no upgrade collision) and is a build dependency of other modules (ENCASSINI-2814).
-* Wed Sep 02 2026 Patrick Bueb <patrick.bueb@hpe.com> 1.0.1
-- Move the DKMS build/install to the posttrans scriptlet so the old module is removed first on upgrade.
-- Standardize kmod/dkms Conflicts.
 
 %pre dkms
 
-# Build in %post: this module is versioned (no upgrade collision), and %post runs in
-# dependency order so it is built before the modules that build-depend on it.
 %post dkms
 if [ -f /usr/libexec/dkms/common.postinst ] && [ -x /usr/libexec/dkms/common.postinst ]
 then
