@@ -23,6 +23,10 @@
 #include "sbl_internal.h"
 #include "sbl_fec.h"
 
+#ifndef from_timer
+#define from_timer timer_container_of 
+#endif
+
 static int sbl_fec_rates_update(struct sbl_inst *sbl, int port_num, u32 window);
 static bool sbl_fec_ccw_rate_bad(struct sbl_inst *sbl, int port_num,
 				u32 thresh_adj, bool use_stp_thresh);
