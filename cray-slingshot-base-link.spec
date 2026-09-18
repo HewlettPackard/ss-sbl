@@ -29,7 +29,7 @@
 %define release_extra 0
 
 Name:           cray-slingshot-base-link
-Version:        1.0.0
+Version:        1.0.2
 Release:        %(echo ${BUILD_METADATA})
 Summary:        HPE Slingshot Base Link driver
 License:        GPL-2.0
